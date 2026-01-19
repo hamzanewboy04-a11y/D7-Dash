@@ -24,6 +24,10 @@ interface ImportResult {
   imported: number;
   updated: number;
   total: number;
+  columnMapping?: {
+    matched: Record<string, string>;
+    unmatched: string[];
+  };
   errors?: string[];
   parseErrors?: string[];
 }
@@ -359,6 +363,34 @@ export default function ImportPage() {
                             <li>...и ещё {result.errors.length - 5}</li>
                           )}
                         </ul>
+                      </div>
+                    )}
+                    {/* Column mapping info */}
+                    {result.columnMapping && (
+                      <div className="mt-3 pt-3 border-t border-emerald-200">
+                        <p className="font-medium text-emerald-800 text-sm mb-2">Сопоставление колонок:</p>
+                        <div className="space-y-1 text-xs">
+                          {Object.entries(result.columnMapping.matched).map(([col, field]) => (
+                            <div key={col} className="flex items-center gap-2">
+                              <span className="text-emerald-600">✓</span>
+                              <span className="font-mono bg-emerald-100 px-1 rounded">{col}</span>
+                              <span className="text-slate-500">→</span>
+                              <span className="text-slate-700">{field}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {result.columnMapping.unmatched.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-amber-700 text-xs">Не распознаны:</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {result.columnMapping.unmatched.map((col) => (
+                                <span key={col} className="font-mono text-xs bg-amber-100 px-1 rounded text-amber-800">
+                                  {col}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
