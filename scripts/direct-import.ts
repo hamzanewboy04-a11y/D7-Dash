@@ -187,6 +187,9 @@ function parseSheet(worksheet: XLSX.WorkSheet, sheetName: string): ParsedRow[] {
   }
   console.log(`  Mapped columns:`, Object.entries(mappedCols).map(([k, v]) => `"${k}" -> ${v}`).join(', '));
 
+  // Track processed dates to avoid duplicates (keep first occurrence)
+  const processedDates = new Set<string>();
+
   // Parse each data row (skip header)
   for (let rowIdx = 1; rowIdx < rawData.length; rowIdx++) {
     const row = rawData[rowIdx];
@@ -232,6 +235,13 @@ function parseSheet(worksheet: XLSX.WorkSheet, sheetName: string): ParsedRow[] {
     if (!parsed.date) {
       continue;
     }
+
+    // Skip duplicate dates (keep first occurrence only)
+    const dateStr = parsed.date.toISOString().split('T')[0];
+    if (processedDates.has(dateStr)) {
+      continue;
+    }
+    processedDates.add(dateStr);
 
     // Skip rows with no meaningful data (all zeros)
     const hasData = parsed.spendTrust! > 0 || parsed.spendCrossgif! > 0 || parsed.spendFbm! > 0 ||
