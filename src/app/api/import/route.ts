@@ -18,44 +18,96 @@ interface ParsedRow {
   additionalExpenses: number;
 }
 
-// Map column names to our fields
-const COLUMN_MAP: Record<string, keyof ParsedRow> = {
-  // Date variations
-  "дата": "date",
-  "date": "date",
-  "день": "date",
-  // Spend variations
-  "траст спенд": "spendTrust",
-  "trust": "spendTrust",
-  "траст": "spendTrust",
-  "кросгиф спенд": "spendCrossgif",
-  "кросгиф": "spendCrossgif",
-  "crossgif": "spendCrossgif",
-  "fbm спенд": "spendFbm",
-  "fbm": "spendFbm",
-  // Revenue Priemka
-  "доход sol приёмка": "revenueLocalPriemka",
-  "доход sol": "revenueLocalPriemka",
-  "доход в sol приёмка": "revenueLocalPriemka",
-  "доход usdt приёмка": "revenueUsdtPriemka",
-  "доход в usdt приёмка": "revenueUsdtPriemka",
-  // Revenue Own
-  "доход sol наш": "revenueLocalOwn",
-  "доход в sol наш": "revenueLocalOwn",
-  "доход usdt наш": "revenueUsdtOwn",
-  "доход в usdt наш": "revenueUsdtOwn",
-  // FD
-  "фд кол-во": "fdCount",
-  "фд количество": "fdCount",
-  "fd count": "fdCount",
-  "фд сумма sol": "fdSumLocal",
-  "фд сумма": "fdSumLocal",
-  // Other
-  "chatterfy": "chatterfyCost",
-  "чаттерфай": "chatterfyCost",
-  "доп расходы": "additionalExpenses",
-  "дополнительные расходы": "additionalExpenses",
-};
+// Flexible column mapping with multiple variations
+const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
+  // Date
+  { pattern: /^дата$/i, field: "date" },
+  { pattern: /^date$/i, field: "date" },
+  { pattern: /^день$/i, field: "date" },
+
+  // Trust Spend
+  { pattern: /траст.*спенд/i, field: "spendTrust" },
+  { pattern: /спенд.*траст/i, field: "spendTrust" },
+  { pattern: /trust.*spend/i, field: "spendTrust" },
+  { pattern: /^траст$/i, field: "spendTrust" },
+  { pattern: /^trust$/i, field: "spendTrust" },
+
+  // Crossgif Spend
+  { pattern: /кросс?гиф.*спенд/i, field: "spendCrossgif" },
+  { pattern: /спенд.*кросс?гиф/i, field: "spendCrossgif" },
+  { pattern: /crossgif.*spend/i, field: "spendCrossgif" },
+  { pattern: /^кросс?гиф$/i, field: "spendCrossgif" },
+  { pattern: /^crossgif$/i, field: "spendCrossgif" },
+
+  // FBM Spend
+  { pattern: /fbm.*спенд/i, field: "spendFbm" },
+  { pattern: /спенд.*fbm/i, field: "spendFbm" },
+  { pattern: /fbm.*spend/i, field: "spendFbm" },
+  { pattern: /^fbm$/i, field: "spendFbm" },
+
+  // Revenue Priemka (Local)
+  { pattern: /доход.*sol.*при[её]м/i, field: "revenueLocalPriemka" },
+  { pattern: /доход.*при[её]м.*sol/i, field: "revenueLocalPriemka" },
+  { pattern: /revenue.*sol.*priemka/i, field: "revenueLocalPriemka" },
+  { pattern: /при[её]м.*sol/i, field: "revenueLocalPriemka" },
+  { pattern: /^доход\s+sol\s+при[её]мка$/i, field: "revenueLocalPriemka" },
+  { pattern: /^доход\s+в?\s*sol\s+при[её]мка$/i, field: "revenueLocalPriemka" },
+
+  // Revenue Priemka (USDT)
+  { pattern: /доход.*usdt.*при[её]м/i, field: "revenueUsdtPriemka" },
+  { pattern: /доход.*при[её]м.*usdt/i, field: "revenueUsdtPriemka" },
+  { pattern: /revenue.*usdt.*priemka/i, field: "revenueUsdtPriemka" },
+  { pattern: /при[её]м.*usdt/i, field: "revenueUsdtPriemka" },
+  { pattern: /^доход\s+usdt\s+при[её]мка$/i, field: "revenueUsdtPriemka" },
+  { pattern: /^доход\s+в?\s*usdt\s+при[её]мка$/i, field: "revenueUsdtPriemka" },
+
+  // Revenue Own (Local)
+  { pattern: /доход.*sol.*наш/i, field: "revenueLocalOwn" },
+  { pattern: /доход.*наш.*sol/i, field: "revenueLocalOwn" },
+  { pattern: /наш.*sol/i, field: "revenueLocalOwn" },
+  { pattern: /^доход\s+sol\s+наш$/i, field: "revenueLocalOwn" },
+  { pattern: /^доход\s+в?\s*sol\s+наш$/i, field: "revenueLocalOwn" },
+
+  // Revenue Own (USDT)
+  { pattern: /доход.*usdt.*наш/i, field: "revenueUsdtOwn" },
+  { pattern: /доход.*наш.*usdt/i, field: "revenueUsdtOwn" },
+  { pattern: /наш.*usdt/i, field: "revenueUsdtOwn" },
+  { pattern: /^доход\s+usdt\s+наш$/i, field: "revenueUsdtOwn" },
+  { pattern: /^доход\s+в?\s*usdt\s+наш$/i, field: "revenueUsdtOwn" },
+
+  // FD Count
+  { pattern: /фд.*кол/i, field: "fdCount" },
+  { pattern: /кол.*фд/i, field: "fdCount" },
+  { pattern: /fd.*count/i, field: "fdCount" },
+  { pattern: /^фд$/i, field: "fdCount" },
+
+  // FD Sum
+  { pattern: /фд.*сумм/i, field: "fdSumLocal" },
+  { pattern: /сумм.*фд/i, field: "fdSumLocal" },
+  { pattern: /fd.*sum/i, field: "fdSumLocal" },
+
+  // Chatterfy
+  { pattern: /chatterf/i, field: "chatterfyCost" },
+  { pattern: /чаттерф/i, field: "chatterfyCost" },
+
+  // Additional expenses
+  { pattern: /доп.*расход/i, field: "additionalExpenses" },
+  { pattern: /дополн.*расход/i, field: "additionalExpenses" },
+  { pattern: /additional.*exp/i, field: "additionalExpenses" },
+  { pattern: /other.*exp/i, field: "additionalExpenses" },
+];
+
+function matchColumn(colName: string): keyof ParsedRow | null {
+  const normalized = colName.toLowerCase().trim();
+
+  for (const { pattern, field } of COLUMN_PATTERNS) {
+    if (pattern.test(normalized)) {
+      return field;
+    }
+  }
+
+  return null;
+}
 
 function parseNumber(value: unknown): number {
   if (value === null || value === undefined || value === "") return 0;
@@ -96,7 +148,7 @@ function parseDate(value: unknown): Date | null {
   return null;
 }
 
-function parseRow(row: Record<string, unknown>): ParsedRow | null {
+function parseRow(row: Record<string, unknown>, logColumns = false): ParsedRow | null {
   const result: Partial<ParsedRow> = {
     spendTrust: 0,
     spendCrossgif: 0,
@@ -111,14 +163,20 @@ function parseRow(row: Record<string, unknown>): ParsedRow | null {
     additionalExpenses: 0,
   };
 
+  const matchedFields: Record<string, string> = {};
+
   for (const [colName, value] of Object.entries(row)) {
-    const normalizedCol = colName.toLowerCase().trim();
-    const field = COLUMN_MAP[normalizedCol];
+    const field = matchColumn(colName);
+
+    if (logColumns) {
+      console.log(`Column "${colName}" -> field: ${field || "NOT MATCHED"}, value: ${value}`);
+    }
 
     if (field === "date") {
       const date = parseDate(value);
       if (date) {
         result.date = date.toISOString();
+        matchedFields["date"] = colName;
       }
     } else if (field) {
       const num = parseNumber(value);
@@ -127,7 +185,12 @@ function parseRow(row: Record<string, unknown>): ParsedRow | null {
       } else {
         (result as Record<string, number>)[field] = num;
       }
+      matchedFields[field] = colName;
     }
+  }
+
+  if (logColumns) {
+    console.log("Matched fields:", matchedFields);
   }
 
   if (!result.date) {
@@ -179,9 +242,15 @@ export async function POST(request: Request) {
     const parsedRows: ParsedRow[] = [];
     const errors: string[] = [];
 
+    // Log first row columns for debugging
+    if (rawData.length > 0) {
+      console.log("Excel columns found:", Object.keys(rawData[0] as Record<string, unknown>));
+    }
+
     for (let i = 0; i < rawData.length; i++) {
       const row = rawData[i] as Record<string, unknown>;
-      const parsed = parseRow(row);
+      // Log columns only for first data row
+      const parsed = parseRow(row, i === 0);
 
       if (parsed) {
         parsedRows.push(parsed);

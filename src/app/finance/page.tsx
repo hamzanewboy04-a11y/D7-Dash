@@ -25,29 +25,29 @@ import {
   Cell,
 } from "recharts";
 
-// Demo data
+// Демо данные
 const weeklyPnL = [
-  { week: "Dec 1-7", revenue: 12718.09, expenses: 6881.49, profit: 5836.60, roi: 0.42 },
-  { week: "Dec 8-14", revenue: 14500.00, expenses: 7200.00, profit: 7300.00, roi: 0.50 },
-  { week: "Dec 15-21", revenue: 11200.00, expenses: 6800.00, profit: 4400.00, roi: 0.39 },
-  { week: "Dec 22-28", revenue: 9800.00, expenses: 5900.00, profit: 3900.00, roi: 0.40 },
+  { week: "1-7 дек", revenue: 12718.09, expenses: 6881.49, profit: 5836.60, roi: 0.42 },
+  { week: "8-14 дек", revenue: 14500.00, expenses: 7200.00, profit: 7300.00, roi: 0.50 },
+  { week: "15-21 дек", revenue: 11200.00, expenses: 6800.00, profit: 4400.00, roi: 0.39 },
+  { week: "22-28 дек", revenue: 9800.00, expenses: 5900.00, profit: 3900.00, roi: 0.40 },
 ];
 
 const expenseBreakdown = [
-  { name: "Ad Spend", value: 14100, color: "#6366f1" },
-  { name: "Agency Fees", value: 1200, color: "#8b5cf6" },
-  { name: "Payroll", value: 3450, color: "#f43f5e" },
-  { name: "Priemka Commission", value: 1800, color: "#f97316" },
+  { name: "Рекламный спенд", value: 14100, color: "#6366f1" },
+  { name: "Комиссия агентства", value: 1200, color: "#8b5cf6" },
+  { name: "ФОТ", value: 3450, color: "#f43f5e" },
+  { name: "Комиссия приёмки", value: 1800, color: "#f97316" },
   { name: "Chatterfy", value: 500, color: "#eab308" },
-  { name: "Other", value: 350, color: "#64748b" },
+  { name: "Другое", value: 350, color: "#64748b" },
 ];
 
 const countryPnL = [
-  { country: "Peru", revenue: 8500, expenses: 6400, profit: 2100, roi: 0.25 },
-  { country: "Italy (W)", revenue: 6200, expenses: 4700, profit: 1500, roi: 0.24 },
-  { country: "Italy (M)", revenue: 4800, expenses: 3900, profit: 900, roi: 0.19 },
-  { country: "Argentina", revenue: 3500, expenses: 2800, profit: 700, roi: 0.20 },
-  { country: "Chile", revenue: 2800, expenses: 2400, profit: 400, roi: 0.14 },
+  { country: "Перу", revenue: 8500, expenses: 6400, profit: 2100, roi: 0.25 },
+  { country: "Италия (Ж)", revenue: 6200, expenses: 4700, profit: 1500, roi: 0.24 },
+  { country: "Италия (М)", revenue: 4800, expenses: 3900, profit: 900, roi: 0.19 },
+  { country: "Аргентина", revenue: 3500, expenses: 2800, profit: 700, roi: 0.20 },
+  { country: "Чили", revenue: 2800, expenses: 2400, profit: 400, roi: 0.14 },
 ];
 
 export default function FinancePage() {
@@ -60,9 +60,9 @@ export default function FinancePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Finance</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Финансы</h1>
         <p className="text-slate-500 mt-1">
-          P&L reports, expense breakdown, and financial analytics
+          P&L отчёты, структура расходов и финансовая аналитика
         </p>
       </div>
 
@@ -71,7 +71,7 @@ export default function FinancePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
-              Monthly Revenue
+              Доход за месяц
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -84,7 +84,7 @@ export default function FinancePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
-              Monthly Expenses
+              Расходы за месяц
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -97,7 +97,7 @@ export default function FinancePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
-              Net Profit
+              Чистая прибыль
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -110,7 +110,7 @@ export default function FinancePage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
-              Average ROI
+              Средний ROI
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -122,9 +122,9 @@ export default function FinancePage() {
       {/* Tabs */}
       <Tabs defaultValue="weekly">
         <TabsList>
-          <TabsTrigger value="weekly">Weekly P&L</TabsTrigger>
-          <TabsTrigger value="country">By Country</TabsTrigger>
-          <TabsTrigger value="expenses">Expense Breakdown</TabsTrigger>
+          <TabsTrigger value="weekly">P&L по неделям</TabsTrigger>
+          <TabsTrigger value="country">По странам</TabsTrigger>
+          <TabsTrigger value="expenses">Структура расходов</TabsTrigger>
         </TabsList>
 
         {/* Weekly P&L */}
@@ -133,7 +133,7 @@ export default function FinancePage() {
             {/* Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Weekly Revenue vs Expenses</CardTitle>
+                <CardTitle>Доход и расходы по неделям</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -151,8 +151,8 @@ export default function FinancePage() {
                         formatter={(value) => [`$${Number(value).toFixed(2)}`, ""]}
                       />
                       <Legend />
-                      <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="expenses" name="Expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="revenue" name="Доход" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="expenses" name="Расходы" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -162,16 +162,16 @@ export default function FinancePage() {
             {/* Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Weekly P&L Details</CardTitle>
+                <CardTitle>Детали P&L по неделям</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Week</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
-                      <TableHead className="text-right">Expenses</TableHead>
-                      <TableHead className="text-right">Profit</TableHead>
+                      <TableHead>Неделя</TableHead>
+                      <TableHead className="text-right">Доход</TableHead>
+                      <TableHead className="text-right">Расходы</TableHead>
+                      <TableHead className="text-right">Прибыль</TableHead>
                       <TableHead className="text-right">ROI</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -209,7 +209,7 @@ export default function FinancePage() {
         <TabsContent value="country" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>P&L by Country (This Month)</CardTitle>
+              <CardTitle>P&L по странам (за месяц)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[400px]">
@@ -227,9 +227,9 @@ export default function FinancePage() {
                       formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
                     />
                     <Legend />
-                    <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[0, 4, 4, 0]} />
-                    <Bar dataKey="expenses" name="Expenses" fill="#f43f5e" radius={[0, 4, 4, 0]} />
-                    <Bar dataKey="profit" name="Profit" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="revenue" name="Доход" fill="#10b981" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="expenses" name="Расходы" fill="#f43f5e" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="profit" name="Прибыль" fill="#6366f1" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -243,7 +243,7 @@ export default function FinancePage() {
             {/* Pie Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Expense Distribution</CardTitle>
+                <CardTitle>Распределение расходов</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -274,7 +274,7 @@ export default function FinancePage() {
             {/* Expense Details */}
             <Card>
               <CardHeader>
-                <CardTitle>Expense Details</CardTitle>
+                <CardTitle>Детали расходов</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
