@@ -42,24 +42,33 @@ export default function AddDailyDataPage({ params }: PageProps) {
   // Form state
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
-    // Ad Account Spends
+    // Спенд по кабинетам
     spendTrust: "",
     spendCrossgif: "",
     spendFbm: "",
-    // Revenue Priemka
+    // Доход Приёмка
     revenueLocalPriemka: "",
     revenueUsdtPriemka: "",
-    // Revenue Own
+    // Доход Наш
     revenueLocalOwn: "",
     revenueUsdtOwn: "",
-    // FD/RD
+    // ФД данные
     fdCount: "",
     fdSumLocal: "",
-    // Manual payroll inputs
+    fdSumUsdt: "",
+    // нФД данные
+    nfdCount: "",
+    nfdSumLocal: "",
+    nfdSumUsdt: "",
+    // РД данные
+    rdCount: "",
+    rdSumLocal: "",
+    rdSumUsdt: "",
+    // ФОТ ручной ввод
     payrollContent: "",
     payrollReviews: "",
     payrollDesigner: "",
-    // Additional expenses
+    // Дополнительные расходы
     chatterfyCost: "",
     additionalExpenses: "",
   });
@@ -77,12 +86,12 @@ export default function AddDailyDataPage({ params }: PageProps) {
           if (found) {
             setCountry(found);
           } else {
-            setError("Country not found");
+            setError("Страна не найдена");
           }
         }
       } catch (err) {
         console.error("Error fetching country:", err);
-        setError("Failed to load country data");
+        setError("Не удалось загрузить данные страны");
       } finally {
         setLoading(false);
       }
@@ -106,6 +115,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
       revenueUsdtOwn: parseFloat(formData.revenueUsdtOwn) || 0,
       fdCount: parseInt(formData.fdCount) || 0,
       fdSumLocal: parseFloat(formData.fdSumLocal) || 0,
+      rdSumUsdt: parseFloat(formData.rdSumUsdt) || 0,
       payrollContent: parseFloat(formData.payrollContent) || 0,
       payrollReviews: parseFloat(formData.payrollReviews) || 0,
       payrollDesigner: parseFloat(formData.payrollDesigner) || 0,
@@ -121,7 +131,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
     e.preventDefault();
 
     if (!country) {
-      setError("Country not loaded");
+      setError("Страна не загружена");
       return;
     }
 
@@ -167,6 +177,13 @@ export default function AddDailyDataPage({ params }: PageProps) {
           revenueUsdtOwn: parseFloat(formData.revenueUsdtOwn) || 0,
           fdCount: parseInt(formData.fdCount) || 0,
           fdSumLocal: parseFloat(formData.fdSumLocal) || 0,
+          fdSumUsdt: parseFloat(formData.fdSumUsdt) || 0,
+          nfdCount: parseInt(formData.nfdCount) || 0,
+          nfdSumLocal: parseFloat(formData.nfdSumLocal) || 0,
+          nfdSumUsdt: parseFloat(formData.nfdSumUsdt) || 0,
+          rdCount: parseInt(formData.rdCount) || 0,
+          rdSumLocal: parseFloat(formData.rdSumLocal) || 0,
+          rdSumUsdt: parseFloat(formData.rdSumUsdt) || 0,
           payrollContent: parseFloat(formData.payrollContent) || 0,
           payrollReviews: parseFloat(formData.payrollReviews) || 0,
           payrollDesigner: parseFloat(formData.payrollDesigner) || 0,
@@ -179,11 +196,11 @@ export default function AddDailyDataPage({ params }: PageProps) {
         router.push("/countries");
       } else {
         const errorData = await response.json();
-        setError(errorData.error || "Failed to save data");
+        setError(errorData.error || "Не удалось сохранить данные");
       }
     } catch (err) {
       console.error("Error saving data:", err);
-      setError("Failed to save data");
+      setError("Не удалось сохранить данные");
     } finally {
       setSaving(false);
     }
@@ -202,7 +219,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
       <div className="text-center py-12">
         <p className="text-red-500">{error}</p>
         <Link href="/countries">
-          <Button className="mt-4">Back to Countries</Button>
+          <Button className="mt-4">Назад к странам</Button>
         </Link>
       </div>
     );
@@ -218,9 +235,9 @@ export default function AddDailyDataPage({ params }: PageProps) {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Add Daily Data</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Добавить данные</h1>
           <p className="text-slate-500 mt-1">
-            {country?.name} ({country?.currency}) - Enter daily metrics
+            {country?.name} ({country?.currency}) - Ввод ежедневных метрик
           </p>
         </div>
       </div>
@@ -233,10 +250,10 @@ export default function AddDailyDataPage({ params }: PageProps) {
 
       <form onSubmit={handleSubmit}>
         <div className="grid gap-6">
-          {/* Date Selection */}
+          {/* Дата */}
           <Card>
             <CardHeader>
-              <CardTitle>Date</CardTitle>
+              <CardTitle>Дата</CardTitle>
             </CardHeader>
             <CardContent>
               <Input
@@ -248,18 +265,18 @@ export default function AddDailyDataPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Ad Spend */}
+          {/* Спенд по рекламным кабинетам */}
           <Card>
             <CardHeader>
-              <CardTitle>Ad Account Spend</CardTitle>
+              <CardTitle>Спенд по рекламным кабинетам</CardTitle>
               <CardDescription>
-                Enter spend for each ad account. Agency fees will be calculated automatically.
+                Введите спенд по каждому кабинету. Комиссия агентства рассчитается автоматически.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="spendTrust">TRUST (9% fee)</Label>
+                  <Label htmlFor="spendTrust">TRUST (комиссия 9%)</Label>
                   <Input
                     id="spendTrust"
                     type="number"
@@ -270,7 +287,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="spendCrossgif">CROSSGIF (8% fee)</Label>
+                  <Label htmlFor="spendCrossgif">КРОСГИФ (комиссия 8%)</Label>
                   <Input
                     id="spendCrossgif"
                     type="number"
@@ -281,7 +298,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="spendFbm">FBM (8% fee)</Label>
+                  <Label htmlFor="spendFbm">FBM (комиссия 8%)</Label>
                   <Input
                     id="spendFbm"
                     type="number"
@@ -295,21 +312,21 @@ export default function AddDailyDataPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Revenue */}
+          {/* Доходы */}
           <Card>
             <CardHeader>
-              <CardTitle>Revenue</CardTitle>
+              <CardTitle>Доходы</CardTitle>
               <CardDescription>
-                Enter revenue data from both partner (Priemka) and own sources.
+                Введите доходы от партнёров (Приёмка) и собственные.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Priemka */}
+              {/* Приёмка */}
               <div>
-                <h4 className="font-medium mb-3">Partner Revenue (Priemka - 15% commission)</h4>
+                <h4 className="font-medium mb-3 text-teal-700">Доход Приёмка (комиссия 15%)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="revenueLocalPriemka">Local Currency ({country?.currency})</Label>
+                    <Label htmlFor="revenueLocalPriemka">Локальная валюта ({country?.currency})</Label>
                     <Input
                       id="revenueLocalPriemka"
                       type="number"
@@ -335,12 +352,12 @@ export default function AddDailyDataPage({ params }: PageProps) {
 
               <Separator />
 
-              {/* Own */}
+              {/* Наш доход */}
               <div>
-                <h4 className="font-medium mb-3">Own Revenue</h4>
+                <h4 className="font-medium mb-3 text-teal-700">Доход Наш</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="revenueLocalOwn">Local Currency ({country?.currency})</Label>
+                    <Label htmlFor="revenueLocalOwn">Локальная валюта ({country?.currency})</Label>
                     <Input
                       id="revenueLocalOwn"
                       type="number"
@@ -366,53 +383,150 @@ export default function AddDailyDataPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* FD Data */}
+          {/* ФД / нФД / РД */}
           <Card>
             <CardHeader>
-              <CardTitle>FD Data (Factual Data)</CardTitle>
+              <CardTitle className="text-teal-700">ФД / нФД / РД</CardTitle>
               <CardDescription>
-                Used for payroll calculations. Tiered rates apply based on count.
+                Фактические данные для расчёта ФОТ обработчиков.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fdCount">FD Count</Label>
-                  <Input
-                    id="fdCount"
-                    type="number"
-                    placeholder="0"
-                    value={formData.fdCount}
-                    onChange={(e) => handleInputChange("fdCount", e.target.value)}
-                  />
+            <CardContent className="space-y-6">
+              {/* ФД */}
+              <div>
+                <h4 className="font-medium mb-3">ФД (Фактические данные)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fdCount">Количество ФД</Label>
+                    <Input
+                      id="fdCount"
+                      type="number"
+                      placeholder="0"
+                      value={formData.fdCount}
+                      onChange={(e) => handleInputChange("fdCount", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fdSumLocal">Сумма ФД ({country?.currency})</Label>
+                    <Input
+                      id="fdSumLocal"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.fdSumLocal}
+                      onChange={(e) => handleInputChange("fdSumLocal", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fdSumUsdt">Сумма ФД (USDT)</Label>
+                    <Input
+                      id="fdSumUsdt"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.fdSumUsdt}
+                      onChange={(e) => handleInputChange("fdSumUsdt", e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fdSumLocal">FD Sum ({country?.currency})</Label>
-                  <Input
-                    id="fdSumLocal"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.fdSumLocal}
-                    onChange={(e) => handleInputChange("fdSumLocal", e.target.value)}
-                  />
+              </div>
+
+              <Separator />
+
+              {/* нФД */}
+              <div>
+                <h4 className="font-medium mb-3">нФД (Нефактические данные)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nfdCount">Количество нФД</Label>
+                    <Input
+                      id="nfdCount"
+                      type="number"
+                      placeholder="0"
+                      value={formData.nfdCount}
+                      onChange={(e) => handleInputChange("nfdCount", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nfdSumLocal">Сумма нФД ({country?.currency})</Label>
+                    <Input
+                      id="nfdSumLocal"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.nfdSumLocal}
+                      onChange={(e) => handleInputChange("nfdSumLocal", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nfdSumUsdt">Сумма нФД (USDT)</Label>
+                    <Input
+                      id="nfdSumUsdt"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.nfdSumUsdt}
+                      onChange={(e) => handleInputChange("nfdSumUsdt", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* РД */}
+              <div>
+                <h4 className="font-medium mb-3">РД (Расчётные данные)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="rdCount">Количество РД</Label>
+                    <Input
+                      id="rdCount"
+                      type="number"
+                      placeholder="0"
+                      value={formData.rdCount}
+                      onChange={(e) => handleInputChange("rdCount", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rdSumLocal">Сумма РД ({country?.currency})</Label>
+                    <Input
+                      id="rdSumLocal"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.rdSumLocal}
+                      onChange={(e) => handleInputChange("rdSumLocal", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rdSumUsdt">Сумма РД (USDT)</Label>
+                    <Input
+                      id="rdSumUsdt"
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData.rdSumUsdt}
+                      onChange={(e) => handleInputChange("rdSumUsdt", e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Manual Payroll */}
+          {/* ФОТ ручной ввод */}
           <Card>
             <CardHeader>
-              <CardTitle>Manual Payroll Entries</CardTitle>
+              <CardTitle className="text-teal-700">ФОТ (ручной ввод)</CardTitle>
               <CardDescription>
-                Some payroll items are entered manually. Buyer and handler payroll are calculated automatically.
+                Некоторые позиции ФОТ вводятся вручную. ФОТ баера и обработчиков рассчитываются автоматически.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="payrollContent">Content ($)</Label>
+                  <Label htmlFor="payrollContent">ФОТ Контент ($)</Label>
                   <Input
                     id="payrollContent"
                     type="number"
@@ -423,7 +537,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="payrollReviews">Reviews ($)</Label>
+                  <Label htmlFor="payrollReviews">ФОТ Отзывы ($)</Label>
                   <Input
                     id="payrollReviews"
                     type="number"
@@ -434,7 +548,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="payrollDesigner">Designer ($)</Label>
+                  <Label htmlFor="payrollDesigner">ФОТ Дизайнер ($)</Label>
                   <Input
                     id="payrollDesigner"
                     type="number"
@@ -448,10 +562,10 @@ export default function AddDailyDataPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Additional Expenses */}
+          {/* Дополнительные расходы */}
           <Card>
             <CardHeader>
-              <CardTitle>Additional Expenses</CardTitle>
+              <CardTitle>Дополнительные расходы</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -467,7 +581,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="additionalExpenses">Other Expenses ($)</Label>
+                  <Label htmlFor="additionalExpenses">Доп. расходы ($)</Label>
                   <Input
                     id="additionalExpenses"
                     type="number"
@@ -481,58 +595,58 @@ export default function AddDailyDataPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Calculate Button */}
+          {/* Кнопка расчёта */}
           <Button type="button" variant="outline" className="w-full" onClick={handleCalculate}>
             <Calculator className="h-4 w-4 mr-2" />
-            Calculate Metrics
+            Рассчитать метрики
           </Button>
 
-          {/* Calculated Results */}
+          {/* Результаты расчёта */}
           {calculated && (
             <Card className="border-emerald-200 bg-emerald-50">
               <CardHeader>
-                <CardTitle className="text-emerald-800">Calculated Metrics</CardTitle>
+                <CardTitle className="text-emerald-800">Рассчитанные метрики</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <p className="text-slate-500">Total Spend</p>
+                    <p className="text-slate-500">Общий спенд</p>
                     <p className="font-bold">${calculated.totalSpend.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Agency Fee</p>
+                    <p className="text-slate-500">Комиссия агентства</p>
                     <p className="font-bold">${calculated.agencyFee.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Priemka Commission (15%)</p>
+                    <p className="text-slate-500">Комиссия приёмки (15%)</p>
                     <p className="font-bold">${calculated.commissionPriemka.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Total Revenue</p>
+                    <p className="text-slate-500">Общий доход</p>
                     <p className="font-bold text-emerald-600">${calculated.totalRevenueUsdt.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Payroll (RD Handler)</p>
+                    <p className="text-slate-500">ФОТ обраб. РД (4%)</p>
                     <p className="font-bold">${calculated.payrollRdHandler.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Payroll (FD Handler)</p>
+                    <p className="text-slate-500">ФОТ обраб. ФД</p>
                     <p className="font-bold">${calculated.payrollFdHandler.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Payroll (Buyer 12%)</p>
+                    <p className="text-slate-500">ФОТ баер (12%)</p>
                     <p className="font-bold">${calculated.payrollBuyer.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Total Payroll</p>
+                    <p className="text-slate-500">Общий ФОТ</p>
                     <p className="font-bold">${calculated.totalPayroll.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Total Expenses</p>
+                    <p className="text-slate-500">Общие расходы</p>
                     <p className="font-bold text-red-600">${calculated.totalExpensesUsdt.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Net Profit</p>
+                    <p className="text-slate-500">Чистая прибыль</p>
                     <p className={`font-bold ${calculated.netProfitMath >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       ${calculated.netProfitMath.toFixed(2)}
                     </p>
@@ -548,17 +662,17 @@ export default function AddDailyDataPage({ params }: PageProps) {
             </Card>
           )}
 
-          {/* Submit Button */}
+          {/* Кнопка сохранения */}
           <Button type="submit" className="w-full" size="lg" disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
+                Сохранение...
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Save Daily Data
+                Сохранить данные
               </>
             )}
           </Button>

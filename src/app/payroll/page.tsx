@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -11,64 +14,314 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, DollarSign, Users } from "lucide-react";
+import { CheckCircle, Clock, DollarSign, Users, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 
-// Демо данные
-const payrollSummary = {
-  total: 3450.00,
-  paid: 2100.00,
-  pending: 1350.00,
-  employeeCount: 12,
+interface Country {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  role: string;
+  countryId: string | null;
+  country: Country | null;
+  fixedRate: number | null;
+  percentRate: number | null;
+  isActive: boolean;
+  unpaidBalance: number;
+}
+
+const roleLabels: Record<string, string> = {
+  buyer: "Баер",
+  fd_handler: "Обработчик ФД",
+  rd_handler: "Обработчик РД",
+  content: "Контент",
+  designer: "Дизайнер",
+  head_designer: "Хед дизайнер",
+  reviewer: "Отзовик",
 };
 
-const payrollByRole = [
-  { role: "Баер", description: "12% от спенда", amount: 1692.00, employees: 3 },
-  { role: "Обработчик ФД", description: "По тирам", amount: 580.00, employees: 2 },
-  { role: "Обработчик РД", description: "4% от суммы РД", amount: 320.00, employees: 2 },
-  { role: "Контент", description: "Фикс + бонус", amount: 400.00, employees: 2 },
-  { role: "Дизайнер", description: "За задачу", amount: 250.00, employees: 2 },
-  { role: "Хед дизайнер", description: "$10 фикс", amount: 50.00, employees: 1 },
-  { role: "Отзовик", description: "За отзыв", amount: 158.00, employees: 2 },
-];
-
-const employees = [
-  { id: 1, name: "Алекс Мартинез", role: "Баер", country: "Перу", earned: 564.00, paid: 564.00, pending: 0 },
-  { id: 2, name: "Мария Гарсия", role: "Баер", country: "Италия", earned: 528.00, paid: 400.00, pending: 128.00 },
-  { id: 3, name: "Джон Смит", role: "Баер", country: "Аргентина", earned: 600.00, paid: 600.00, pending: 0 },
-  { id: 4, name: "София Родригез", role: "Обраб. ФД", country: "Перу", earned: 290.00, paid: 200.00, pending: 90.00 },
-  { id: 5, name: "Луис Эрнандез", role: "Обраб. ФД", country: "Чили", earned: 290.00, paid: 0, pending: 290.00 },
-  { id: 6, name: "Анна Чен", role: "Контент", country: "Все", earned: 200.00, paid: 200.00, pending: 0 },
-  { id: 7, name: "Карлос Лопез", role: "Дизайнер", country: "Все", earned: 125.00, paid: 125.00, pending: 0 },
-  { id: 8, name: "Елена Ковальски", role: "Хед диз.", country: "Все", earned: 50.00, paid: 50.00, pending: 0 },
-];
-
-const recentPayments = [
-  { date: "15.12.2025", employee: "Алекс Мартинез", amount: 564.00, status: "completed" },
-  { date: "15.12.2025", employee: "Джон Смит", amount: 600.00, status: "completed" },
-  { date: "14.12.2025", employee: "Анна Чен", amount: 200.00, status: "completed" },
-  { date: "14.12.2025", employee: "Карлос Лопез", amount: 125.00, status: "completed" },
-  { date: "13.12.2025", employee: "Мария Гарсия", amount: 400.00, status: "completed" },
-];
+const roleDescriptions: Record<string, string> = {
+  buyer: "12% от спенда",
+  fd_handler: "По тирам (3-5$/шт)",
+  rd_handler: "4% от суммы РД",
+  content: "Фикс ставка за день",
+  designer: "% от суммы или фикс",
+  head_designer: "$10 фикс за день",
+  reviewer: "За отзыв",
+};
 
 export default function PayrollPage() {
-  const paidPercent = (payrollSummary.paid / payrollSummary.total) * 100;
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    role: "",
+    countryId: "",
+    fixedRate: "",
+    percentRate: "",
+  });
+
+  // Fetch employees and countries
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [empRes, countryRes] = await Promise.all([
+          fetch("/api/employees"),
+          fetch("/api/countries"),
+        ]);
+
+        if (empRes.ok) {
+          const empData = await empRes.json();
+          setEmployees(empData);
+        }
+
+        if (countryRes.ok) {
+          const countryData = await countryRes.json();
+          setCountries(countryData);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Calculate summaries
+  const totalUnpaid = employees.reduce((sum, e) => sum + (e.unpaidBalance || 0), 0);
+  const activeEmployees = employees.filter((e) => e.isActive).length;
+
+  // Group by role
+  const byRole = employees.reduce((acc, emp) => {
+    if (!acc[emp.role]) {
+      acc[emp.role] = { count: 0, unpaid: 0 };
+    }
+    acc[emp.role].count++;
+    acc[emp.role].unpaid += emp.unpaidBalance || 0;
+    return acc;
+  }, {} as Record<string, { count: number; unpaid: number }>);
+
+  const openEditDialog = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setFormData({
+      name: employee.name,
+      role: employee.role,
+      countryId: employee.countryId || "",
+      fixedRate: employee.fixedRate?.toString() || "",
+      percentRate: employee.percentRate?.toString() || "",
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openNewDialog = () => {
+    setEditingEmployee(null);
+    setFormData({
+      name: "",
+      role: "",
+      countryId: "",
+      fixedRate: "",
+      percentRate: "",
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const method = editingEmployee ? "PUT" : "POST";
+      const body = editingEmployee
+        ? { id: editingEmployee.id, ...formData }
+        : formData;
+
+      const res = await fetch("/api/employees", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        // Refresh employees
+        const empRes = await fetch("/api/employees");
+        if (empRes.ok) {
+          setEmployees(await empRes.json());
+        }
+        setIsDialogOpen(false);
+      }
+    } catch (error) {
+      console.error("Error saving employee:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Удалить сотрудника?")) return;
+
+    try {
+      const res = await fetch(`/api/employees?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setEmployees(employees.filter((e) => e.id !== id));
+      }
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">ФОТ</h1>
+          <h1 className="text-3xl font-bold text-slate-900">ФОТ и Сотрудники</h1>
           <p className="text-slate-500 mt-1">
-            Управление выплатами команде и отслеживание расходов на ФОТ
+            Управление сотрудниками, ставками и выплатами
           </p>
         </div>
-        <Button>
-          <DollarSign className="h-4 w-4 mr-2" />
-          Провести выплаты
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={openNewDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить сотрудника
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingEmployee ? "Редактировать сотрудника" : "Новый сотрудник"}
+              </DialogTitle>
+              <DialogDescription>
+                Укажите данные сотрудника и условия оплаты
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Имя</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Имя сотрудника"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Роль</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(v) => setFormData({ ...formData, role: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите роль" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(roleLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country">Страна (необязательно)</Label>
+                <Select
+                  value={formData.countryId}
+                  onValueChange={(v) => setFormData({ ...formData, countryId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Все страны" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Все страны</SelectItem>
+                    {countries.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fixedRate">Фикс. ставка ($)</Label>
+                  <Input
+                    id="fixedRate"
+                    type="number"
+                    step="0.01"
+                    value={formData.fixedRate}
+                    onChange={(e) => setFormData({ ...formData, fixedRate: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="percentRate">% ставка</Label>
+                  <Input
+                    id="percentRate"
+                    type="number"
+                    step="0.01"
+                    value={formData.percentRate}
+                    onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleSave} disabled={saving || !formData.name || !formData.role}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {editingEmployee ? "Сохранить" : "Создать"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Summary Cards */}
@@ -76,26 +329,12 @@ export default function PayrollPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
-              Общий ФОТ
+              Сотрудников
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${payrollSummary.total.toFixed(2)}</div>
-            <p className="text-xs text-slate-500 mt-1">За этот месяц</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              Выплачено
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">
-              ${payrollSummary.paid.toFixed(2)}
-            </div>
-            <Progress value={paidPercent} className="mt-2 h-2" />
+            <div className="text-2xl font-bold">{activeEmployees}</div>
+            <p className="text-xs text-slate-500 mt-1">Активных</p>
           </CardContent>
         </Card>
 
@@ -107,156 +346,240 @@ export default function PayrollPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-500">
-              ${payrollSummary.pending.toFixed(2)}
+              ${totalUnpaid.toFixed(2)}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Ожидает оплаты</p>
+            <p className="text-xs text-slate-500 mt-1">Невыплаченный баланс</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">
-              Сотрудников
+              Ролей
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{payrollSummary.employeeCount}</div>
-            <p className="text-xs text-slate-500 mt-1">Активных</p>
+            <div className="text-2xl font-bold">{Object.keys(byRole).length}</div>
+            <p className="text-xs text-slate-500 mt-1">Типов позиций</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Стран
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{countries.length}</div>
+            <p className="text-xs text-slate-500 mt-1">Регионов работы</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="byRole">
+      <Tabs defaultValue="employees">
         <TabsList>
-          <TabsTrigger value="byRole">По ролям</TabsTrigger>
           <TabsTrigger value="employees">Сотрудники</TabsTrigger>
-          <TabsTrigger value="history">История выплат</TabsTrigger>
+          <TabsTrigger value="byRole">По ролям</TabsTrigger>
+          <TabsTrigger value="rates">Ставки и условия</TabsTrigger>
         </TabsList>
-
-        {/* By Role */}
-        <TabsContent value="byRole" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>ФОТ по ролям</CardTitle>
-              <CardDescription>
-                Разбивка расходов на ФОТ по ролям в команде
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {payrollByRole.map((item) => (
-                  <div
-                    key={item.role}
-                    className="flex items-center justify-between p-4 rounded-lg bg-slate-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-slate-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{item.role}</p>
-                        <p className="text-sm text-slate-500">{item.description}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">${item.amount.toFixed(2)}</p>
-                      <p className="text-sm text-slate-500">{item.employees} сотр.</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Employees */}
         <TabsContent value="employees" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Зарплаты сотрудников</CardTitle>
-              <CardDescription>Заработок и статус выплат по каждому сотруднику</CardDescription>
+              <CardTitle>Список сотрудников</CardTitle>
+              <CardDescription>Все сотрудники команды</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Сотрудник</TableHead>
-                    <TableHead>Роль</TableHead>
-                    <TableHead>Страна</TableHead>
-                    <TableHead className="text-right">Заработано</TableHead>
-                    <TableHead className="text-right">Выплачено</TableHead>
-                    <TableHead className="text-right">К выплате</TableHead>
-                    <TableHead className="text-right">Статус</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employees.map((employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell className="font-medium">{employee.name}</TableCell>
-                      <TableCell>{employee.role}</TableCell>
-                      <TableCell>{employee.country}</TableCell>
-                      <TableCell className="text-right">${employee.earned.toFixed(2)}</TableCell>
-                      <TableCell className="text-right text-emerald-600">
-                        ${employee.paid.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-orange-500">
-                        ${employee.pending.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {employee.pending === 0 ? (
-                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Оплачено
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-700">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Ожидает
-                          </Badge>
-                        )}
-                      </TableCell>
+              {employees.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Нет сотрудников</p>
+                  <p className="text-sm">Добавьте первого сотрудника</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Имя</TableHead>
+                      <TableHead>Роль</TableHead>
+                      <TableHead>Страна</TableHead>
+                      <TableHead className="text-right">Фикс. ставка</TableHead>
+                      <TableHead className="text-right">% ставка</TableHead>
+                      <TableHead className="text-right">К выплате</TableHead>
+                      <TableHead className="text-right">Действия</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {employees.map((employee) => (
+                      <TableRow key={employee.id}>
+                        <TableCell className="font-medium">{employee.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {roleLabels[employee.role] || employee.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{employee.country?.name || "Все"}</TableCell>
+                        <TableCell className="text-right">
+                          {employee.fixedRate ? `$${employee.fixedRate.toFixed(2)}` : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {employee.percentRate ? `${employee.percentRate}%` : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {employee.unpaidBalance > 0 ? (
+                            <span className="text-orange-500 font-medium">
+                              ${employee.unpaidBalance.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="text-emerald-600">$0.00</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(employee)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(employee.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Payment History */}
-        <TabsContent value="history" className="space-y-6">
+        {/* By Role */}
+        <TabsContent value="byRole" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Последние выплаты</CardTitle>
-              <CardDescription>Последние 5 проведённых выплат</CardDescription>
+              <CardTitle>Сотрудники по ролям</CardTitle>
+              <CardDescription>
+                Количество сотрудников и суммы к выплате по ролям
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Дата</TableHead>
-                    <TableHead>Сотрудник</TableHead>
-                    <TableHead className="text-right">Сумма</TableHead>
-                    <TableHead className="text-right">Статус</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentPayments.map((payment, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{payment.date}</TableCell>
-                      <TableCell>{payment.employee}</TableCell>
-                      <TableCell className="text-right">${payment.amount.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Выполнено
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="space-y-4">
+                {Object.entries(roleLabels).map(([role, label]) => {
+                  const data = byRole[role] || { count: 0, unpaid: 0 };
+                  return (
+                    <div
+                      key={role}
+                      className="flex items-center justify-between p-4 rounded-lg bg-slate-50"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center">
+                          <Users className="h-5 w-5 text-slate-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{label}</p>
+                          <p className="text-sm text-slate-500">
+                            {roleDescriptions[role]}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-slate-500">{data.count} сотр.</p>
+                        {data.unpaid > 0 && (
+                          <p className="font-bold text-orange-500">
+                            ${data.unpaid.toFixed(2)} к выплате
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Rates */}
+        <TabsContent value="rates" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Условия оплаты</CardTitle>
+              <CardDescription>
+                Стандартные ставки и формулы расчёта ФОТ
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="p-4 rounded-lg border">
+                  <h4 className="font-medium mb-2">Баер</h4>
+                  <p className="text-sm text-slate-600">
+                    12% от общего спенда за день. Автоматически рассчитывается из данных метрик.
+                  </p>
+                  <code className="mt-2 block text-xs bg-slate-100 p-2 rounded">
+                    ФОТ = totalSpend × 0.12
+                  </code>
+                </div>
+
+                <div className="p-4 rounded-lg border">
+                  <h4 className="font-medium mb-2">Обработчик ФД</h4>
+                  <p className="text-sm text-slate-600">
+                    По тирам: менее 5 ФД = $3/шт, 5-9 ФД = $4/шт + $15 бонус, 10+ ФД = $5/шт + $15 бонус.
+                    Умножается на коэффициент 1.2.
+                  </p>
+                  <code className="mt-2 block text-xs bg-slate-100 p-2 rounded">
+                    ФОТ = (fdCount × rate + bonus) × 1.2
+                  </code>
+                </div>
+
+                <div className="p-4 rounded-lg border">
+                  <h4 className="font-medium mb-2">Обработчик РД</h4>
+                  <p className="text-sm text-slate-600">
+                    4% от суммы РД в USDT.
+                  </p>
+                  <code className="mt-2 block text-xs bg-slate-100 p-2 rounded">
+                    ФОТ = rdSumUsdt × 0.04
+                  </code>
+                </div>
+
+                <div className="p-4 rounded-lg border">
+                  <h4 className="font-medium mb-2">Контент</h4>
+                  <p className="text-sm text-slate-600">
+                    Фиксированная ставка за день работы. Указывается вручную или из Excel ($10/день типично).
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg border">
+                  <h4 className="font-medium mb-2">Хед дизайнер</h4>
+                  <p className="text-sm text-slate-600">
+                    Фиксированная ставка $10 за день.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg border">
+                  <h4 className="font-medium mb-2">Дизайнер</h4>
+                  <p className="text-sm text-slate-600">
+                    Процент от суммы или фиксированная ставка. Указывается вручную.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg border bg-amber-50 border-amber-200">
+                  <h4 className="font-medium mb-2 text-amber-800">Периоды выплат</h4>
+                  <p className="text-sm text-amber-700">
+                    Рекомендуемый буфер: 1 неделя. Выплата производится за работу прошлых недель.
+                    Например, если сотрудник работает 3 недели, выплата идёт за первые две.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
