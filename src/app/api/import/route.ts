@@ -288,6 +288,15 @@ export async function POST(request: Request) {
       try {
         const date = new Date(row.date);
 
+        // Log parsed row values for debugging
+        console.log(`[Import] Processing date ${date.toISOString().split('T')[0]}:`, {
+          revenueLocalPriemka: row.revenueLocalPriemka,
+          revenueUsdtPriemka: row.revenueUsdtPriemka,
+          revenueLocalOwn: row.revenueLocalOwn,
+          revenueUsdtOwn: row.revenueUsdtOwn,
+          totalSpend: row.spendTrust + row.spendCrossgif + row.spendFbm,
+        });
+
         // Calculate metrics
         const calculated = calculateAllMetrics({
           spendTrust: row.spendTrust,
@@ -301,6 +310,13 @@ export async function POST(request: Request) {
           fdSumLocal: row.fdSumLocal,
           chatterfyCost: row.chatterfyCost,
           additionalExpenses: row.additionalExpenses,
+        });
+
+        // Log calculated metrics
+        console.log(`[Import] Calculated metrics for ${date.toISOString().split('T')[0]}:`, {
+          totalRevenueUsdt: calculated.totalRevenueUsdt,
+          totalSpend: calculated.totalSpend,
+          netProfitMath: calculated.netProfitMath,
         });
 
         // Check if record exists
@@ -344,21 +360,43 @@ export async function POST(request: Request) {
           roi: calculated.roi,
         };
 
+        let savedRecord;
         if (existing) {
-          await prisma.dailyMetrics.update({
+          savedRecord = await prisma.dailyMetrics.update({
             where: { id: existing.id },
             data,
           });
           updated++;
         } else {
-          await prisma.dailyMetrics.create({ data });
+          savedRecord = await prisma.dailyMetrics.create({ data });
           imported++;
         }
+
+        // Verify saved data
+        console.log(`[Import] Saved record ${savedRecord.id}:`, {
+          totalRevenueUsdt: savedRecord.totalRevenueUsdt,
+          revenueUsdtOwn: savedRecord.revenueUsdtOwn,
+          revenueUsdtPriemka: savedRecord.revenueUsdtPriemka,
+        });
       } catch (error) {
         const dateStr = new Date(row.date).toLocaleDateString();
         importErrors.push(`${dateStr}: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     }
+
+    // Fetch a sample of saved metrics to verify
+    const savedMetrics = await prisma.dailyMetrics.findMany({
+      where: { countryId },
+      orderBy: { date: "desc" },
+      take: 3,
+      select: {
+        date: true,
+        totalRevenueUsdt: true,
+        revenueUsdtOwn: true,
+        totalSpend: true,
+      },
+    });
+    console.log("[Import] Sample of saved metrics:", savedMetrics);
 
     return NextResponse.json({
       success: true,
@@ -366,6 +404,7 @@ export async function POST(request: Request) {
       updated,
       total: parsedRows.length,
       columnMapping: columnInfo,
+      sampleData: savedMetrics, // Include sample data in response
       errors: importErrors.length > 0 ? importErrors : undefined,
       parseErrors: errors.length > 0 ? errors : undefined,
     });
