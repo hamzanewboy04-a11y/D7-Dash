@@ -45,35 +45,41 @@ const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   { pattern: /fbm.*spend/i, field: "spendFbm" },
   { pattern: /^fbm$/i, field: "spendFbm" },
 
-  // Revenue Priemka (Local)
+  // Revenue Priemka (Local) - specific patterns first
   { pattern: /доход.*sol.*при[её]м/i, field: "revenueLocalPriemka" },
   { pattern: /доход.*при[её]м.*sol/i, field: "revenueLocalPriemka" },
   { pattern: /revenue.*sol.*priemka/i, field: "revenueLocalPriemka" },
   { pattern: /при[её]м.*sol/i, field: "revenueLocalPriemka" },
-  { pattern: /^доход\s+sol\s+при[её]мка$/i, field: "revenueLocalPriemka" },
-  { pattern: /^доход\s+в?\s*sol\s+при[её]мка$/i, field: "revenueLocalPriemka" },
 
-  // Revenue Priemka (USDT)
+  // Revenue Priemka (USDT) - specific patterns first
   { pattern: /доход.*usdt.*при[её]м/i, field: "revenueUsdtPriemka" },
   { pattern: /доход.*при[её]м.*usdt/i, field: "revenueUsdtPriemka" },
   { pattern: /revenue.*usdt.*priemka/i, field: "revenueUsdtPriemka" },
   { pattern: /при[её]м.*usdt/i, field: "revenueUsdtPriemka" },
-  { pattern: /^доход\s+usdt\s+при[её]мка$/i, field: "revenueUsdtPriemka" },
-  { pattern: /^доход\s+в?\s*usdt\s+при[её]мка$/i, field: "revenueUsdtPriemka" },
 
   // Revenue Own (Local)
   { pattern: /доход.*sol.*наш/i, field: "revenueLocalOwn" },
   { pattern: /доход.*наш.*sol/i, field: "revenueLocalOwn" },
   { pattern: /наш.*sol/i, field: "revenueLocalOwn" },
-  { pattern: /^доход\s+sol\s+наш$/i, field: "revenueLocalOwn" },
-  { pattern: /^доход\s+в?\s*sol\s+наш$/i, field: "revenueLocalOwn" },
 
   // Revenue Own (USDT)
   { pattern: /доход.*usdt.*наш/i, field: "revenueUsdtOwn" },
   { pattern: /доход.*наш.*usdt/i, field: "revenueUsdtOwn" },
   { pattern: /наш.*usdt/i, field: "revenueUsdtOwn" },
-  { pattern: /^доход\s+usdt\s+наш$/i, field: "revenueUsdtOwn" },
-  { pattern: /^доход\s+в?\s*usdt\s+наш$/i, field: "revenueUsdtOwn" },
+
+  // Simple revenue patterns (fallback - will map to Priemka by default)
+  { pattern: /^доход\s*(в\s*)?sol$/i, field: "revenueLocalPriemka" },
+  { pattern: /^доход\s*(в\s*)?usdt$/i, field: "revenueUsdtPriemka" },
+  { pattern: /^revenue\s*sol$/i, field: "revenueLocalPriemka" },
+  { pattern: /^revenue\s*usdt$/i, field: "revenueUsdtPriemka" },
+  { pattern: /^revenue$/i, field: "revenueUsdtPriemka" },
+  { pattern: /^доход$/i, field: "revenueUsdtPriemka" },
+
+  // Even simpler - just contains "доход" and "sol" or "usdt"
+  { pattern: /доход.*sol/i, field: "revenueLocalPriemka" },
+  { pattern: /доход.*usdt/i, field: "revenueUsdtPriemka" },
+  { pattern: /sol.*доход/i, field: "revenueLocalPriemka" },
+  { pattern: /usdt.*доход/i, field: "revenueUsdtPriemka" },
 
   // FD Count
   { pattern: /фд.*кол/i, field: "fdCount" },
@@ -242,9 +248,28 @@ export async function POST(request: Request) {
     const parsedRows: ParsedRow[] = [];
     const errors: string[] = [];
 
+    // Collect column mapping info
+    const columnInfo: { matched: Record<string, string>; unmatched: string[] } = {
+      matched: {},
+      unmatched: [],
+    };
+
     // Log first row columns for debugging
     if (rawData.length > 0) {
-      console.log("Excel columns found:", Object.keys(rawData[0] as Record<string, unknown>));
+      const firstRow = rawData[0] as Record<string, unknown>;
+      const columns = Object.keys(firstRow);
+      console.log("Excel columns found:", columns);
+
+      // Check which columns are matched
+      for (const col of columns) {
+        const field = matchColumn(col);
+        if (field) {
+          columnInfo.matched[col] = field;
+        } else {
+          columnInfo.unmatched.push(col);
+        }
+      }
+      console.log("Column mapping:", columnInfo);
     }
 
     for (let i = 0; i < rawData.length; i++) {
@@ -352,6 +377,7 @@ export async function POST(request: Request) {
       imported,
       updated,
       total: parsedRows.length,
+      columnMapping: columnInfo,
       errors: importErrors.length > 0 ? importErrors : undefined,
       parseErrors: errors.length > 0 ? errors : undefined,
     });
