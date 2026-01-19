@@ -40,13 +40,13 @@ interface DashboardData {
 
 // Fallback demo data
 const mockChartData = [
-  { date: "Dec 1", revenue: 2364.89, expenses: 1138.09, profit: 1226.80 },
-  { date: "Dec 2", revenue: 658.71, expenses: 880.12, profit: -221.41 },
-  { date: "Dec 3", revenue: 1753.99, expenses: 723.03, profit: 1030.96 },
-  { date: "Dec 4", revenue: 1450.50, expenses: 890.25, profit: 560.25 },
-  { date: "Dec 5", revenue: 2100.00, expenses: 950.00, profit: 1150.00 },
-  { date: "Dec 6", revenue: 1890.00, expenses: 1100.00, profit: 790.00 },
-  { date: "Dec 7", revenue: 2500.00, expenses: 1200.00, profit: 1300.00 },
+  { date: "1 дек", revenue: 2364.89, expenses: 1138.09, profit: 1226.80 },
+  { date: "2 дек", revenue: 658.71, expenses: 880.12, profit: -221.41 },
+  { date: "3 дек", revenue: 1753.99, expenses: 723.03, profit: 1030.96 },
+  { date: "4 дек", revenue: 1450.50, expenses: 890.25, profit: 560.25 },
+  { date: "5 дек", revenue: 2100.00, expenses: 950.00, profit: 1150.00 },
+  { date: "6 дек", revenue: 1890.00, expenses: 1100.00, profit: 790.00 },
+  { date: "7 дек", revenue: 2500.00, expenses: 1200.00, profit: 1300.00 },
 ];
 
 const mockCountryData = [
@@ -136,22 +136,22 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Дашборд</h1>
           <p className="text-slate-500 mt-1">
-            Overview of all countries and key metrics
-            {!hasData && <span className="text-orange-500 ml-2">(Demo data)</span>}
+            Обзор всех стран и ключевых показателей
+            {!hasData && <span className="text-orange-500 ml-2">(Демо данные)</span>}
           </p>
         </div>
         <div className="flex gap-2">
           {isSeeded === false && (
             <Button onClick={seedDatabase} disabled={seeding} variant="outline">
               <Database className="h-4 w-4 mr-2" />
-              {seeding ? "Initializing..." : "Initialize Database"}
+              {seeding ? "Инициализация..." : "Инициализировать БД"}
             </Button>
           )}
           <Button onClick={fetchDashboardData} disabled={loading} variant="outline">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            Обновить
           </Button>
         </div>
       </div>
@@ -159,19 +159,19 @@ export default function DashboardPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Revenue"
+          title="Общий доход"
           value={`$${totals.revenue.toLocaleString()}`}
           icon={DollarSign}
           iconColor="text-emerald-500"
         />
         <MetricCard
-          title="Total Spend"
+          title="Общий расход"
           value={`$${totals.spend.toLocaleString()}`}
           icon={CreditCard}
           iconColor="text-blue-500"
         />
         <MetricCard
-          title="Net Profit"
+          title="Чистая прибыль"
           value={`$${totals.profit.toLocaleString()}`}
           icon={TrendingUp}
           iconColor="text-purple-500"
@@ -186,14 +186,14 @@ export default function DashboardPage() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RevenueChart data={chartData} title="Daily Revenue & Expenses" />
+        <RevenueChart data={chartData} title="Доходы и расходы по дням" />
         <CountrySummary countries={countryData} />
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl p-6 text-white">
-          <h3 className="text-lg font-medium opacity-90">Best Performing</h3>
+          <h3 className="text-lg font-medium opacity-90">Лучшая страна</h3>
           <p className="text-3xl font-bold mt-2">
             {bestCountry?.name || "Peru"} {bestCountry?.code === "PE" ? "🇵🇪" : bestCountry?.code === "IT_F" || bestCountry?.code === "IT_M" ? "🇮🇹" : bestCountry?.code === "AR" ? "🇦🇷" : bestCountry?.code === "CL" ? "🇨🇱" : "🌍"}
           </p>
@@ -203,15 +203,15 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white">
-          <h3 className="text-lg font-medium opacity-90">Total Payroll</h3>
+          <h3 className="text-lg font-medium opacity-90">Общий ФОТ</h3>
           <p className="text-3xl font-bold mt-2">${(totals.payroll || 0).toLocaleString()}</p>
-          <p className="text-sm opacity-75 mt-1">This month</p>
+          <p className="text-sm opacity-75 mt-1">За этот месяц</p>
         </div>
 
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
-          <h3 className="text-lg font-medium opacity-90">Active Countries</h3>
+          <h3 className="text-lg font-medium opacity-90">Активных стран</h3>
           <p className="text-3xl font-bold mt-2">{data?.countries?.length || 5}</p>
-          <p className="text-sm opacity-75 mt-1">All operational</p>
+          <p className="text-sm opacity-75 mt-1">Все работают</p>
         </div>
       </div>
     </div>

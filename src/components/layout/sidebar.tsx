@@ -18,13 +18,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Countries", href: "/countries", icon: Globe },
-  { name: "Finance", href: "/finance", icon: DollarSign },
-  { name: "Payroll", href: "/payroll", icon: Users },
-  { name: "Import", href: "/import", icon: Upload },
-  { name: "Analytics", href: "/analytics", icon: TrendingUp },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Дашборд", href: "/", icon: LayoutDashboard },
+  { name: "Страны", href: "/countries", icon: Globe },
+  { name: "Финансы", href: "/finance", icon: DollarSign },
+  { name: "ФОТ", href: "/payroll", icon: Users },
+  { name: "Импорт", href: "/import", icon: Upload },
+  { name: "Аналитика", href: "/analytics", icon: TrendingUp },
+  { name: "Настройки", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
