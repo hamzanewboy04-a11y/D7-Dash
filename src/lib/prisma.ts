@@ -8,7 +8,8 @@ const globalForPrisma = globalThis as unknown as {
 
 function getDbPath() {
   const rawUrl = process.env.DATABASE_URL;
-  const dbPath = rawUrl?.replace("file:", "") || "./prisma/dev.db";
+  // Use pre-populated data.db as default (committed to repo with imported data)
+  const dbPath = rawUrl?.replace("file:", "") || "./prisma/data.db";
   console.log(`[Prisma] DATABASE_URL env: ${rawUrl || 'not set'}`);
   console.log(`[Prisma] Resolved DB path: ${dbPath}`);
   return dbPath;
