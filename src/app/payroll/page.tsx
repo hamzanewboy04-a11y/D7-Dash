@@ -32,12 +32,43 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, DollarSign, Users, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, DollarSign, Users, Plus, Pencil, Trash2, Loader2, Calendar, AlertCircle, Wallet } from "lucide-react";
 
 interface Country {
   id: string;
   name: string;
   code: string;
+}
+
+interface WeeklyPayroll {
+  weekStart: string;
+  weekEnd: string;
+  totalPayroll: number;
+  paidPayroll: number;
+  unpaidPayroll: number;
+  isPayable: boolean;
+  countries: string[];
+  days: number;
+}
+
+interface PayrollSummary {
+  totals: {
+    totalPayroll: number;
+    paidPayroll: number;
+    unpaidPayroll: number;
+    payableNow: number;
+    bufferAmount: number;
+  };
+  weeks: WeeklyPayroll[];
+  countries: {
+    name: string;
+    code: string;
+    totalPayroll: number;
+    paidPayroll: number;
+    unpaidPayroll: number;
+  }[];
+  bufferWeeks: number;
+  cutoffDate: string;
 }
 
 interface Employee {
@@ -75,6 +106,7 @@ const roleDescriptions: Record<string, string> = {
 export default function PayrollPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
+  const [payrollSummary, setPayrollSummary] = useState<PayrollSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -89,13 +121,14 @@ export default function PayrollPage() {
     percentRate: "",
   });
 
-  // Fetch employees and countries
+  // Fetch employees, countries, and payroll summary
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [empRes, countryRes] = await Promise.all([
+        const [empRes, countryRes, payrollRes] = await Promise.all([
           fetch("/api/employees"),
           fetch("/api/countries"),
+          fetch("/api/payroll/summary"),
         ]);
 
         if (empRes.ok) {
@@ -106,6 +139,11 @@ export default function PayrollPage() {
         if (countryRes.ok) {
           const countryData = await countryRes.json();
           setCountries(countryData);
+        }
+
+        if (payrollRes.ok) {
+          const payrollData = await payrollRes.json();
+          setPayrollSummary(payrollData);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -378,12 +416,200 @@ export default function PayrollPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="employees">
+      <Tabs defaultValue="periods">
         <TabsList>
+          <TabsTrigger value="periods">Периоды выплат</TabsTrigger>
           <TabsTrigger value="employees">Сотрудники</TabsTrigger>
           <TabsTrigger value="byRole">По ролям</TabsTrigger>
           <TabsTrigger value="rates">Ставки и условия</TabsTrigger>
         </TabsList>
+
+        {/* Payment Periods */}
+        <TabsContent value="periods" className="space-y-6">
+          {/* Summary Cards */}
+          {payrollSummary && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-600">
+                      Всего ФОТ
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${payrollSummary.totals.totalPayroll.toFixed(2)}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">За всё время</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-emerald-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-emerald-600">
+                      К выплате сейчас
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-emerald-600">
+                      ${payrollSummary.totals.payableNow.toFixed(2)}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Готово к выплате</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-amber-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-amber-600">
+                      В буфере
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-amber-600">
+                      ${payrollSummary.totals.bufferAmount.toFixed(2)}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Буфер {payrollSummary.bufferWeeks} нед.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-600">
+                      Выплачено
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-slate-400">
+                      ${payrollSummary.totals.paidPayroll.toFixed(2)}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Уже выплачено</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* By Country */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>ФОТ по странам</CardTitle>
+                  <CardDescription>
+                    Распределение фонда оплаты труда по странам
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {payrollSummary.countries.map((country) => (
+                      <div
+                        key={country.code}
+                        className="flex items-center justify-between p-4 rounded-lg bg-slate-50"
+                      >
+                        <div>
+                          <p className="font-medium">{country.name}</p>
+                          <p className="text-sm text-slate-500">Код: {country.code}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-slate-500">
+                            Всего: ${country.totalPayroll.toFixed(2)}
+                          </p>
+                          {country.unpaidPayroll > 0 && (
+                            <p className="font-bold text-orange-500">
+                              К выплате: ${country.unpaidPayroll.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Weekly Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Недельные периоды</CardTitle>
+                  <CardDescription>
+                    ФОТ по неделям (буфер: {payrollSummary.bufferWeeks} нед., дата отсечки: {payrollSummary.cutoffDate})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Неделя</TableHead>
+                        <TableHead>Дней</TableHead>
+                        <TableHead>Страны</TableHead>
+                        <TableHead className="text-right">Всего ФОТ</TableHead>
+                        <TableHead className="text-right">К выплате</TableHead>
+                        <TableHead className="text-right">Статус</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payrollSummary.weeks.map((week) => (
+                        <TableRow key={week.weekStart}>
+                          <TableCell className="font-medium">
+                            {new Date(week.weekStart).toLocaleDateString("ru-RU", {
+                              day: "numeric",
+                              month: "short",
+                            })} — {new Date(week.weekEnd).toLocaleDateString("ru-RU", {
+                              day: "numeric",
+                              month: "short",
+                            })}
+                          </TableCell>
+                          <TableCell>{week.days}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {week.countries.map((c) => (
+                                <Badge key={c} variant="outline" className="text-xs">
+                                  {c}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ${week.totalPayroll.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {week.unpaidPayroll > 0 ? (
+                              <span className={week.isPayable ? "text-emerald-600 font-medium" : "text-amber-500"}>
+                                ${week.unpaidPayroll.toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">$0.00</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {week.isPayable ? (
+                              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Готово
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Буфер
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {!payrollSummary && (
+            <Card>
+              <CardContent className="py-12 text-center text-slate-500">
+                <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Нет данных о ФОТ</p>
+                <p className="text-sm">Добавьте дневные метрики с данными о ФОТ</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* Employees */}
         <TabsContent value="employees" className="space-y-6">
