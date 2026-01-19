@@ -15,6 +15,8 @@ const SHEET_COUNTRY_MAP: Record<string, string> = {
   "Перу Июнь": "PE",
   "Перу Май": "PE",
   "Перу Апрель": "PE",
+  "Перу Январь": "PE",
+  "Перу Январь 2": "PE",
   // Italy Women sheets
   "Италия Декабрь": "IT_F",
   "Италия Ноябрь": "IT_F",
@@ -22,6 +24,9 @@ const SHEET_COUNTRY_MAP: Record<string, string> = {
   "Италия Сентябрь": "IT_F",
   "Италия Август": "IT_F",
   "Италия Июль Ж": "IT_F",
+  "Италия Ж Декабрь": "IT_F",
+  "Италия Ж Январь": "IT_F",
+  "Италия Ж Ноябрь": "IT_F",
   // Italy Men sheets
   "Италия Июль М": "IT_M",
   "Италия Август М": "IT_M",
@@ -29,16 +34,22 @@ const SHEET_COUNTRY_MAP: Record<string, string> = {
   "Италия Октябрь М": "IT_M",
   "Италия Ноябрь М": "IT_M",
   "Италия Декабрь М": "IT_M",
+  "Италия М декабрь": "IT_M",
+  "Италия М Ноябрь": "IT_M",
+  "Италия М Ноябрь ": "IT_M",
   // Argentina sheets
   "Аргентина Август": "AR",
   "Аргентина Сентябрь": "AR",
   "Аргентина Октябрь": "AR",
   "Аргентина Ноябрь": "AR",
   "Аргентина Декабрь": "AR",
+  "Аргентина декабрь": "AR",
+  "Аргентина январь": "AR",
   // Chile sheets
   "Чили Октябрь": "CL",
   "Чили Ноябрь": "CL",
   "Чили Декабрь": "CL",
+  "Чили декабрь": "CL",
 };
 
 // Column name mappings (Russian to field name)
@@ -172,7 +183,7 @@ function calculateMetrics(data: Record<string, number>) {
 }
 
 async function main() {
-  const dbPath = process.env.DATABASE_URL?.replace("file:", "") || "./prisma/dev.db";
+  const dbPath = path.join(process.cwd(), "dev.db");
   const adapter = new PrismaBetterSqlite3({ url: dbPath });
   const prisma = new PrismaClient({ adapter });
 
