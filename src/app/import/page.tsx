@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Loader2, Database } from "lucide-react";
 
 interface Country {
   id: string;
@@ -33,20 +33,44 @@ export default function ImportPage() {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingCountries, setLoadingCountries] = useState(true);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [initializing, setInitializing] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/countries")
-      .then((res) => res.json())
-      .then((data) => {
+  const fetchCountries = async () => {
+    setLoadingCountries(true);
+    try {
+      const res = await fetch("/api/countries");
+      const data = await res.json();
+      if (Array.isArray(data)) {
         setCountries(data);
-        if (data.length > 0) {
+        if (data.length > 0 && !selectedCountry) {
           setSelectedCountry(data[0].id);
         }
-      })
-      .catch(console.error);
+      }
+    } catch (err) {
+      console.error("Error fetching countries:", err);
+    } finally {
+      setLoadingCountries(false);
+    }
+  };
+
+  const initializeDatabase = async () => {
+    setInitializing(true);
+    try {
+      await fetch("/api/seed", { method: "POST" });
+      await fetchCountries();
+    } catch (err) {
+      console.error("Error initializing:", err);
+    } finally {
+      setInitializing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCountries();
   }, []);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -71,7 +95,7 @@ export default function ImportPage() {
         setResult(null);
         setError(null);
       } else {
-        setError("Please upload an Excel file (.xlsx or .xls)");
+        setError("Загрузите файл Excel (.xlsx или .xls)");
       }
     }
   }, []);
@@ -104,7 +128,7 @@ export default function ImportPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Import failed");
+        setError(data.error || "Ошибка импорта");
         if (data.details) {
           setError(`${data.error}: ${data.details.join(", ")}`);
         }
@@ -112,7 +136,7 @@ export default function ImportPage() {
         setResult(data);
       }
     } catch (err) {
-      setError("Failed to connect to server");
+      setError("Не удалось подключиться к серверу");
       console.error(err);
     } finally {
       setLoading(false);
@@ -134,38 +158,71 @@ export default function ImportPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Import Data</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Импорт данных</h1>
         <p className="text-slate-500 mt-1">
-          Import daily metrics from your Excel spreadsheet
+          Загрузите данные из Excel таблицы
         </p>
       </div>
+
+      {countries.length === 0 && !loadingCountries && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <Database className="h-8 w-8 text-amber-600" />
+              <div className="flex-1">
+                <p className="font-medium text-amber-800">База данных не инициализирована</p>
+                <p className="text-sm text-amber-600">Нажмите кнопку для создания стран и настроек</p>
+              </div>
+              <Button onClick={initializeDatabase} disabled={initializing}>
+                {initializing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Инициализация...
+                  </>
+                ) : (
+                  "Инициализировать"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upload Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Upload Excel File</CardTitle>
+            <CardTitle>Загрузка Excel файла</CardTitle>
             <CardDescription>
-              Upload your daily metrics spreadsheet to import data
+              Загрузите таблицу с ежедневными метриками
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Country Selection */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Target Country</label>
-              <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select country" />
-                </SelectTrigger>
-                <SelectContent>
-                  {countries.map((country) => (
-                    <SelectItem key={country.id} value={country.id}>
-                      <span className="mr-2">{getCountryFlag(country.code)}</span>
-                      {country.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Страна</label>
+              {loadingCountries ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Загрузка...
+                </div>
+              ) : countries.length > 0 ? (
+                <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите страну" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id}>
+                        <span className="mr-2">{getCountryFlag(country.code)}</span>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-slate-500">Сначала инициализируйте базу данных</p>
+              )}
             </div>
 
             {/* File Upload */}
@@ -187,7 +244,7 @@ export default function ImportPage() {
                   <FileSpreadsheet className="h-12 w-12 mx-auto text-emerald-600" />
                   <p className="font-medium text-slate-900">{file.name}</p>
                   <p className="text-sm text-slate-500">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                    {(file.size / 1024 / 1024).toFixed(2)} МБ
                   </p>
                   <Button
                     variant="ghost"
@@ -197,7 +254,7 @@ export default function ImportPage() {
                       setResult(null);
                     }}
                   >
-                    Remove
+                    Удалить
                   </Button>
                 </div>
               ) : (
@@ -205,9 +262,9 @@ export default function ImportPage() {
                   <Upload className="h-12 w-12 mx-auto text-slate-400" />
                   <div>
                     <p className="font-medium text-slate-700">
-                      Drag and drop your Excel file here
+                      Перетащите Excel файл сюда
                     </p>
-                    <p className="text-sm text-slate-500">or click to browse</p>
+                    <p className="text-sm text-slate-500">или нажмите для выбора</p>
                   </div>
                   <input
                     type="file"
@@ -218,7 +275,7 @@ export default function ImportPage() {
                   />
                   <Button asChild variant="outline">
                     <label htmlFor="file-upload" className="cursor-pointer">
-                      Select File
+                      Выбрать файл
                     </label>
                   </Button>
                 </div>
@@ -228,18 +285,18 @@ export default function ImportPage() {
             {/* Import Button */}
             <Button
               onClick={handleImport}
-              disabled={!file || !selectedCountry || loading}
+              disabled={!file || !selectedCountry || loading || countries.length === 0}
               className="w-full"
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Importing...
+                  Импорт...
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Import Data
+                  Импортировать данные
                 </>
               )}
             </Button>
@@ -250,7 +307,7 @@ export default function ImportPage() {
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-red-800">Import Error</p>
+                    <p className="font-medium text-red-800">Ошибка импорта</p>
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 </div>
@@ -263,27 +320,27 @@ export default function ImportPage() {
                 <div className="flex items-start gap-2">
                   <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-medium text-emerald-800">Import Successful</p>
+                    <p className="font-medium text-emerald-800">Импорт завершён</p>
                     <div className="flex gap-4 mt-2">
                       <Badge variant="secondary" className="bg-emerald-100">
-                        {result.imported} imported
+                        {result.imported} добавлено
                       </Badge>
                       <Badge variant="secondary" className="bg-blue-100">
-                        {result.updated} updated
+                        {result.updated} обновлено
                       </Badge>
                       <Badge variant="secondary">
-                        {result.total} total rows
+                        {result.total} всего строк
                       </Badge>
                     </div>
                     {result.errors && result.errors.length > 0 && (
                       <div className="mt-2 text-sm text-amber-700">
-                        <p className="font-medium">Warnings:</p>
+                        <p className="font-medium">Предупреждения:</p>
                         <ul className="list-disc list-inside">
                           {result.errors.slice(0, 5).map((err, i) => (
                             <li key={i}>{err}</li>
                           ))}
                           {result.errors.length > 5 && (
-                            <li>...and {result.errors.length - 5} more</li>
+                            <li>...и ещё {result.errors.length - 5}</li>
                           )}
                         </ul>
                       </div>
@@ -298,82 +355,82 @@ export default function ImportPage() {
         {/* Instructions Card */}
         <Card>
           <CardHeader>
-            <CardTitle>File Format</CardTitle>
+            <CardTitle>Формат файла</CardTitle>
             <CardDescription>
-              Ensure your Excel file has the correct column names
+              Убедитесь, что в Excel файле есть нужные колонки
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-medium text-slate-900 mb-2">Required Columns</h4>
+              <h4 className="font-medium text-slate-900 mb-2">Обязательные колонки</h4>
               <ul className="space-y-1 text-sm text-slate-600">
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Дата</Badge>
-                  Date (DD.MM.YYYY or YYYY-MM-DD)
+                  Дата (ДД.ММ.ГГГГ)
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Траст спенд</Badge>
-                  Trust ad spend
+                  Расход на рекламу Trust
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Кросгиф спенд</Badge>
-                  Crossgif ad spend
+                  Расход на рекламу Crossgif
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">FBM спенд</Badge>
-                  FBM ad spend
+                  Расход на рекламу FBM
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Доход SOL Приёмка</Badge>
-                  Revenue in local currency (Priemka)
+                  Доход в местной валюте (Приёмка)
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Доход USDT Приёмка</Badge>
-                  Revenue in USDT (Priemka)
+                  Доход в USDT (Приёмка)
                 </li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-medium text-slate-900 mb-2">Optional Columns</h4>
+              <h4 className="font-medium text-slate-900 mb-2">Дополнительные колонки</h4>
               <ul className="space-y-1 text-sm text-slate-600">
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">ФД кол-во</Badge>
-                  FD count
+                  Количество ФД
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">ФД сумма SOL</Badge>
-                  FD sum in local currency
+                  Сумма ФД в местной валюте
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Доход SOL Наш</Badge>
-                  Own revenue in local
+                  Наш доход в местной валюте
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Доход USDT Наш</Badge>
-                  Own revenue in USDT
+                  Наш доход в USDT
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Chatterfy</Badge>
-                  Chatterfy cost
+                  Расходы на Chatterfy
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">Доп расходы</Badge>
-                  Additional expenses
+                  Дополнительные расходы
                 </li>
               </ul>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-lg">
-              <h4 className="font-medium text-slate-900 mb-2">Auto-Calculated Fields</h4>
+              <h4 className="font-medium text-slate-900 mb-2">Автоматические расчёты</h4>
               <p className="text-sm text-slate-600">
-                The following fields are automatically calculated based on your input:
+                Следующие поля рассчитываются автоматически:
               </p>
               <ul className="mt-2 text-sm text-slate-500 list-disc list-inside">
-                <li>Agency fees (9% Trust, 8% Crossgif/FBM)</li>
-                <li>Priemka commission (15%)</li>
-                <li>Payroll (Buyer 12%, FD Handler tiered, RD Handler 4%)</li>
-                <li>Net profit and ROI</li>
+                <li>Комиссия агентства (9% Trust, 8% Crossgif/FBM)</li>
+                <li>Комиссия Приёмки (15%)</li>
+                <li>ФОТ (Байер 12%, ФД Handler по тарифу, РД Handler 4%)</li>
+                <li>Чистая прибыль и ROI</li>
               </ul>
             </div>
           </CardContent>
