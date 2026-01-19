@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   TrendingUp,
+  Upload,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Countries", href: "/countries", icon: Globe },
   { name: "Finance", href: "/finance", icon: DollarSign },
   { name: "Payroll", href: "/payroll", icon: Users },
+  { name: "Import", href: "/import", icon: Upload },
   { name: "Analytics", href: "/analytics", icon: TrendingUp },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

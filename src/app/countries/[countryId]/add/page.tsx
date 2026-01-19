@@ -1,15 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Calculator, Save } from "lucide-react";
+import { ArrowLeft, Calculator, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { calculateAllMetrics } from "@/lib/calculations";
+
+interface Country {
+  id: string;
+  name: string;
+  code: string;
+  currency: string;
+  adAccounts: AdAccount[];
+}
+
+interface AdAccount {
+  id: string;
+  name: string;
+  agencyFeeRate: number;
+}
 
 interface PageProps {
   params: Promise<{ countryId: string }>;
@@ -17,6 +31,13 @@ interface PageProps {
 
 export default function AddDailyDataPage({ params }: PageProps) {
   const router = useRouter();
+  const resolvedParams = use(params);
+  const countryId = resolvedParams.countryId;
+
+  const [country, setCountry] = useState<Country | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -46,6 +67,30 @@ export default function AddDailyDataPage({ params }: PageProps) {
   // Calculated values
   const [calculated, setCalculated] = useState<ReturnType<typeof calculateAllMetrics> | null>(null);
 
+  useEffect(() => {
+    const fetchCountry = async () => {
+      try {
+        const response = await fetch("/api/countries");
+        if (response.ok) {
+          const countries = await response.json();
+          const found = countries.find((c: Country) => c.id === countryId || c.code.toLowerCase() === countryId);
+          if (found) {
+            setCountry(found);
+          } else {
+            setError("Country not found");
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching country:", err);
+        setError("Failed to load country data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCountry();
+  }, [countryId]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -74,10 +119,94 @@ export default function AddDailyDataPage({ params }: PageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Save to database via API
-    alert("Data saved! (Demo mode - API not connected yet)");
-    router.push("/countries");
+
+    if (!country) {
+      setError("Country not loaded");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      // Build ad spends array from form data
+      const adSpends = [];
+      const trustAccount = country.adAccounts?.find(a => a.name.toUpperCase().includes("TRUST"));
+      const crossgifAccount = country.adAccounts?.find(a => a.name.toUpperCase().includes("CROSSGIF"));
+      const fbmAccount = country.adAccounts?.find(a => a.name.toUpperCase().includes("FBM"));
+
+      if (trustAccount && formData.spendTrust) {
+        adSpends.push({
+          adAccountId: trustAccount.id,
+          spend: parseFloat(formData.spendTrust) || 0,
+        });
+      }
+      if (crossgifAccount && formData.spendCrossgif) {
+        adSpends.push({
+          adAccountId: crossgifAccount.id,
+          spend: parseFloat(formData.spendCrossgif) || 0,
+        });
+      }
+      if (fbmAccount && formData.spendFbm) {
+        adSpends.push({
+          adAccountId: fbmAccount.id,
+          spend: parseFloat(formData.spendFbm) || 0,
+        });
+      }
+
+      const response = await fetch("/api/metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: formData.date,
+          countryId: country.id,
+          adSpends,
+          revenueLocalPriemka: parseFloat(formData.revenueLocalPriemka) || 0,
+          revenueUsdtPriemka: parseFloat(formData.revenueUsdtPriemka) || 0,
+          revenueLocalOwn: parseFloat(formData.revenueLocalOwn) || 0,
+          revenueUsdtOwn: parseFloat(formData.revenueUsdtOwn) || 0,
+          fdCount: parseInt(formData.fdCount) || 0,
+          fdSumLocal: parseFloat(formData.fdSumLocal) || 0,
+          payrollContent: parseFloat(formData.payrollContent) || 0,
+          payrollReviews: parseFloat(formData.payrollReviews) || 0,
+          payrollDesigner: parseFloat(formData.payrollDesigner) || 0,
+          chatterfyCost: parseFloat(formData.chatterfyCost) || 0,
+          additionalExpenses: parseFloat(formData.additionalExpenses) || 0,
+        }),
+      });
+
+      if (response.ok) {
+        router.push("/countries");
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to save data");
+      }
+    } catch (err) {
+      console.error("Error saving data:", err);
+      setError("Failed to save data");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (error && !country) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">{error}</p>
+        <Link href="/countries">
+          <Button className="mt-4">Back to Countries</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -90,9 +219,17 @@ export default function AddDailyDataPage({ params }: PageProps) {
         </Link>
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Add Daily Data</h1>
-          <p className="text-slate-500 mt-1">Enter daily metrics for calculation</p>
+          <p className="text-slate-500 mt-1">
+            {country?.name} ({country?.currency}) - Enter daily metrics
+          </p>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid gap-6">
@@ -172,7 +309,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                 <h4 className="font-medium mb-3">Partner Revenue (Priemka - 15% commission)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="revenueLocalPriemka">Local Currency (SOL)</Label>
+                    <Label htmlFor="revenueLocalPriemka">Local Currency ({country?.currency})</Label>
                     <Input
                       id="revenueLocalPriemka"
                       type="number"
@@ -203,7 +340,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                 <h4 className="font-medium mb-3">Own Revenue</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="revenueLocalOwn">Local Currency (SOL)</Label>
+                    <Label htmlFor="revenueLocalOwn">Local Currency ({country?.currency})</Label>
                     <Input
                       id="revenueLocalOwn"
                       type="number"
@@ -250,7 +387,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fdSumLocal">FD Sum (Local Currency)</Label>
+                  <Label htmlFor="fdSumLocal">FD Sum ({country?.currency})</Label>
                   <Input
                     id="fdSumLocal"
                     type="number"
@@ -412,9 +549,18 @@ export default function AddDailyDataPage({ params }: PageProps) {
           )}
 
           {/* Submit Button */}
-          <Button type="submit" className="w-full" size="lg">
-            <Save className="h-4 w-4 mr-2" />
-            Save Daily Data
+          <Button type="submit" className="w-full" size="lg" disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Daily Data
+              </>
+            )}
           </Button>
         </div>
       </form>
