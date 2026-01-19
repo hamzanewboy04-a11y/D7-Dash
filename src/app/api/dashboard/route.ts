@@ -10,10 +10,17 @@ export async function GET(request: Request) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Get metrics for the period
+    // End date is today (don't show future dates)
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    // Get metrics for the period (only up to today)
     const metrics = await prisma.dailyMetrics.findMany({
       where: {
-        date: { gte: startDate },
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
       },
       include: {
         country: true,

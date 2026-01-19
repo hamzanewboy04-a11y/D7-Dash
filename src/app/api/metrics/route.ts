@@ -17,15 +17,17 @@ export async function GET(request: Request) {
       where.countryId = countryId;
     }
 
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) {
-        (where.date as Record<string, unknown>).gte = new Date(startDate);
-      }
-      if (endDate) {
-        (where.date as Record<string, unknown>).lte = new Date(endDate);
-      }
+    // Always filter to today or earlier to avoid showing future dates with no data
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    where.date = {};
+    if (startDate) {
+      (where.date as Record<string, unknown>).gte = new Date(startDate);
     }
+    // Use the earlier of endDate or today
+    const endDateValue = endDate ? new Date(endDate) : today;
+    (where.date as Record<string, unknown>).lte = endDateValue > today ? today : endDateValue;
 
     const metrics = await prisma.dailyMetrics.findMany({
       where,
