@@ -5,13 +5,14 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { CountrySummary } from "@/components/dashboard/country-summary";
 import { Button } from "@/components/ui/button";
-import { DollarSign, TrendingUp, CreditCard, Users, RefreshCw, Database } from "lucide-react";
+import { DollarSign, TrendingUp, CreditCard, Users, RefreshCw, Database, Wallet } from "lucide-react";
 
 interface DashboardData {
   totals: {
     revenue: number;
     expenses: number;
     spend: number;
+    expensesWithoutSpend: number;
     payroll: number;
     profit: number;
     roi: number;
@@ -121,6 +122,7 @@ export default function DashboardPage() {
         spend: mockCountryData.reduce((sum, c) => sum + c.spend, 0),
         profit: mockCountryData.reduce((sum, c) => sum + c.profit, 0),
         payroll: 3450,
+        expensesWithoutSpend: 3450,
         roi: 0,
       };
 
@@ -157,7 +159,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           title="Общий доход"
           value={`$${totals.revenue.toLocaleString()}`}
@@ -165,10 +167,16 @@ export default function DashboardPage() {
           iconColor="text-emerald-500"
         />
         <MetricCard
-          title="Общий расход"
+          title="Спенд"
           value={`$${totals.spend.toLocaleString()}`}
           icon={CreditCard}
           iconColor="text-blue-500"
+        />
+        <MetricCard
+          title="Расх. без спенда"
+          value={`$${(totals.expensesWithoutSpend || 0).toLocaleString()}`}
+          icon={Wallet}
+          iconColor="text-orange-500"
         />
         <MetricCard
           title="Чистая прибыль"
@@ -180,7 +188,7 @@ export default function DashboardPage() {
           title="ROI"
           value={`${typeof totals.roi === 'number' ? totals.roi.toFixed(1) : '0'}%`}
           icon={Users}
-          iconColor="text-orange-500"
+          iconColor="text-amber-500"
         />
       </div>
 

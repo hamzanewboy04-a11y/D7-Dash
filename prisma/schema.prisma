@@ -162,6 +162,15 @@ model Employee {
   fixedRate   Float?   // Фиксированная ставка (например, 10$ для хед диза)
   percentRate Float?   // Процентная ставка (например, 12% для баера)
 
+  // Настройки периода выплат
+  paymentType     String   @default("buffer")  // buffer, day_to_day, twice_monthly, weekly, monthly
+  bufferDays      Int      @default(7)         // Дней буфера (для buffer типа)
+  paymentDay1     Int?                         // День выплаты 1 (для twice_monthly: 1-28)
+  paymentDay2     Int?                         // День выплаты 2 (для twice_monthly: 1-28)
+
+  // Ручной баланс
+  currentBalance  Float    @default(0)         // Текущий баланс к выплате (редактируемый вручную)
+
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

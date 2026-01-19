@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     // Calculate unpaid balance for each employee
     const employeesWithBalance = employees.map((emp) => ({
       ...emp,
-      unpaidBalance: emp.payrollRecords.reduce((sum, r) => sum + r.amount, 0),
+      unpaidBalance: emp.currentBalance + emp.payrollRecords.reduce((sum, r) => sum + r.amount, 0),
       payrollRecords: undefined, // Remove the records from response
     }));
 
@@ -58,7 +58,18 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, role, countryId, fixedRate, percentRate } = body;
+    const {
+      name,
+      role,
+      countryId,
+      fixedRate,
+      percentRate,
+      paymentType,
+      bufferDays,
+      paymentDay1,
+      paymentDay2,
+      currentBalance,
+    } = body;
 
     if (!name || !role) {
       return NextResponse.json(
@@ -74,6 +85,11 @@ export async function POST(request: Request) {
         countryId: countryId || null,
         fixedRate: fixedRate ? parseFloat(fixedRate) : null,
         percentRate: percentRate ? parseFloat(percentRate) : null,
+        paymentType: paymentType || "buffer",
+        bufferDays: bufferDays ? parseInt(bufferDays) : 7,
+        paymentDay1: paymentDay1 ? parseInt(paymentDay1) : null,
+        paymentDay2: paymentDay2 ? parseInt(paymentDay2) : null,
+        currentBalance: currentBalance ? parseFloat(currentBalance) : 0,
       },
       include: {
         country: {
@@ -100,7 +116,20 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, name, role, countryId, fixedRate, percentRate, isActive } = body;
+    const {
+      id,
+      name,
+      role,
+      countryId,
+      fixedRate,
+      percentRate,
+      isActive,
+      paymentType,
+      bufferDays,
+      paymentDay1,
+      paymentDay2,
+      currentBalance,
+    } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -109,16 +138,23 @@ export async function PUT(request: Request) {
       );
     }
 
+    const updateData: Record<string, unknown> = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (role !== undefined) updateData.role = role;
+    if (countryId !== undefined) updateData.countryId = countryId || null;
+    if (fixedRate !== undefined) updateData.fixedRate = fixedRate ? parseFloat(fixedRate) : null;
+    if (percentRate !== undefined) updateData.percentRate = percentRate ? parseFloat(percentRate) : null;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (paymentType !== undefined) updateData.paymentType = paymentType;
+    if (bufferDays !== undefined) updateData.bufferDays = parseInt(bufferDays);
+    if (paymentDay1 !== undefined) updateData.paymentDay1 = paymentDay1 ? parseInt(paymentDay1) : null;
+    if (paymentDay2 !== undefined) updateData.paymentDay2 = paymentDay2 ? parseInt(paymentDay2) : null;
+    if (currentBalance !== undefined) updateData.currentBalance = parseFloat(currentBalance);
+
     const employee = await prisma.employee.update({
       where: { id },
-      data: {
-        name,
-        role,
-        countryId: countryId || null,
-        fixedRate: fixedRate !== undefined ? (fixedRate ? parseFloat(fixedRate) : null) : undefined,
-        percentRate: percentRate !== undefined ? (percentRate ? parseFloat(percentRate) : null) : undefined,
-        isActive: isActive !== undefined ? isActive : undefined,
-      },
+      data: updateData,
       include: {
         country: {
           select: {
