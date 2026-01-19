@@ -23,6 +23,7 @@ model Country {
   dailyMetrics DailyMetrics[]
   adAccounts   AdAccount[]
   employees    Employee[]
+  expenses     Expense[]
 }
 
 // Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
@@ -195,6 +196,24 @@ model PayrollRecord {
 
   @@index([date])
   @@index([employeeId])
+}
+
+// Отдельные расходы (доп. расходы)
+model Expense {
+  id          String   @id @default(cuid())
+  date        DateTime
+  countryId   String?
+  country     Country? @relation(fields: [countryId], references: [id])
+
+  amount      Float
+  description String   // Назначение платежа
+  category    String   @default("other")  // payroll, commission, chatterfy, tools, other
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([countryId])
 }
 
 // Настройки системы

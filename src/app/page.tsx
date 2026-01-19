@@ -5,7 +5,40 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { CountrySummary } from "@/components/dashboard/country-summary";
 import { Button } from "@/components/ui/button";
-import { DollarSign, TrendingUp, CreditCard, Users, RefreshCw, Database, Wallet } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  CreditCard,
+  Users,
+  RefreshCw,
+  Database,
+  Wallet,
+  Plus,
+  Calendar,
+  ArrowUpRight,
+  ArrowDownRight,
+  Loader2,
+} from "lucide-react";
 
 interface DashboardData {
   totals: {
@@ -39,6 +72,23 @@ interface DashboardData {
   }>;
 }
 
+interface YesterdayData {
+  date: string;
+  revenue: number;
+  spend: number;
+  expenses: number;
+  profit: number;
+  fdCount: number;
+  rdSumUsdt: number;
+  countries: Array<{
+    name: string;
+    code: string;
+    revenue: number;
+    spend: number;
+    profit: number;
+  }>;
+}
+
 // Fallback demo data
 const mockChartData = [
   { date: "1 дек", revenue: 2364.89, expenses: 1138.09, profit: 1226.80 },
@@ -58,11 +108,31 @@ const mockCountryData = [
   { name: "Chile", code: "CL", revenue: 2800, spend: 1800, profit: 400, roi: 0.14 },
 ];
 
+const expenseCategories = [
+  { value: "payroll", label: "ФОТ" },
+  { value: "commission", label: "Комиссия" },
+  { value: "chatterfy", label: "Chatterfy" },
+  { value: "tools", label: "Инструменты" },
+  { value: "other", label: "Другое" },
+];
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [yesterdayData, setYesterdayData] = useState<YesterdayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSeeded, setIsSeeded] = useState<boolean | null>(null);
   const [seeding, setSeeding] = useState(false);
+
+  // Expense dialog state
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    date: new Date().toISOString().split("T")[0],
+    amount: "",
+    description: "",
+    category: "other",
+    countryId: "",
+  });
+  const [savingExpense, setSavingExpense] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -78,15 +148,77 @@ export default function DashboardPage() {
     }
   };
 
-  const checkSeeded = async () => {
+  const fetchYesterdayData = async () => {
     try {
-      const response = await fetch("/api/seed");
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const dateStr = yesterday.toISOString().split("T")[0];
+
+      const response = await fetch(`/api/metrics?date=${dateStr}&filterZeroSpend=false`);
       if (response.ok) {
-        const seedStatus = await response.json();
-        setIsSeeded(seedStatus.seeded);
+        const metrics = await response.json();
+
+        if (metrics && metrics.length > 0) {
+          const byCountry: Record<string, { name: string; code: string; revenue: number; spend: number; profit: number }> = {};
+
+          let totalRevenue = 0;
+          let totalSpend = 0;
+          let totalExpenses = 0;
+          let totalProfit = 0;
+          let totalFdCount = 0;
+          let totalRdSum = 0;
+
+          for (const m of metrics) {
+            totalRevenue += m.totalRevenueUsdt || 0;
+            totalSpend += m.totalSpend || 0;
+            totalExpenses += m.totalExpensesUsdt || 0;
+            totalProfit += m.netProfitMath || 0;
+            totalFdCount += m.fdCount || 0;
+            totalRdSum += m.rdSumUsdt || 0;
+
+            const code = m.country?.code;
+            if (code) {
+              if (!byCountry[code]) {
+                byCountry[code] = {
+                  name: m.country.name,
+                  code,
+                  revenue: 0,
+                  spend: 0,
+                  profit: 0,
+                };
+              }
+              byCountry[code].revenue += m.totalRevenueUsdt || 0;
+              byCountry[code].spend += m.totalSpend || 0;
+              byCountry[code].profit += m.netProfitMath || 0;
+            }
+          }
+
+          setYesterdayData({
+            date: dateStr,
+            revenue: totalRevenue,
+            spend: totalSpend,
+            expenses: totalExpenses,
+            profit: totalProfit,
+            fdCount: totalFdCount,
+            rdSumUsdt: totalRdSum,
+            countries: Object.values(byCountry),
+          });
+        }
       }
     } catch (error) {
-      console.error("Error checking seed status:", error);
+      console.error("Error fetching yesterday data:", error);
+    }
+  };
+
+  const checkSeeded = async () => {
+    try {
+      const response = await fetch("/api/countries");
+      if (response.ok) {
+        const countries = await response.json();
+        setIsSeeded(countries && countries.length > 0);
+      }
+    } catch {
+      setIsSeeded(false);
     }
   };
 
@@ -105,12 +237,59 @@ export default function DashboardPage() {
     }
   };
 
+  const handleSaveExpense = async () => {
+    if (!expenseForm.amount || !expenseForm.description) {
+      return;
+    }
+
+    setSavingExpense(true);
+    try {
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: expenseForm.date,
+          amount: expenseForm.amount,
+          description: expenseForm.description,
+          category: expenseForm.category,
+          countryId: expenseForm.countryId || null,
+        }),
+      });
+
+      if (response.ok) {
+        setExpenseDialogOpen(false);
+        setExpenseForm({
+          date: new Date().toISOString().split("T")[0],
+          amount: "",
+          description: "",
+          category: "other",
+          countryId: "",
+        });
+        // Refresh data
+        fetchDashboardData();
+        fetchYesterdayData();
+      }
+    } catch (error) {
+      console.error("Error saving expense:", error);
+    } finally {
+      setSavingExpense(false);
+    }
+  };
+
   useEffect(() => {
     checkSeeded();
     fetchDashboardData();
+    fetchYesterdayData();
   }, []);
 
-  // Use API data or fallback to demo data
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
   const hasData = data && data.dailyData && data.dailyData.length > 0;
   const chartData = hasData ? data.dailyData : mockChartData;
   const countryData = hasData ? data.byCountry : mockCountryData;
@@ -133,6 +312,14 @@ export default function DashboardPage() {
   // Find best performing country
   const bestCountry = [...countryData].sort((a, b) => b.roi - a.roi)[0];
 
+  // Format yesterday's date
+  const yesterdayFormatted = yesterdayData
+    ? new Date(yesterdayData.date).toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
+      })
+    : "";
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -145,6 +332,10 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setExpenseDialogOpen(true)} variant="outline">
+            <Plus className="h-4 w-4 mr-2" />
+            Внести расход
+          </Button>
           {isSeeded === false && (
             <Button onClick={seedDatabase} disabled={seeding} variant="outline">
               <Database className="h-4 w-4 mr-2" />
@@ -157,6 +348,80 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Yesterday Summary */}
+      {yesterdayData && (
+        <Card className="border-2 border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-slate-500" />
+                  Итоги за вчера ({yesterdayFormatted})
+                </CardTitle>
+                <CardDescription>Краткая сводка по всем странам</CardDescription>
+              </div>
+              <div className={`text-2xl font-bold ${yesterdayData.profit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {yesterdayData.profit >= 0 ? (
+                  <span className="flex items-center">
+                    <ArrowUpRight className="h-6 w-6 mr-1" />
+                    +${yesterdayData.profit.toFixed(2)}
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <ArrowDownRight className="h-6 w-6 mr-1" />
+                    ${yesterdayData.profit.toFixed(2)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <p className="text-sm text-slate-500">Доход</p>
+                <p className="text-xl font-bold text-emerald-600">${yesterdayData.revenue.toFixed(2)}</p>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <p className="text-sm text-slate-500">Спенд</p>
+                <p className="text-xl font-bold text-blue-600">${yesterdayData.spend.toFixed(2)}</p>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <p className="text-sm text-slate-500">Расходы</p>
+                <p className="text-xl font-bold text-orange-600">${yesterdayData.expenses.toFixed(2)}</p>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <p className="text-sm text-slate-500">ФД количество</p>
+                <p className="text-xl font-bold">{yesterdayData.fdCount}</p>
+              </div>
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <p className="text-sm text-slate-500">РД сумма</p>
+                <p className="text-xl font-bold">${yesterdayData.rdSumUsdt.toFixed(2)}</p>
+              </div>
+            </div>
+
+            {yesterdayData.countries.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm font-medium text-slate-600 mb-2">По странам:</p>
+                <div className="flex flex-wrap gap-2">
+                  {yesterdayData.countries.map((c) => (
+                    <div
+                      key={c.code}
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        c.profit >= 0
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {c.name}: {c.profit >= 0 ? "+" : ""}${c.profit.toFixed(2)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -222,6 +487,105 @@ export default function DashboardPage() {
           <p className="text-sm opacity-75 mt-1">Все работают</p>
         </div>
       </div>
+
+      {/* Expense Dialog */}
+      <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Внести расход</DialogTitle>
+            <DialogDescription>
+              Добавьте дополнительный расход. Он будет записан на указанную дату.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="expense-date">Дата</Label>
+              <Input
+                id="expense-date"
+                type="date"
+                value={expenseForm.date}
+                onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-amount">Сумма ($)</Label>
+              <Input
+                id="expense-amount"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={expenseForm.amount}
+                onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-description">Назначение</Label>
+              <Textarea
+                id="expense-description"
+                placeholder="Опишите расход..."
+                value={expenseForm.description}
+                onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-category">Категория</Label>
+              <Select
+                value={expenseForm.category}
+                onValueChange={(v) => setExpenseForm({ ...expenseForm, category: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите категорию" />
+                </SelectTrigger>
+                <SelectContent>
+                  {expenseCategories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-country">Страна (опционально)</Label>
+              <Select
+                value={expenseForm.countryId}
+                onValueChange={(v) => setExpenseForm({ ...expenseForm, countryId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Все страны" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Все страны</SelectItem>
+                  {data?.countries?.map((country) => (
+                    <SelectItem key={country.id} value={country.id}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExpenseDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveExpense} disabled={savingExpense || !expenseForm.amount || !expenseForm.description}>
+              {savingExpense ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                "Сохранить"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

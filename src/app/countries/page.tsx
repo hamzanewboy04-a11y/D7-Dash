@@ -315,10 +315,31 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
   );
 }
 
+// Interface for aggregated "all geo" metrics by date
+interface AggregatedMetric {
+  date: string;
+  totalSpend: number;
+  totalRevenueUsdt: number;
+  totalExpensesUsdt: number;
+  expensesWithoutSpend: number;
+  netProfitMath: number;
+  roi: number;
+  fdCount: number;
+  rdCount: number;
+  countries: Array<{
+    code: string;
+    name: string;
+    spend: number;
+    revenue: number;
+    profit: number;
+  }>;
+}
+
 export default function CountriesPage() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [allMetrics, setAllMetrics] = useState<AggregatedMetric[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("all");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(false);
@@ -332,14 +353,61 @@ export default function CountriesPage() {
       if (response.ok) {
         const data = await response.json();
         setCountries(data);
-        if (data.length > 0 && !selectedCountry) {
-          setSelectedCountry(data[0].id);
-        }
       }
     } catch (error) {
       console.error("Error fetching countries:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch and aggregate all metrics for "Все гео" tab
+  const fetchAllMetrics = async () => {
+    setMetricsLoading(true);
+    setExpandedRow(null);
+    try {
+      const response = await fetch("/api/metrics?limit=30");
+      if (response.ok) {
+        const data: DailyMetric[] = await response.json();
+
+        // Group by date and aggregate
+        const byDate: Record<string, DailyMetric[]> = {};
+        data.forEach((m) => {
+          const dateKey = m.date.split("T")[0];
+          if (!byDate[dateKey]) byDate[dateKey] = [];
+          byDate[dateKey].push(m);
+        });
+
+        // Aggregate
+        const aggregated: AggregatedMetric[] = Object.entries(byDate)
+          .map(([date, items]) => ({
+            date,
+            totalSpend: items.reduce((s, m) => s + m.totalSpend, 0),
+            totalRevenueUsdt: items.reduce((s, m) => s + m.totalRevenueUsdt, 0),
+            totalExpensesUsdt: items.reduce((s, m) => s + m.totalExpensesUsdt, 0),
+            expensesWithoutSpend: items.reduce((s, m) => s + m.expensesWithoutSpend, 0),
+            netProfitMath: items.reduce((s, m) => s + m.netProfitMath, 0),
+            roi: items.reduce((s, m) => s + m.totalSpend, 0) > 0
+              ? items.reduce((s, m) => s + m.netProfitMath, 0) / items.reduce((s, m) => s + m.totalSpend, 0)
+              : 0,
+            fdCount: items.reduce((s, m) => s + m.fdCount, 0),
+            rdCount: items.reduce((s, m) => s + m.rdCount, 0),
+            countries: items.map((m) => ({
+              code: m.country?.code || "",
+              name: m.country?.name || "",
+              spend: m.totalSpend,
+              revenue: m.totalRevenueUsdt,
+              profit: m.netProfitMath,
+            })),
+          }))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setAllMetrics(aggregated);
+      }
+    } catch (error) {
+      console.error("Error fetching all metrics:", error);
+    } finally {
+      setMetricsLoading(false);
     }
   };
 
@@ -393,10 +461,13 @@ export default function CountriesPage() {
   useEffect(() => {
     checkSeeded();
     fetchCountries();
+    fetchAllMetrics(); // Fetch all metrics initially for "Все гео" tab
   }, []);
 
   useEffect(() => {
-    if (selectedCountry) {
+    if (selectedCountry === "all") {
+      fetchAllMetrics();
+    } else if (selectedCountry) {
       fetchMetrics(selectedCountry);
     }
   }, [selectedCountry]);
@@ -471,8 +542,12 @@ export default function CountriesPage() {
       </div>
 
       {/* Country Tabs */}
-      <Tabs value={selectedCountry || displayCountries[0]?.id} onValueChange={setSelectedCountry}>
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs value={selectedCountry} onValueChange={setSelectedCountry}>
+        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${displayCountries.length + 1}, minmax(0, 1fr))` }}>
+          <TabsTrigger value="all" className="text-sm">
+            <span className="mr-2">🌍</span>
+            Все гео
+          </TabsTrigger>
           {displayCountries.map((country) => (
             <TabsTrigger key={country.id} value={country.id} className="text-sm">
               <span className="mr-2">{country.flag}</span>
@@ -480,6 +555,259 @@ export default function CountriesPage() {
             </TabsTrigger>
           ))}
         </TabsList>
+
+        {/* All Geo Tab Content */}
+        <TabsContent value="all" className="space-y-6">
+          {/* All Geo Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">
+                  Общий спенд
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  ${allMetrics.reduce((s, m) => s + m.totalSpend, 0).toFixed(2)}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Все страны
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">
+                  Расходы без спенда
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  ${allMetrics.reduce((s, m) => s + m.expensesWithoutSpend, 0).toFixed(2)}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  ФОТ, комиссии и др.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">
+                  Общий доход
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600">
+                  ${allMetrics.reduce((s, m) => s + m.totalRevenueUsdt, 0).toFixed(2)}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {allMetrics.length} дней
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">
+                  Чистая прибыль
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${allMetrics.reduce((s, m) => s + m.netProfitMath, 0) >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
+                  ${allMetrics.reduce((s, m) => s + m.netProfitMath, 0).toFixed(2)}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {allMetrics.length} дней
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">
+                  Средний ROI
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {allMetrics.length > 0
+                    ? ((allMetrics.reduce((s, m) => s + m.netProfitMath, 0) / allMetrics.reduce((s, m) => s + m.totalSpend, 0)) * 100).toFixed(1)
+                    : 0}%
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  все страны
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* All Geo Daily Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Ежедневные метрики - Все страны
+                {metricsLoading && <RefreshCw className="inline-block ml-2 h-4 w-4 animate-spin" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {allMetrics.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <p>Нет данных по метрикам.</p>
+                  <p className="mt-2">
+                    <Link href="/import" className="text-emerald-600 hover:underline">
+                      Импортируйте данные из Excel
+                    </Link>
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead></TableHead>
+                        <TableHead>Дата</TableHead>
+                        <TableHead className="text-right">Спенд</TableHead>
+                        <TableHead className="text-right">Доход</TableHead>
+                        <TableHead className="text-right">Расходы</TableHead>
+                        <TableHead className="text-right">Прибыль</TableHead>
+                        <TableHead className="text-right">ROI</TableHead>
+                        <TableHead>По странам</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allMetrics.map((metric) => (
+                        <>
+                          <TableRow
+                            key={metric.date}
+                            className="cursor-pointer hover:bg-slate-50"
+                            onClick={() => setExpandedRow(expandedRow === metric.date ? null : metric.date)}
+                          >
+                            <TableCell className="w-8">
+                              {expandedRow === metric.date ? (
+                                <ChevronUp className="h-4 w-4 text-slate-400" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-slate-400" />
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {new Date(metric.date).toLocaleDateString("ru-RU")}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              ${metric.totalSpend.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right text-emerald-600">
+                              ${metric.totalRevenueUsdt.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right text-red-500">
+                              ${metric.totalExpensesUsdt.toFixed(2)}
+                            </TableCell>
+                            <TableCell
+                              className={`text-right ${
+                                metric.netProfitMath >= 0 ? "text-emerald-600" : "text-red-600"
+                              }`}
+                            >
+                              ${metric.netProfitMath.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {metric.roi >= 0 ? (
+                                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                ) : (
+                                  <TrendingDown className="h-4 w-4 text-red-500" />
+                                )}
+                                {(metric.roi * 100).toFixed(1)}%
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {metric.countries.map((c) => (
+                                  <Badge
+                                    key={c.code}
+                                    variant="outline"
+                                    className={`text-xs ${c.profit >= 0 ? 'border-emerald-300 text-emerald-700' : 'border-red-300 text-red-700'}`}
+                                  >
+                                    {getCountryFlag(c.code)} ${c.profit.toFixed(0)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {expandedRow === metric.date && (
+                            <TableRow key={`${metric.date}-detail`}>
+                              <TableCell colSpan={8} className="p-0">
+                                <div className="bg-slate-50 border-t border-b p-6">
+                                  <div className="flex justify-between items-start mb-4">
+                                    <h3 className="text-lg font-semibold">
+                                      Детализация за {new Date(metric.date).toLocaleDateString("ru-RU")} - Все страны
+                                    </h3>
+                                    <Button variant="ghost" size="icon" onClick={() => setExpandedRow(null)}>
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {metric.countries.map((c) => (
+                                      <Card key={c.code} className="bg-white">
+                                        <CardHeader className="pb-2">
+                                          <CardTitle className="text-sm flex items-center gap-2">
+                                            {getCountryFlag(c.code)} {getCountryNameRu(c.name)}
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2 text-sm">
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-600">Спенд:</span>
+                                            <span className="font-medium">${c.spend.toFixed(2)}</span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-slate-600">Доход:</span>
+                                            <span className="font-medium text-emerald-600">${c.revenue.toFixed(2)}</span>
+                                          </div>
+                                          <div className="flex justify-between border-t pt-2">
+                                            <span className="text-slate-600">Прибыль:</span>
+                                            <span className={`font-semibold ${c.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                              ${c.profit.toFixed(2)}
+                                            </span>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    ))}
+                                  </div>
+                                  <div className="mt-4 p-4 bg-white rounded-lg border">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                      <div>
+                                        <span className="text-slate-600">Всего ФД:</span>
+                                        <span className="ml-2 font-medium">{metric.fdCount}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-600">Всего РД:</span>
+                                        <span className="ml-2 font-medium">{metric.rdCount}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-600">Расходы без спенда:</span>
+                                        <span className="ml-2 font-medium">${metric.expensesWithoutSpend.toFixed(2)}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-600">ROI:</span>
+                                        <span className={`ml-2 font-medium ${metric.roi >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                          {(metric.roi * 100).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {displayCountries.map((country) => (
           <TabsContent key={country.id} value={country.id} className="space-y-6">
