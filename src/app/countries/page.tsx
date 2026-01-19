@@ -73,6 +73,7 @@ interface DailyMetric {
   additionalExpenses: number;
   // Totals
   totalExpensesUsdt: number;
+  expensesWithoutSpend: number;
   netProfitMath: number;
   roi: number;
   country: {
@@ -416,6 +417,8 @@ export default function CountriesPage() {
 
   // Calculate summary stats
   const totalSpend = metrics.reduce((s, d) => s + d.totalSpend, 0);
+  const totalExpenses = metrics.reduce((s, d) => s + d.totalExpensesUsdt, 0);
+  const expensesWithoutSpend = metrics.reduce((s, d) => s + d.expensesWithoutSpend, 0);
   const totalRevenue = metrics.reduce((s, d) => s + d.totalRevenueUsdt, 0);
   const totalProfit = metrics.reduce((s, d) => s + d.netProfitMath, 0);
   const avgRoi = metrics.length > 0
@@ -481,19 +484,35 @@ export default function CountriesPage() {
         {displayCountries.map((country) => (
           <TabsContent key={country.id} value={country.id} className="space-y-6">
             {/* Country Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-slate-600">
-                    Общий спенд
+                    Спенд
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold text-blue-600">
                     ${totalSpend.toFixed(2)}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {metrics.length} дней
+                    Рекламный бюджет
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">
+                    Расходы без спенда
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    ${expensesWithoutSpend.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    ФОТ, комиссии и др.
                   </p>
                 </CardContent>
               </Card>

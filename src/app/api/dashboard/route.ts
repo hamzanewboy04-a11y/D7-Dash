@@ -47,6 +47,7 @@ export async function GET(request: Request) {
       totalRevenue: 0,
       totalExpenses: 0,
       totalSpend: 0,
+      expensesWithoutSpend: 0,
       totalPayroll: 0,
       totalProfit: 0,
     };
@@ -74,6 +75,7 @@ export async function GET(request: Request) {
       totals.totalRevenue += metric.totalRevenueUsdt;
       totals.totalExpenses += metric.totalExpensesUsdt;
       totals.totalSpend += metric.totalSpend;
+      totals.expensesWithoutSpend += metric.expensesWithoutSpend;
       totals.totalPayroll += metric.totalPayroll;
       totals.totalProfit += metric.netProfitMath;
 
@@ -137,6 +139,7 @@ export async function GET(request: Request) {
         revenue: Math.round(totals.totalRevenue * 100) / 100,
         expenses: Math.round(totals.totalExpenses * 100) / 100,
         spend: Math.round(totals.totalSpend * 100) / 100,
+        expensesWithoutSpend: Math.round(totals.expensesWithoutSpend * 100) / 100,
         payroll: Math.round(totals.totalPayroll * 100) / 100,
         profit: Math.round(totals.totalProfit * 100) / 100,
         roi: totals.totalExpenses > 0

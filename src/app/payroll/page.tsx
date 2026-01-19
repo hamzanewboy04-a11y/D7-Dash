@@ -79,9 +79,22 @@ interface Employee {
   country: Country | null;
   fixedRate: number | null;
   percentRate: number | null;
+  paymentType: string;
+  bufferDays: number;
+  paymentDay1: number | null;
+  paymentDay2: number | null;
+  currentBalance: number;
   isActive: boolean;
   unpaidBalance: number;
 }
+
+const paymentTypeLabels: Record<string, string> = {
+  buffer: "С буфером",
+  day_to_day: "День в день",
+  twice_monthly: "2 раза в месяц",
+  weekly: "Еженедельно",
+  monthly: "Ежемесячно",
+};
 
 const roleLabels: Record<string, string> = {
   buyer: "Баер",
@@ -119,6 +132,11 @@ export default function PayrollPage() {
     countryId: "",
     fixedRate: "",
     percentRate: "",
+    paymentType: "buffer",
+    bufferDays: "7",
+    paymentDay1: "",
+    paymentDay2: "",
+    currentBalance: "0",
   });
 
   // Fetch employees, countries, and payroll summary
@@ -177,6 +195,11 @@ export default function PayrollPage() {
       countryId: employee.countryId || "",
       fixedRate: employee.fixedRate?.toString() || "",
       percentRate: employee.percentRate?.toString() || "",
+      paymentType: employee.paymentType || "buffer",
+      bufferDays: employee.bufferDays?.toString() || "7",
+      paymentDay1: employee.paymentDay1?.toString() || "",
+      paymentDay2: employee.paymentDay2?.toString() || "",
+      currentBalance: employee.currentBalance?.toString() || "0",
     });
     setIsDialogOpen(true);
   };
@@ -189,6 +212,11 @@ export default function PayrollPage() {
       countryId: "",
       fixedRate: "",
       percentRate: "",
+      paymentType: "buffer",
+      bufferDays: "7",
+      paymentDay1: "",
+      paymentDay2: "",
+      currentBalance: "0",
     });
     setIsDialogOpen(true);
   };
@@ -345,6 +373,89 @@ export default function PayrollPage() {
                     onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
                     placeholder="0.00"
                   />
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-3">Настройки выплат</h4>
+
+                <div className="space-y-2">
+                  <Label htmlFor="paymentType">Тип выплаты</Label>
+                  <Select
+                    value={formData.paymentType}
+                    onValueChange={(v) => setFormData({ ...formData, paymentType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите тип" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(paymentTypeLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.paymentType === "buffer" && (
+                  <div className="space-y-2 mt-3">
+                    <Label htmlFor="bufferDays">Дней буфера</Label>
+                    <Input
+                      id="bufferDays"
+                      type="number"
+                      value={formData.bufferDays}
+                      onChange={(e) => setFormData({ ...formData, bufferDays: e.target.value })}
+                      placeholder="7"
+                    />
+                  </div>
+                )}
+
+                {formData.paymentType === "twice_monthly" && (
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentDay1">День 1 (1-28)</Label>
+                      <Input
+                        id="paymentDay1"
+                        type="number"
+                        min="1"
+                        max="28"
+                        value={formData.paymentDay1}
+                        onChange={(e) => setFormData({ ...formData, paymentDay1: e.target.value })}
+                        placeholder="15"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentDay2">День 2 (1-28)</Label>
+                      <Input
+                        id="paymentDay2"
+                        type="number"
+                        min="1"
+                        max="28"
+                        value={formData.paymentDay2}
+                        onChange={(e) => setFormData({ ...formData, paymentDay2: e.target.value })}
+                        placeholder="30"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-3">Баланс</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="currentBalance">Текущий баланс к выплате ($)</Label>
+                  <Input
+                    id="currentBalance"
+                    type="number"
+                    step="0.01"
+                    value={formData.currentBalance}
+                    onChange={(e) => setFormData({ ...formData, currentBalance: e.target.value })}
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Ручное редактирование баланса сотрудника
+                  </p>
                 </div>
               </div>
             </div>
