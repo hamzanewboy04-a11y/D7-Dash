@@ -1,0 +1,239 @@
+// D7 Team Dashboard - Database Schema
+// Based on Google Sheets structure analysis
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Страны (Перу, Италия Ж, Италия М, Аргентина, Чили)
+model Country {
+  id           String         @id @default(cuid())
+  name         String         @unique
+  code         String         @unique // PE, IT_F, IT_M, AR, CL
+  currency     String         @default("USDT") // Локальная валюта для конверсии
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  dailyMetrics DailyMetrics[]
+  adAccounts   AdAccount[]
+  employees    Employee[]
+}
+
+// Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
+model AdAccount {
+  id              String   @id @default(cuid())
+  name            String   // ТРАСТ, КРОССГИФ, FBM
+  agencyFeeRate   Float    @default(0.08) // Комиссия агентства (9% ТРАСТ, 8% остальные)
+  countryId       String
+  country         Country  @relation(fields: [countryId], references: [id])
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  dailyAdSpends   DailyAdSpend[]
+}
+
+// Ежедневные метрики по стране
+model DailyMetrics {
+  id                String   @id @default(cuid())
+  date              DateTime
+  countryId         String
+  country           Country  @relation(fields: [countryId], references: [id])
+
+  // === Баланс РК ===
+  adAccountBalanceFact    Float    @default(0) // Баланс РК факт
+  adAccountBalanceMath    Float    @default(0) // Баланс РК математика
+  adAccountDeposit        Float    @default(0) // Внесли на РК
+
+  // === Спенд ===
+  totalSpend              Float    @default(0) // Спенд за день (сумма по всем кабинетам)
+  agencyFee               Float    @default(0) // Процент агентства от спенда
+
+  // === Доход Приёмка ===
+  revenueLocalPriemka     Float    @default(0) // Доход в SOL Приёмка
+  revenueUsdtPriemka      Float    @default(0) // Доход в USDT Приёмка
+  exchangeRatePriemka     Float    @default(0) // Курс обмена приёмка
+  commissionPriemka       Float    @default(0) // Комиссия приёмки (15%)
+
+  // === Доход Наш ===
+  revenueLocalOwn         Float    @default(0) // Доход в SOL Наш
+  revenueUsdtOwn          Float    @default(0) // Доход в USDT Наш
+  exchangeRateOwn         Float    @default(0) // Курс обмена Наш
+  commissionExchange      Float    @default(0) // Комиссия обмена
+
+  // === Общий доход/расход ===
+  totalRevenueUsdt        Float    @default(0) // Общий доход USDT = revenueUsdtPriemka + revenueUsdtOwn
+  totalExpensesUsdt       Float    @default(0) // Общие расходы USDT
+  expensesWithoutSpend    Float    @default(0) // Расходы без спенда
+
+  // === Выводы и балансы ===
+  withdrawnFromOwn        Float    @default(0) // Выведено с наших реков
+  withdrawnFromPriemka    Float    @default(0) // Выведено с приёмки
+  balancePriemkaMath      Float    @default(0) // Баланс приёмка математика
+  balanceOwnMath          Float    @default(0) // Баланс наша приёмка математика
+  balancePriemkaFact      Float    @default(0) // Баланс Приёмка Факт
+  balanceOwnFact          Float    @default(0) // Баланс наша приёмка факт
+
+  // === ФД / РД (Фактические данные / Расчётные данные) ===
+  fdCount                 Int      @default(0) // ФД КОЛ-ВО
+  nfdCount                Int      @default(0) // нФД КОЛ-ВО
+  fdSumLocal              Float    @default(0) // ФД СУММА SOL
+  nfdSumLocal             Float    @default(0) // нФД СУММА SOL
+  fdSumUsdt               Float    @default(0) // ФД СУММА USDT
+  nfdSumUsdt              Float    @default(0) // нФД СУММА USDT
+  rdCount                 Int      @default(0) // РД КОЛ-ВО
+  rdSumLocal              Float    @default(0) // РД СУММА
+  rdSumUsdt               Float    @default(0) // РД СУММА USDT
+
+  // === ФОТ (Фонд оплаты труда) - расчётные значения ===
+  payrollRdHandler        Float    @default(0) // ФОТ ОБРАБ РД (4% от суммы)
+  payrollFdHandler        Float    @default(0) // Фот обраб ФД (тиры)
+  payrollContent          Float    @default(0) // ФОТ КОНТЕНТ
+  payrollReviews          Float    @default(0) // ФОТ ОТЗОВ
+  payrollDesigner         Float    @default(0) // ФОТ ДИЗАЙНЕР
+  payrollBuyer            Float    @default(0) // ФОТ БАЕР (12% от спенда)
+  payrollHeadDesigner     Float    @default(0) // ФОТ ХЕД ДИЗ (10$ фикс)
+  totalPayroll            Float    @default(0) // ОБЩИЙ ФОТ
+  unpaidPayroll           Float    @default(0) // Невыплачено ФОТ
+  paidPayroll             Float    @default(0) // Выплата ФОТ
+
+  // === Дополнительные расходы ===
+  chatterfyCost           Float    @default(0) // Chatterfy
+  additionalExpenses      Float    @default(0) // ДОП РАСХОДЫ
+
+  // === Прибыль ===
+  netProfitMath           Float    @default(0) // Чистая прибыль математика
+  netProfitFact           Float    @default(0) // Чистая прибыль факт
+  roi                     Float    @default(0) // ROI%
+
+  // === Метрики воронки (из Дашборда) ===
+  clicks                  Int      @default(0) // Клики
+  costPerClick            Float    @default(0) // Цена клика
+  subscriptions           Int      @default(0) // Подписки
+  dialogs                 Int      @default(0) // Диалоги
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  dailyAdSpends           DailyAdSpend[]
+
+  @@unique([date, countryId])
+  @@index([date])
+  @@index([countryId])
+}
+
+// Ежедневный спенд по рекламному кабинету
+model DailyAdSpend {
+  id              String       @id @default(cuid())
+  date            DateTime
+  adAccountId     String
+  adAccount       AdAccount    @relation(fields: [adAccountId], references: [id])
+  dailyMetricsId  String
+  dailyMetrics    DailyMetrics @relation(fields: [dailyMetricsId], references: [id])
+
+  spend           Float        @default(0)
+  deposit         Float        @default(0) // Внесено на этот кабинет
+  balance         Float        @default(0) // Баланс кабинета
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([date, adAccountId])
+}
+
+// Сотрудники
+model Employee {
+  id          String   @id @default(cuid())
+  name        String
+  role        String   // buyer, content, designer, reviewer, rd_handler, fd_handler, head_designer
+  countryId   String?
+  country     Country? @relation(fields: [countryId], references: [id])
+
+  // Ставки
+  fixedRate   Float?   // Фиксированная ставка (например, 10$ для хед диза)
+  percentRate Float?   // Процентная ставка (например, 12% для баера)
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payrollRecords PayrollRecord[]
+}
+
+// Записи о выплатах ФОТ
+model PayrollRecord {
+  id          String   @id @default(cuid())
+  date        DateTime
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+
+  amount      Float
+  isPaid      Boolean  @default(false)
+  paidAt      DateTime?
+  notes       String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([employeeId])
+}
+
+// Настройки системы
+model Settings {
+  id                    String   @id @default(cuid())
+  key                   String   @unique
+  value                 String
+  description           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// Недельные сводки (агрегированные данные)
+model WeeklySummary {
+  id              String   @id @default(cuid())
+  weekStart       DateTime // Понедельник недели
+  weekEnd         DateTime // Воскресенье недели
+  countryId       String?  // null = все страны
+
+  totalSpend      Float    @default(0)
+  totalRevenue    Float    @default(0)
+  totalPayroll    Float    @default(0)
+  additionalExp   Float    @default(0)
+  pnlMath         Float    @default(0)
+  pnlFact         Float    @default(0)
+  totalExpenses   Float    @default(0)
+  roi             Float    @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([weekStart, countryId])
+}
+
+// Месячные сводки
+model MonthlySummary {
+  id              String   @id @default(cuid())
+  year            Int
+  month           Int
+  countryId       String?  // null = все страны
+
+  totalSpend      Float    @default(0)
+  totalRevenue    Float    @default(0)
+  totalPayroll    Float    @default(0)
+  additionalExp   Float    @default(0)
+  pnlMath         Float    @default(0)
+  pnlFact         Float    @default(0)
+  totalExpenses   Float    @default(0)
+  roi             Float    @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([year, month, countryId])
+}
