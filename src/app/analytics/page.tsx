@@ -213,7 +213,7 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="week" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                   <Legend />
                   <Bar dataKey="revenue" name="Доход" fill="#10b981" />
                   <Bar dataKey="spend" name="Расход" fill="#3b82f6" />
@@ -247,7 +247,7 @@ export default function AnalyticsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
