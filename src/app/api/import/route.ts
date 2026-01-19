@@ -25,12 +25,13 @@ const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   { pattern: /^date$/i, field: "date" },
   { pattern: /^день$/i, field: "date" },
 
-  // Trust Spend
+  // Trust Spend - but NOT "Спенд TRUST" which is separate
   { pattern: /траст.*спенд/i, field: "spendTrust" },
   { pattern: /спенд.*траст/i, field: "spendTrust" },
   { pattern: /trust.*spend/i, field: "spendTrust" },
   { pattern: /^траст$/i, field: "spendTrust" },
   { pattern: /^trust$/i, field: "spendTrust" },
+  { pattern: /^спенд\s+trust$/i, field: "spendTrust" },
 
   // Crossgif Spend
   { pattern: /кросс?гиф.*спенд/i, field: "spendCrossgif" },
@@ -45,62 +46,40 @@ const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   { pattern: /fbm.*spend/i, field: "spendFbm" },
   { pattern: /^fbm$/i, field: "spendFbm" },
 
-  // Revenue Priemka (Local) - specific patterns first
+  // Revenue Priemka (Local) - MUST have "приемка" or "приёмка"
   { pattern: /доход.*sol.*при[её]м/i, field: "revenueLocalPriemka" },
   { pattern: /доход.*при[её]м.*sol/i, field: "revenueLocalPriemka" },
   { pattern: /revenue.*sol.*priemka/i, field: "revenueLocalPriemka" },
-  { pattern: /при[её]м.*sol/i, field: "revenueLocalPriemka" },
 
-  // Revenue Priemka (USDT) - specific patterns first
+  // Revenue Priemka (USDT) - MUST have "приемка" or "приёмка"
   { pattern: /доход.*usdt.*при[её]м/i, field: "revenueUsdtPriemka" },
   { pattern: /доход.*при[её]м.*usdt/i, field: "revenueUsdtPriemka" },
   { pattern: /revenue.*usdt.*priemka/i, field: "revenueUsdtPriemka" },
-  { pattern: /при[её]м.*usdt/i, field: "revenueUsdtPriemka" },
 
-  // Revenue Own (Local)
+  // Revenue Own (Local) - MUST have "наш"
   { pattern: /доход.*sol.*наш/i, field: "revenueLocalOwn" },
   { pattern: /доход.*наш.*sol/i, field: "revenueLocalOwn" },
-  { pattern: /наш.*sol/i, field: "revenueLocalOwn" },
 
-  // Revenue Own (USDT)
+  // Revenue Own (USDT) - MUST have "наш"
   { pattern: /доход.*usdt.*наш/i, field: "revenueUsdtOwn" },
   { pattern: /доход.*наш.*usdt/i, field: "revenueUsdtOwn" },
-  { pattern: /наш.*usdt/i, field: "revenueUsdtOwn" },
 
-  // Simple revenue patterns (fallback - will map to Priemka by default)
-  { pattern: /^доход\s*(в\s*)?sol$/i, field: "revenueLocalPriemka" },
-  { pattern: /^доход\s*(в\s*)?usdt$/i, field: "revenueUsdtPriemka" },
-  { pattern: /^revenue\s*sol$/i, field: "revenueLocalPriemka" },
-  { pattern: /^revenue\s*usdt$/i, field: "revenueUsdtPriemka" },
-  { pattern: /^revenue$/i, field: "revenueUsdtPriemka" },
-  { pattern: /^доход$/i, field: "revenueUsdtPriemka" },
+  // FD Count - exclude "нФД" (non-FD)
+  { pattern: /^фд\s+кол/i, field: "fdCount" },
+  { pattern: /^фд\s*кол-во$/i, field: "fdCount" },
 
-  // Even simpler - just contains "доход" and "sol" or "usdt"
-  { pattern: /доход.*sol/i, field: "revenueLocalPriemka" },
-  { pattern: /доход.*usdt/i, field: "revenueUsdtPriemka" },
-  { pattern: /sol.*доход/i, field: "revenueLocalPriemka" },
-  { pattern: /usdt.*доход/i, field: "revenueUsdtPriemka" },
-
-  // FD Count
-  { pattern: /фд.*кол/i, field: "fdCount" },
-  { pattern: /кол.*фд/i, field: "fdCount" },
-  { pattern: /fd.*count/i, field: "fdCount" },
-  { pattern: /^фд$/i, field: "fdCount" },
-
-  // FD Sum
-  { pattern: /фд.*сумм/i, field: "fdSumLocal" },
-  { pattern: /сумм.*фд/i, field: "fdSumLocal" },
-  { pattern: /fd.*sum/i, field: "fdSumLocal" },
+  // FD Sum - exclude "нФД" (non-FD)
+  { pattern: /^фд\s+сумм/i, field: "fdSumLocal" },
+  { pattern: /^фд\s*сумма\s*sol$/i, field: "fdSumLocal" },
+  { pattern: /^фд\s*сумма\s*usdt$/i, field: "fdSumLocal" },
 
   // Chatterfy
-  { pattern: /chatterf/i, field: "chatterfyCost" },
-  { pattern: /чаттерф/i, field: "chatterfyCost" },
+  { pattern: /^chatterf/i, field: "chatterfyCost" },
+  { pattern: /^чаттерф/i, field: "chatterfyCost" },
 
-  // Additional expenses
-  { pattern: /доп.*расход/i, field: "additionalExpenses" },
-  { pattern: /дополн.*расход/i, field: "additionalExpenses" },
-  { pattern: /additional.*exp/i, field: "additionalExpenses" },
-  { pattern: /other.*exp/i, field: "additionalExpenses" },
+  // Additional expenses - be more specific
+  { pattern: /^доп\s*расход/i, field: "additionalExpenses" },
+  { pattern: /^дополн.*расход/i, field: "additionalExpenses" },
 ];
 
 function matchColumn(colName: string): keyof ParsedRow | null {
