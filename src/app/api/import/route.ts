@@ -21,7 +21,7 @@ interface ParsedRow {
 // Flexible column mapping with multiple variations
 // Based on actual Excel columns from D7 TEAM (1).xlsx:
 // - Перу: "Доход в sol Приемка", "Доход в USDT Приемка", "Доход в sol Наш", "Доход в USDT Наш"
-// - Италия: "Доход в euro Приемка", "Доход в euro Наш", "Доход в USDT Наш"
+// - Италия: "Доход в euro Приемка", "Доход в euro Приемка 2", "Доход в USDT Приемка 2", "Доход в euro Наш", "Доход в USDT Наш"
 // - Спенд: "Спенд TRUST", "Спенд Кросгиф", "Спенд на FBM"
 const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   // Date
@@ -52,26 +52,28 @@ const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   { pattern: /^fbm$/i, field: "spendFbm" },
 
   // Revenue Priemka (Local currency: SOL for Peru, EUR for Italy)
-  // Match: "Доход в sol Приемка", "Доход в euro Приемка", "Доход в euro приемка"
-  // Excludes columns with "Наш" (Own revenue) or numbered suffixes like "Приемка 2"
-  { pattern: /^доход\s+в\s+(sol|euro)\s+при[её]мк?а?\s*$/i, field: "revenueLocalPriemka" },
-  { pattern: /доход.*(?:sol|euro).*при[её]мк?а(?!\s*\d)/i, field: "revenueLocalPriemka" },
+  // Match: "Доход в sol Приемка", "Доход в euro Приемка", "Доход в euro приемка", "Доход в euro Приемка 2"
+  // Now includes numbered suffixes like "Приемка 2"
+  { pattern: /^доход\s+в\s+(sol|euro)\s+при[её]мк?а?\s*\d*\s*$/i, field: "revenueLocalPriemka" },
+  { pattern: /доход\s+в\s+(sol|euro)\s+при[её]мк?а/i, field: "revenueLocalPriemka" },
   { pattern: /revenue.*(sol|eur).*priemka/i, field: "revenueLocalPriemka" },
 
   // Revenue Priemka (USDT)
-  // Match: "Доход в USDT Приемка"
-  { pattern: /^доход\s+в\s+usdt\s+при[её]мк?а?\s*$/i, field: "revenueUsdtPriemka" },
-  { pattern: /доход.*usdt.*при[её]мк?а(?!\s*\d)/i, field: "revenueUsdtPriemka" },
+  // Match: "Доход в USDT Приемка", "Доход в USDT Приемка 2"
+  { pattern: /^доход\s+в\s+usdt\s+при[её]мк?а?\s*\d*\s*$/i, field: "revenueUsdtPriemka" },
+  { pattern: /доход\s+в\s+usdt\s+при[её]мк?а/i, field: "revenueUsdtPriemka" },
   { pattern: /revenue.*usdt.*priemka/i, field: "revenueUsdtPriemka" },
 
   // Revenue Own (Local currency: SOL, EUR)
   // Match: "Доход в sol Наш", "Доход в euro Наш"
   { pattern: /^доход\s+в\s+(sol|euro)\s+наш/i, field: "revenueLocalOwn" },
-  { pattern: /доход.*(?:sol|euro).*наш/i, field: "revenueLocalOwn" },
+  { pattern: /доход\s+в\s+(sol|euro)\s+наш/i, field: "revenueLocalOwn" },
+  { pattern: /доход.*(sol|euro).*наш/i, field: "revenueLocalOwn" },
 
   // Revenue Own (USDT)
   // Match: "Доход в USDT Наш"
   { pattern: /^доход\s+в\s+usdt\s+наш/i, field: "revenueUsdtOwn" },
+  { pattern: /доход\s+в\s+usdt\s+наш/i, field: "revenueUsdtOwn" },
   { pattern: /доход.*usdt.*наш/i, field: "revenueUsdtOwn" },
 
   // FD Count - match "ФД КОЛ-ВО" (exclude "нФД")
@@ -79,8 +81,9 @@ const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   { pattern: /^фд\s*кол-во$/i, field: "fdCount" },
 
   // FD Sum - match "ФД СУММА SOL", "ФД СУММА USDT", "ФД СУММА EURO"
+  // Also matches "ФД СУММА EURO(приемка 2)", "ФД СУММА EURO(наша приемка)"
   { pattern: /^фд\s*сумм/i, field: "fdSumLocal" },
-  { pattern: /^фд\s*сумма\s*(sol|usdt|euro)?$/i, field: "fdSumLocal" },
+  { pattern: /^фд\s*сумма\s*(sol|usdt|euro)?/i, field: "fdSumLocal" },
 
   // Chatterfy
   { pattern: /^chatterf/i, field: "chatterfyCost" },
@@ -157,7 +160,16 @@ function parseRow(row: Record<string, unknown>, logColumns = false): ParsedRow |
     additionalExpenses: 0,
   };
 
-  const matchedFields: Record<string, string> = {};
+  const matchedFields: Record<string, string[]> = {};
+
+  // Fields that should be summed when multiple columns match (e.g., "Приемка" + "Приемка 2")
+  const sumFields = new Set([
+    "revenueLocalPriemka",
+    "revenueUsdtPriemka",
+    "revenueLocalOwn",
+    "revenueUsdtOwn",
+    "fdSumLocal",
+  ]);
 
   for (const [colName, value] of Object.entries(row)) {
     const field = matchColumn(colName);
@@ -170,21 +182,37 @@ function parseRow(row: Record<string, unknown>, logColumns = false): ParsedRow |
       const date = parseDate(value);
       if (date) {
         result.date = date.toISOString();
-        matchedFields["date"] = colName;
+        if (!matchedFields["date"]) matchedFields["date"] = [];
+        matchedFields["date"].push(colName);
       }
     } else if (field) {
       const num = parseNumber(value);
+      if (!matchedFields[field]) matchedFields[field] = [];
+      matchedFields[field].push(colName);
+
       if (field === "fdCount") {
-        (result as Record<string, number>)[field] = Math.round(num);
+        // For fdCount, take the max value (don't sum counts)
+        const currentVal = (result as Record<string, number>)[field] || 0;
+        (result as Record<string, number>)[field] = Math.max(currentVal, Math.round(num));
+      } else if (sumFields.has(field)) {
+        // For revenue and sum fields, ADD the values (multiple columns might have data)
+        const currentVal = (result as Record<string, number>)[field] || 0;
+        (result as Record<string, number>)[field] = currentVal + num;
       } else {
+        // For other fields, overwrite (take last value)
         (result as Record<string, number>)[field] = num;
       }
-      matchedFields[field] = colName;
     }
   }
 
   if (logColumns) {
     console.log("Matched fields:", matchedFields);
+    console.log("Parsed values:", {
+      revenueLocalPriemka: result.revenueLocalPriemka,
+      revenueUsdtPriemka: result.revenueUsdtPriemka,
+      revenueLocalOwn: result.revenueLocalOwn,
+      revenueUsdtOwn: result.revenueUsdtOwn,
+    });
   }
 
   if (!result.date) {
