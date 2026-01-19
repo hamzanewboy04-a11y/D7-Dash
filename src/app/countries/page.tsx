@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, TrendingUp, TrendingDown, RefreshCw, Database } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, RefreshCw, Database, X, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 
 interface Country {
@@ -36,15 +36,44 @@ interface Country {
 interface DailyMetric {
   id: string;
   date: string;
+  // Spend breakdown
   totalSpend: number;
+  spendTrust: number;
+  spendCrossgif: number;
+  spendFbm: number;
+  agencyFee: number;
+  // Revenue breakdown
+  revenueLocalPriemka: number;
+  revenueUsdtPriemka: number;
+  revenueLocalOwn: number;
+  revenueUsdtOwn: number;
   totalRevenueUsdt: number;
+  commissionPriemka: number;
+  // Payroll breakdown
+  payrollRdHandler: number;
+  payrollFdHandler: number;
+  payrollBuyer: number;
+  payrollContent: number;
+  payrollReviews: number;
+  payrollDesigner: number;
+  payrollHeadDesigner: number;
+  totalPayroll: number;
+  // FD/RD
+  fdCount: number;
+  fdSumLocal: number;
+  fdSumUsdt: number;
+  rdSumUsdt: number;
+  // Additional
+  chatterfyCost: number;
+  additionalExpenses: number;
+  // Totals
+  totalExpensesUsdt: number;
   netProfitMath: number;
   roi: number;
-  agencyFee: number;
-  totalPayroll: number;
   country: {
     name: string;
     code: string;
+    currency: string;
   };
 }
 
@@ -72,10 +101,201 @@ const getCountryNameRu = (name: string): string => {
   return countryNames[name] || name;
 };
 
+// Detail Panel Component
+function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: () => void }) {
+  const currency = metric.country?.currency || "USDT";
+
+  return (
+    <div className="bg-slate-50 border-t border-b p-6 space-y-6">
+      <div className="flex justify-between items-start">
+        <h3 className="text-lg font-semibold">
+          Детализация за {new Date(metric.date).toLocaleDateString("ru-RU")}
+        </h3>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Доходы */}
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-emerald-700">Доходы</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600">Приёмка (локал):</span>
+              <span className="font-medium">{metric.revenueLocalPriemka.toFixed(2)} {currency}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Приёмка (USDT):</span>
+              <span className="font-medium">${metric.revenueUsdtPriemka.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Наш (локал):</span>
+              <span className="font-medium">{metric.revenueLocalOwn.toFixed(2)} {currency}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Наш (USDT):</span>
+              <span className="font-medium">${metric.revenueUsdtOwn.toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-semibold text-emerald-700">
+              <span>Итого доход:</span>
+              <span>${metric.totalRevenueUsdt.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Расходы на рекламу */}
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-blue-700">Расходы на рекламу</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600">TRUST:</span>
+              <span className="font-medium">${(metric.spendTrust || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Кросгиф:</span>
+              <span className="font-medium">${(metric.spendCrossgif || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">FBM:</span>
+              <span className="font-medium">${(metric.spendFbm || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Комиссия агентства:</span>
+              <span className="font-medium">${metric.agencyFee.toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-semibold text-blue-700">
+              <span>Итого спенд:</span>
+              <span>${metric.totalSpend.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ФОТ */}
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-purple-700">ФОТ (Фонд оплаты труда)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600">Баер (12% спенда):</span>
+              <span className="font-medium">${metric.payrollBuyer.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Обработчик ФД:</span>
+              <span className="font-medium">${metric.payrollFdHandler.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Обработчик РД (4%):</span>
+              <span className="font-medium">${metric.payrollRdHandler.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Контент:</span>
+              <span className="font-medium">${(metric.payrollContent || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Хед дизайнер:</span>
+              <span className="font-medium">${(metric.payrollHeadDesigner || 10).toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-semibold text-purple-700">
+              <span>Итого ФОТ:</span>
+              <span>${metric.totalPayroll.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Комиссии и доп расходы */}
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-orange-700">Комиссии и доп. расходы</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600">Комиссия приёмки (15%):</span>
+              <span className="font-medium">${metric.commissionPriemka.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Chatterfy:</span>
+              <span className="font-medium">${(metric.chatterfyCost || 0).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Доп. расходы:</span>
+              <span className="font-medium">${(metric.additionalExpenses || 0).toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ФД/РД */}
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-cyan-700">ФД / РД</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-600">ФД количество:</span>
+              <span className="font-medium">{metric.fdCount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">ФД сумма (локал):</span>
+              <span className="font-medium">{metric.fdSumLocal.toFixed(2)} {currency}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">ФД сумма (USDT):</span>
+              <span className="font-medium">${metric.fdSumUsdt.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">РД сумма (USDT):</span>
+              <span className="font-medium">${metric.rdSumUsdt.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Итого */}
+        <Card className="bg-white border-2 border-slate-300">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Итоговый расчёт</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between text-emerald-700">
+              <span>Общий доход:</span>
+              <span className="font-medium">${metric.totalRevenueUsdt.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-red-600">
+              <span>Общие расходы:</span>
+              <span className="font-medium">${metric.totalExpensesUsdt.toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-bold text-lg">
+              <span className={metric.netProfitMath >= 0 ? "text-emerald-700" : "text-red-600"}>
+                Чистая прибыль:
+              </span>
+              <span className={metric.netProfitMath >= 0 ? "text-emerald-700" : "text-red-600"}>
+                ${metric.netProfitMath.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">ROI:</span>
+              <span className={`font-medium ${metric.roi >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {(metric.roi * 100).toFixed(1)}%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export default function CountriesPage() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [isSeeded, setIsSeeded] = useState<boolean | null>(null);
@@ -103,6 +323,7 @@ export default function CountriesPage() {
   const fetchMetrics = async (countryId: string) => {
     if (!countryId) return;
     setMetricsLoading(true);
+    setExpandedRow(null);
     try {
       const response = await fetch(`/api/metrics?countryId=${countryId}&limit=30`);
       if (response.ok) {
@@ -168,22 +389,14 @@ export default function CountriesPage() {
       }))
     : [];
 
-  const displayMetrics = metrics.map((m) => ({
-    date: new Date(m.date).toLocaleDateString("ru-RU"),
-    spend: m.totalSpend,
-    revenue: m.totalRevenueUsdt,
-    profit: m.netProfitMath,
-    roi: m.roi,
-  }));
-
   const currentCountry = displayCountries.find((c) => c.id === selectedCountry) || displayCountries[0];
 
   // Calculate summary stats
-  const totalSpend = displayMetrics.reduce((s, d) => s + d.spend, 0);
-  const totalRevenue = displayMetrics.reduce((s, d) => s + d.revenue, 0);
-  const totalProfit = displayMetrics.reduce((s, d) => s + d.profit, 0);
-  const avgRoi = displayMetrics.length > 0
-    ? displayMetrics.reduce((s, d) => s + d.roi, 0) / displayMetrics.length
+  const totalSpend = metrics.reduce((s, d) => s + d.totalSpend, 0);
+  const totalRevenue = metrics.reduce((s, d) => s + d.totalRevenueUsdt, 0);
+  const totalProfit = metrics.reduce((s, d) => s + d.netProfitMath, 0);
+  const avgRoi = metrics.length > 0
+    ? metrics.reduce((s, d) => s + d.roi, 0) / metrics.length
     : 0;
 
   if (!hasData) {
@@ -214,7 +427,7 @@ export default function CountriesPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Страны</h1>
           <p className="text-slate-500 mt-1">
-            Просмотр и управление данными по странам
+            Просмотр и управление данными по странам. Нажмите на строку для детализации.
           </p>
         </div>
         <div className="flex gap-2">
@@ -257,7 +470,7 @@ export default function CountriesPage() {
                     ${totalSpend.toFixed(2)}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {displayMetrics.length} дней
+                    {metrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -273,7 +486,7 @@ export default function CountriesPage() {
                     ${totalRevenue.toFixed(2)}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {displayMetrics.length} дней
+                    {metrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -289,7 +502,7 @@ export default function CountriesPage() {
                     ${totalProfit.toFixed(2)}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {displayMetrics.length} дней
+                    {metrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -305,7 +518,7 @@ export default function CountriesPage() {
                     {(avgRoi * 100).toFixed(1)}%
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    среднее за {displayMetrics.length} дней
+                    среднее за {metrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -319,8 +532,8 @@ export default function CountriesPage() {
                   {metricsLoading && <RefreshCw className="inline-block ml-2 h-4 w-4 animate-spin" />}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {displayMetrics.length === 0 ? (
+              <CardContent className="p-0">
+                {metrics.length === 0 ? (
                   <div className="text-center py-8 text-slate-500">
                     <p>Нет данных по метрикам.</p>
                     <p className="mt-2">
@@ -330,60 +543,92 @@ export default function CountriesPage() {
                     </p>
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Дата</TableHead>
-                        <TableHead className="text-right">Спенд</TableHead>
-                        <TableHead className="text-right">Доход</TableHead>
-                        <TableHead className="text-right">Прибыль</TableHead>
-                        <TableHead className="text-right">ROI</TableHead>
-                        <TableHead className="text-right">Статус</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {displayMetrics.map((row, index) => (
-                        <TableRow key={row.date + index} className="cursor-pointer hover:bg-slate-50">
-                          <TableCell className="font-medium">{row.date}</TableCell>
-                          <TableCell className="text-right">
-                            ${row.spend.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right text-emerald-600">
-                            ${row.revenue.toFixed(2)}
-                          </TableCell>
-                          <TableCell
-                            className={`text-right ${
-                              row.profit >= 0 ? "text-emerald-600" : "text-red-600"
-                            }`}
-                          >
-                            ${row.profit.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              {row.roi >= 0 ? (
-                                <TrendingUp className="h-4 w-4 text-emerald-500" />
-                              ) : (
-                                <TrendingDown className="h-4 w-4 text-red-500" />
-                              )}
-                              {(row.roi * 100).toFixed(1)}%
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge
-                              variant={row.profit >= 0 ? "default" : "destructive"}
-                              className={
-                                row.profit >= 0
-                                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                                  : ""
-                              }
-                            >
-                              {row.profit >= 0 ? "Прибыль" : "Убыток"}
-                            </Badge>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead></TableHead>
+                          <TableHead>Дата</TableHead>
+                          <TableHead className="text-right">Спенд</TableHead>
+                          <TableHead className="text-right">Доход</TableHead>
+                          <TableHead className="text-right">Расходы</TableHead>
+                          <TableHead className="text-right">Прибыль</TableHead>
+                          <TableHead className="text-right">ROI</TableHead>
+                          <TableHead className="text-right">Статус</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {metrics.map((metric) => (
+                          <>
+                            <TableRow
+                              key={metric.id}
+                              className="cursor-pointer hover:bg-slate-50"
+                              onClick={() => setExpandedRow(expandedRow === metric.id ? null : metric.id)}
+                            >
+                              <TableCell className="w-8">
+                                {expandedRow === metric.id ? (
+                                  <ChevronUp className="h-4 w-4 text-slate-400" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {new Date(metric.date).toLocaleDateString("ru-RU")}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                ${metric.totalSpend.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right text-emerald-600">
+                                ${metric.totalRevenueUsdt.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-500">
+                                ${metric.totalExpensesUsdt.toFixed(2)}
+                              </TableCell>
+                              <TableCell
+                                className={`text-right ${
+                                  metric.netProfitMath >= 0 ? "text-emerald-600" : "text-red-600"
+                                }`}
+                              >
+                                ${metric.netProfitMath.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  {metric.roi >= 0 ? (
+                                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                  ) : (
+                                    <TrendingDown className="h-4 w-4 text-red-500" />
+                                  )}
+                                  {(metric.roi * 100).toFixed(1)}%
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Badge
+                                  variant={metric.netProfitMath >= 0 ? "default" : "destructive"}
+                                  className={
+                                    metric.netProfitMath >= 0
+                                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                                      : ""
+                                  }
+                                >
+                                  {metric.netProfitMath >= 0 ? "Прибыль" : "Убыток"}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                            {expandedRow === metric.id && (
+                              <TableRow key={`${metric.id}-detail`}>
+                                <TableCell colSpan={8} className="p-0">
+                                  <MetricDetailPanel
+                                    metric={metric}
+                                    onClose={() => setExpandedRow(null)}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>

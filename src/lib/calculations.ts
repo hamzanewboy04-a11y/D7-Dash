@@ -173,9 +173,9 @@ export function calculateAllMetrics(input: DailyMetricsInput): CalculatedMetrics
                             chatterfyCost + additionalExpenses;
   const expensesWithoutSpend = totalExpensesUsdt - totalSpend;
 
-  // Net profit (математика): RevenueOwn - Commission - AgencyFee - Spend - Payroll - Additional
-  const netProfitMath = input.revenueUsdtOwn - commissionPriemka - agencyFee - totalSpend -
-                        totalPayroll - additionalExpenses - chatterfyCost;
+  // Net profit (математика): TotalRevenue - TotalExpenses
+  // Доход (Приемка + Наш) - Комиссия приемки - Спенд - Комиссия агентства - ФОТ - Доп расходы
+  const netProfitMath = totalRevenueUsdt - totalExpensesUsdt;
 
   // ROI
   const roi = calculateRoi(totalRevenueUsdt, totalExpensesUsdt);
