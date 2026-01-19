@@ -4,34 +4,65 @@ const fs = require('fs');
 const path = require('path');
 
 console.log('🚀 Starting D7 Dashboard...');
-console.log('📁 Database URL:', process.env.DATABASE_URL || 'not set (will use default)');
 console.log('📁 Working directory:', process.cwd());
 
-// Check data directory
+// =====================================
+// STEP 1: Setup writable database FIRST
+// =====================================
 const dataDir = '/app/data';
-try {
-  if (fs.existsSync(dataDir)) {
-    const files = fs.readdirSync(dataDir);
-    console.log(`📂 Data directory (${dataDir}) contents:`, files.length > 0 ? files : '(empty)');
+const sourceDb = path.join(process.cwd(), 'prisma', 'data.db');
+const targetDb = path.join(dataDir, 'prod.db');
 
-    // Check database file size if exists
-    const dbPath = path.join(dataDir, 'prod.db');
-    if (fs.existsSync(dbPath)) {
-      const stats = fs.statSync(dbPath);
-      console.log(`📊 Database file size: ${(stats.size / 1024).toFixed(2)} KB`);
-    }
-  } else {
-    console.log(`📂 Data directory (${dataDir}) does not exist, will be created`);
+// Ensure data directory exists
+try {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+    console.log(`📂 Created data directory: ${dataDir}`);
   }
 } catch (err) {
-  console.log('📂 Could not check data directory:', err.message);
+  console.log('⚠️ Could not create data directory:', err.message);
 }
 
-// Push database schema
+// Copy committed database to writable location
+try {
+  const targetExists = fs.existsSync(targetDb);
+  const targetSize = targetExists ? fs.statSync(targetDb).size : 0;
+  const sourceExists = fs.existsSync(sourceDb);
+  const sourceSize = sourceExists ? fs.statSync(sourceDb).size : 0;
+
+  console.log(`📂 Source DB (${sourceDb}): ${sourceExists ? `${(sourceSize / 1024).toFixed(2)} KB` : 'not found'}`);
+  console.log(`📂 Target DB (${targetDb}): ${targetExists ? `${(targetSize / 1024).toFixed(2)} KB` : 'not found'}`);
+
+  // Copy if target doesn't exist, is empty, or source is larger (newer data)
+  if (sourceExists && sourceSize > 0 && (!targetExists || targetSize < sourceSize)) {
+    console.log('📋 Copying committed database to writable location...');
+    fs.copyFileSync(sourceDb, targetDb);
+    // Also copy -wal and -shm if they exist
+    if (fs.existsSync(sourceDb + '-wal')) {
+      fs.copyFileSync(sourceDb + '-wal', targetDb + '-wal');
+    }
+    if (fs.existsSync(sourceDb + '-shm')) {
+      fs.copyFileSync(sourceDb + '-shm', targetDb + '-shm');
+    }
+    console.log('✅ Database copied successfully');
+  } else if (targetExists && targetSize > 0) {
+    console.log('✅ Using existing database at writable location');
+  } else if (!sourceExists) {
+    console.log('⚠️ Source database not found, will create new one');
+  }
+} catch (err) {
+  console.log('⚠️ Database copy error:', err.message);
+}
+
+// FORCE DATABASE_URL to writable location (ignore environment override)
+process.env.DATABASE_URL = `file:${targetDb}`;
+console.log('📁 Database URL set to:', process.env.DATABASE_URL);
+
+// =====================================
+// STEP 2: Initialize database schema
+// =====================================
 console.log('📦 Initializing database schema...');
 try {
-  // Note: We use better-sqlite3 adapter and ensureDatabaseTables() handles schema
-  // Prisma db push may not be needed since we create tables directly in prisma.ts
   execSync('npx prisma db push', {
     stdio: 'inherit',
     env: { ...process.env }
@@ -42,17 +73,20 @@ try {
   console.log('📝 Will use fallback table creation via ensureDatabaseTables()');
 }
 
-// Start the server first
+// =====================================
+// STEP 3: Start the server
+// =====================================
 console.log('🌐 Starting server...');
 require('./server.js');
 
-// Auto-seed after server starts (delay to ensure server is ready)
+// =====================================
+// STEP 4: Auto-seed after server starts
+// =====================================
 setTimeout(async () => {
   console.log('🌱 Checking if database needs seeding...');
 
   const port = process.env.PORT || 3000;
 
-  // Check seed status
   const checkSeed = () => {
     return new Promise((resolve, reject) => {
       const req = http.get(`http://localhost:${port}/api/seed`, (res) => {
@@ -74,7 +108,6 @@ setTimeout(async () => {
     });
   };
 
-  // Seed database
   const seedDatabase = () => {
     return new Promise((resolve, reject) => {
       const req = http.request(`http://localhost:${port}/api/seed`, {
@@ -114,4 +147,4 @@ setTimeout(async () => {
   } catch (error) {
     console.error('⚠️ Auto-seed check failed (will retry on page load):', error.message);
   }
-}, 3000); // Wait 3 seconds for server to be ready
+}, 3000);
