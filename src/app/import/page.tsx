@@ -65,13 +65,14 @@ export default function ImportPage() {
       const res = await fetch("/api/seed", { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
-        setInitError(data.error || "Ошибка инициализации");
+        const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+        setInitError(errorMsg || "Ошибка инициализации");
         return;
       }
       await fetchCountries();
     } catch (err) {
       console.error("Error initializing:", err);
-      setInitError("Не удалось подключиться к серверу");
+      setInitError(`Не удалось подключиться к серверу: ${err}`);
     } finally {
       setInitializing(false);
     }
