@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import Database from "better-sqlite3";
+import * as path from "path";
+import * as fs from "fs";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -8,11 +10,39 @@ const globalForPrisma = globalThis as unknown as {
 
 function getDbPath() {
   const rawUrl = process.env.DATABASE_URL;
-  // Use pre-populated data.db as default (committed to repo with imported data)
-  const dbPath = rawUrl?.replace("file:", "") || "./prisma/data.db";
-  console.log(`[Prisma] DATABASE_URL env: ${rawUrl || 'not set'}`);
-  console.log(`[Prisma] Resolved DB path: ${dbPath}`);
-  return dbPath;
+
+  if (rawUrl) {
+    const dbPath = rawUrl.replace("file:", "");
+    console.log(`[Prisma] DATABASE_URL env: ${rawUrl}`);
+    console.log(`[Prisma] Resolved DB path: ${dbPath}`);
+    return dbPath;
+  }
+
+  // Use pre-populated data.db from repo - resolve absolute path
+  // Try multiple possible locations
+  const possiblePaths = [
+    path.join(process.cwd(), "prisma", "data.db"),
+    path.join(__dirname, "..", "..", "prisma", "data.db"),
+    path.join(__dirname, "..", "..", "..", "prisma", "data.db"),
+    "./prisma/data.db",
+  ];
+
+  console.log(`[Prisma] DATABASE_URL env: not set`);
+  console.log(`[Prisma] Current working directory: ${process.cwd()}`);
+  console.log(`[Prisma] __dirname: ${__dirname}`);
+
+  for (const dbPath of possiblePaths) {
+    console.log(`[Prisma] Checking path: ${dbPath}, exists: ${fs.existsSync(dbPath)}`);
+    if (fs.existsSync(dbPath)) {
+      console.log(`[Prisma] Found database at: ${dbPath}`);
+      return dbPath;
+    }
+  }
+
+  // Fallback to first path (will be created if not exists)
+  const fallbackPath = possiblePaths[0];
+  console.log(`[Prisma] Using fallback path: ${fallbackPath}`);
+  return fallbackPath;
 }
 
 // Create tables using better-sqlite3 directly
@@ -21,8 +51,6 @@ export function ensureDatabaseTables() {
   console.log("[Prisma] Ensuring database tables exist at:", dbPath);
 
   // Check if database file exists
-  const fs = require('fs');
-  const path = require('path');
   const dir = path.dirname(dbPath);
 
   if (!fs.existsSync(dir)) {
