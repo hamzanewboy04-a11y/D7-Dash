@@ -8,14 +8,26 @@ interface ParsedRow {
   spendTrust: number;
   spendCrossgif: number;
   spendFbm: number;
+  spendTotal: number; // Direct from Excel "Спенд за день"
   revenueLocalPriemka: number;
   revenueUsdtPriemka: number;
   revenueLocalOwn: number;
   revenueUsdtOwn: number;
   fdCount: number;
   fdSumLocal: number;
+  fdSumUsdt: number;
+  rdSumLocal: number;
+  rdSumUsdt: number;
   chatterfyCost: number;
   additionalExpenses: number;
+  // Pre-calculated values from Excel
+  agencyFee: number;
+  commissionPriemka: number;
+  totalRevenueUsdt: number;
+  totalExpensesUsdt: number;
+  totalPayroll: number;
+  netProfitMath: number;
+  roi: number;
 }
 
 // Flexible column mapping with multiple variations
@@ -92,6 +104,40 @@ const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   // Additional expenses - "ДОП РАСХОДЫ"
   { pattern: /^доп\s*расход/i, field: "additionalExpenses" },
   { pattern: /^дополн.*расход/i, field: "additionalExpenses" },
+
+  // Pre-calculated values from Excel - these take priority
+  // Total spend - "Спенд за день"
+  { pattern: /^спенд\s*за\s*день$/i, field: "spendTotal" },
+
+  // Agency fee - "Процент агенства"
+  { pattern: /^процент\s*агенст/i, field: "agencyFee" },
+
+  // Commission Priemka - "Комиссия приемки"
+  { pattern: /^комиссия\s*при[её]мк/i, field: "commissionPriemka" },
+
+  // Total Revenue USDT - "Общий доход USDT"
+  { pattern: /^общий\s*доход\s*usdt$/i, field: "totalRevenueUsdt" },
+
+  // Total Expenses USDT - "Общие расходы USDT"
+  { pattern: /^общие\s*расходы\s*usdt$/i, field: "totalExpensesUsdt" },
+
+  // Total Payroll - "ОБЩИЙ ФОТ"
+  { pattern: /^общий\s*фот$/i, field: "totalPayroll" },
+
+  // Net Profit Math - "Чистая прибыль математика"
+  { pattern: /^чистая\s*прибыль\s*математика$/i, field: "netProfitMath" },
+
+  // ROI - "ROI%"
+  { pattern: /^roi%?$/i, field: "roi" },
+
+  // FD Sum USDT - "ФД СУММА USDT"
+  { pattern: /^фд\s*сумма\s*usdt$/i, field: "fdSumUsdt" },
+
+  // RD Sum - "РД СУММА"
+  { pattern: /^рд\s*сумма$/i, field: "rdSumLocal" },
+
+  // RD Sum USDT - "РД СУММА USDT"
+  { pattern: /^рд\s*сумма\s*usdt$/i, field: "rdSumUsdt" },
 ];
 
 function matchColumn(colName: string): keyof ParsedRow | null {
@@ -150,14 +196,26 @@ function parseRow(row: Record<string, unknown>, logColumns = false): ParsedRow |
     spendTrust: 0,
     spendCrossgif: 0,
     spendFbm: 0,
+    spendTotal: 0,
     revenueLocalPriemka: 0,
     revenueUsdtPriemka: 0,
     revenueLocalOwn: 0,
     revenueUsdtOwn: 0,
     fdCount: 0,
     fdSumLocal: 0,
+    fdSumUsdt: 0,
+    rdSumLocal: 0,
+    rdSumUsdt: 0,
     chatterfyCost: 0,
     additionalExpenses: 0,
+    // Pre-calculated values (may be 0 if not in Excel)
+    agencyFee: 0,
+    commissionPriemka: 0,
+    totalRevenueUsdt: 0,
+    totalExpensesUsdt: 0,
+    totalPayroll: 0,
+    netProfitMath: 0,
+    roi: 0,
   };
 
   const matchedFields: Record<string, string[]> = {};
@@ -288,12 +346,22 @@ export async function POST(request: Request) {
       console.log("Column mapping:", columnInfo);
     }
 
+    // Track processed dates to handle duplicates - keep first occurrence only
+    const processedDates = new Set<string>();
+
     for (let i = 0; i < rawData.length; i++) {
       const row = rawData[i] as Record<string, unknown>;
       // Log columns only for first data row
       const parsed = parseRow(row, i === 0);
 
       if (parsed) {
+        // Skip duplicate dates - keep first occurrence
+        const dateKey = parsed.date.split('T')[0];
+        if (processedDates.has(dateKey)) {
+          console.log(`[Import] Skipping duplicate date: ${dateKey}`);
+          continue;
+        }
+        processedDates.add(dateKey);
         parsedRows.push(parsed);
       } else if (Object.keys(row).length > 0) {
         errors.push(`Row ${i + 2}: Could not parse date`);
@@ -316,16 +384,7 @@ export async function POST(request: Request) {
       try {
         const date = new Date(row.date);
 
-        // Log parsed row values for debugging
-        console.log(`[Import] Processing date ${date.toISOString().split('T')[0]}:`, {
-          revenueLocalPriemka: row.revenueLocalPriemka,
-          revenueUsdtPriemka: row.revenueUsdtPriemka,
-          revenueLocalOwn: row.revenueLocalOwn,
-          revenueUsdtOwn: row.revenueUsdtOwn,
-          totalSpend: row.spendTrust + row.spendCrossgif + row.spendFbm,
-        });
-
-        // Calculate metrics
+        // Calculate metrics (used as fallback if Excel doesn't have pre-calculated values)
         const calculated = calculateAllMetrics({
           spendTrust: row.spendTrust,
           spendCrossgif: row.spendCrossgif,
@@ -340,11 +399,25 @@ export async function POST(request: Request) {
           additionalExpenses: row.additionalExpenses,
         });
 
-        // Log calculated metrics
-        console.log(`[Import] Calculated metrics for ${date.toISOString().split('T')[0]}:`, {
-          totalRevenueUsdt: calculated.totalRevenueUsdt,
-          totalSpend: calculated.totalSpend,
-          netProfitMath: calculated.netProfitMath,
+        // Use Excel's pre-calculated values if available (non-zero), otherwise use calculated
+        // Excel values are more accurate as they include all adjustments
+        const totalSpend = row.spendTotal > 0 ? row.spendTotal : calculated.totalSpend;
+        const totalRevenueUsdt = row.totalRevenueUsdt > 0 ? row.totalRevenueUsdt : calculated.totalRevenueUsdt;
+        const totalExpensesUsdt = row.totalExpensesUsdt > 0 ? row.totalExpensesUsdt : calculated.totalExpensesUsdt;
+        const netProfitMath = row.netProfitMath !== 0 ? row.netProfitMath : calculated.netProfitMath;
+        const roi = row.roi !== 0 ? row.roi : calculated.roi;
+        const agencyFee = row.agencyFee > 0 ? row.agencyFee : calculated.agencyFee;
+        const totalPayroll = row.totalPayroll > 0 ? row.totalPayroll : calculated.totalPayroll;
+        const commissionPriemka = row.commissionPriemka > 0 ? row.commissionPriemka : calculated.commissionPriemka;
+
+        // Log parsed row values for debugging
+        console.log(`[Import] Processing date ${date.toISOString().split('T')[0]}:`, {
+          excelTotalSpend: row.spendTotal,
+          excelRevenueUsdt: row.totalRevenueUsdt,
+          excelNetProfit: row.netProfitMath,
+          finalTotalSpend: totalSpend,
+          finalRevenueUsdt: totalRevenueUsdt,
+          finalNetProfit: netProfitMath,
         });
 
         // Check if record exists
@@ -360,32 +433,35 @@ export async function POST(request: Request) {
         const data = {
           date,
           countryId,
-          totalSpend: calculated.totalSpend,
-          agencyFee: calculated.agencyFee,
+          totalSpend,
+          spendTrust: row.spendTrust,
+          spendCrossgif: row.spendCrossgif,
+          spendFbm: row.spendFbm,
+          agencyFee,
           revenueLocalPriemka: row.revenueLocalPriemka,
           revenueUsdtPriemka: row.revenueUsdtPriemka,
           exchangeRatePriemka: calculated.exchangeRatePriemka,
-          commissionPriemka: calculated.commissionPriemka,
+          commissionPriemka,
           revenueLocalOwn: row.revenueLocalOwn,
           revenueUsdtOwn: row.revenueUsdtOwn,
           exchangeRateOwn: calculated.exchangeRateOwn,
-          totalRevenueUsdt: calculated.totalRevenueUsdt,
-          totalExpensesUsdt: calculated.totalExpensesUsdt,
-          expensesWithoutSpend: calculated.expensesWithoutSpend,
+          totalRevenueUsdt,
+          totalExpensesUsdt,
+          expensesWithoutSpend: totalExpensesUsdt - totalSpend,
           fdCount: row.fdCount,
           fdSumLocal: row.fdSumLocal,
-          fdSumUsdt: calculated.fdSumUsdt,
-          rdSumLocal: calculated.rdSumLocal,
-          rdSumUsdt: calculated.rdSumUsdt,
+          fdSumUsdt: row.fdSumUsdt > 0 ? row.fdSumUsdt : calculated.fdSumUsdt,
+          rdSumLocal: row.rdSumLocal > 0 ? row.rdSumLocal : calculated.rdSumLocal,
+          rdSumUsdt: row.rdSumUsdt > 0 ? row.rdSumUsdt : calculated.rdSumUsdt,
           payrollRdHandler: calculated.payrollRdHandler,
           payrollFdHandler: calculated.payrollFdHandler,
           payrollBuyer: calculated.payrollBuyer,
           payrollHeadDesigner: 10,
-          totalPayroll: calculated.totalPayroll,
+          totalPayroll,
           chatterfyCost: row.chatterfyCost,
           additionalExpenses: row.additionalExpenses,
-          netProfitMath: calculated.netProfitMath,
-          roi: calculated.roi,
+          netProfitMath,
+          roi,
         };
 
         let savedRecord;
@@ -403,8 +479,7 @@ export async function POST(request: Request) {
         // Verify saved data
         console.log(`[Import] Saved record ${savedRecord.id}:`, {
           totalRevenueUsdt: savedRecord.totalRevenueUsdt,
-          revenueUsdtOwn: savedRecord.revenueUsdtOwn,
-          revenueUsdtPriemka: savedRecord.revenueUsdtPriemka,
+          netProfitMath: savedRecord.netProfitMath,
         });
       } catch (error) {
         const dateStr = new Date(row.date).toLocaleDateString();
