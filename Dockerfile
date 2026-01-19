@@ -48,6 +48,6 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-ENV DATABASE_URL="file:/app/data/prod.db"
+# DATABASE_URL is set dynamically by start.js to ensure writable location
 
 CMD ["node", "start.js"]
