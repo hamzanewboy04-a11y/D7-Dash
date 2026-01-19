@@ -62,6 +62,11 @@ interface DailyMetric {
   fdCount: number;
   fdSumLocal: number;
   fdSumUsdt: number;
+  nfdCount: number;
+  nfdSumLocal: number;
+  nfdSumUsdt: number;
+  rdCount: number;
+  rdSumLocal: number;
   rdSumUsdt: number;
   // Additional
   chatterfyCost: number;
@@ -234,7 +239,7 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
         {/* ФД/РД */}
         <Card className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-cyan-700">ФД / РД</CardTitle>
+            <CardTitle className="text-sm text-cyan-700">ФД / нФД / РД</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
@@ -250,8 +255,26 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
               <span className="font-medium">${metric.fdSumUsdt.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">РД сумма (USDT):</span>
-              <span className="font-medium">${metric.rdSumUsdt.toFixed(2)}</span>
+              <span className="text-slate-600">нФД количество:</span>
+              <span className="font-medium">{metric.nfdCount || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">нФД сумма (USDT):</span>
+              <span className="font-medium">${(metric.nfdSumUsdt || 0).toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2">
+              <div className="flex justify-between">
+                <span className="text-slate-600">РД количество:</span>
+                <span className="font-medium">{metric.rdCount || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">РД сумма (локал):</span>
+                <span className="font-medium">{(metric.rdSumLocal || 0).toFixed(2)} {currency}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">РД сумма (USDT):</span>
+                <span className="font-medium">${metric.rdSumUsdt.toFixed(2)}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
