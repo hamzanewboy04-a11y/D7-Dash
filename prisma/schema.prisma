@@ -52,6 +52,9 @@ model DailyMetrics {
 
   // === Спенд ===
   totalSpend              Float    @default(0) // Спенд за день (сумма по всем кабинетам)
+  spendTrust              Float    @default(0) // Спенд TRUST
+  spendCrossgif           Float    @default(0) // Спенд Кросгиф
+  spendFbm                Float    @default(0) // Спенд FBM
   agencyFee               Float    @default(0) // Процент агентства от спенда
 
   // === Доход Приёмка ===
