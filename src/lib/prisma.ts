@@ -7,13 +7,30 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function getDbPath() {
-  return process.env.DATABASE_URL?.replace("file:", "") || "./prisma/dev.db";
+  const rawUrl = process.env.DATABASE_URL;
+  const dbPath = rawUrl?.replace("file:", "") || "./prisma/dev.db";
+  console.log(`[Prisma] DATABASE_URL env: ${rawUrl || 'not set'}`);
+  console.log(`[Prisma] Resolved DB path: ${dbPath}`);
+  return dbPath;
 }
 
 // Create tables using better-sqlite3 directly
 export function ensureDatabaseTables() {
   const dbPath = getDbPath();
-  console.log("Ensuring database tables exist at:", dbPath);
+  console.log("[Prisma] Ensuring database tables exist at:", dbPath);
+
+  // Check if database file exists
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.dirname(dbPath);
+
+  if (!fs.existsSync(dir)) {
+    console.log(`[Prisma] Creating directory: ${dir}`);
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const dbExists = fs.existsSync(dbPath);
+  console.log(`[Prisma] Database file exists: ${dbExists}`);
 
   const db = new Database(dbPath);
 
@@ -218,7 +235,12 @@ export function ensureDatabaseTables() {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_payrollrecord_date ON PayrollRecord(date)`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_payrollrecord_employeeid ON PayrollRecord(employeeId)`);
 
-    console.log("Database tables created/verified successfully");
+    // Count existing data
+    const countryCount = db.prepare('SELECT COUNT(*) as count FROM Country').get() as { count: number };
+    const metricsCount = db.prepare('SELECT COUNT(*) as count FROM DailyMetrics').get() as { count: number };
+
+    console.log(`[Prisma] Database tables created/verified successfully`);
+    console.log(`[Prisma] Existing data: ${countryCount.count} countries, ${metricsCount.count} daily metrics`);
   } finally {
     db.close();
   }

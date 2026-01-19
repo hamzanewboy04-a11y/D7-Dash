@@ -19,65 +19,74 @@ interface ParsedRow {
 }
 
 // Flexible column mapping with multiple variations
+// Based on actual Excel columns from D7 TEAM (1).xlsx:
+// - Перу: "Доход в sol Приемка", "Доход в USDT Приемка", "Доход в sol Наш", "Доход в USDT Наш"
+// - Италия: "Доход в euro Приемка", "Доход в euro Наш", "Доход в USDT Наш"
+// - Спенд: "Спенд TRUST", "Спенд Кросгиф", "Спенд на FBM"
 const COLUMN_PATTERNS: Array<{ pattern: RegExp; field: keyof ParsedRow }> = [
   // Date
   { pattern: /^дата$/i, field: "date" },
   { pattern: /^date$/i, field: "date" },
   { pattern: /^день$/i, field: "date" },
 
-  // Trust Spend - but NOT "Спенд TRUST" which is separate
+  // Trust Spend - match "Спенд TRUST" or "ТРАСТ"
+  { pattern: /спенд\s*trust/i, field: "spendTrust" },
+  { pattern: /спенд\s*траст/i, field: "spendTrust" },
   { pattern: /траст.*спенд/i, field: "spendTrust" },
-  { pattern: /спенд.*траст/i, field: "spendTrust" },
   { pattern: /trust.*spend/i, field: "spendTrust" },
   { pattern: /^траст$/i, field: "spendTrust" },
   { pattern: /^trust$/i, field: "spendTrust" },
-  { pattern: /^спенд\s+trust$/i, field: "spendTrust" },
 
-  // Crossgif Spend
+  // Crossgif Spend - match "Спенд Кросгиф" or "Кроссгиф"
+  { pattern: /спенд\s*кросс?гиф/i, field: "spendCrossgif" },
   { pattern: /кросс?гиф.*спенд/i, field: "spendCrossgif" },
-  { pattern: /спенд.*кросс?гиф/i, field: "spendCrossgif" },
   { pattern: /crossgif.*spend/i, field: "spendCrossgif" },
   { pattern: /^кросс?гиф$/i, field: "spendCrossgif" },
   { pattern: /^crossgif$/i, field: "spendCrossgif" },
 
-  // FBM Spend
-  { pattern: /fbm.*спенд/i, field: "spendFbm" },
+  // FBM Spend - match "Спенд на FBM" or "Спенд FBM"
   { pattern: /спенд.*fbm/i, field: "spendFbm" },
+  { pattern: /fbm.*спенд/i, field: "spendFbm" },
+  { pattern: /спенд\s*на\s*fbm/i, field: "spendFbm" },
   { pattern: /fbm.*spend/i, field: "spendFbm" },
   { pattern: /^fbm$/i, field: "spendFbm" },
 
-  // Revenue Priemka (Local) - MUST have "приемка" or "приёмка"
-  { pattern: /доход.*sol.*при[её]м/i, field: "revenueLocalPriemka" },
-  { pattern: /доход.*при[её]м.*sol/i, field: "revenueLocalPriemka" },
-  { pattern: /revenue.*sol.*priemka/i, field: "revenueLocalPriemka" },
+  // Revenue Priemka (Local currency: SOL for Peru, EUR for Italy)
+  // Match: "Доход в sol Приемка", "Доход в euro Приемка", "Доход в euro приемка"
+  // Excludes columns with "Наш" (Own revenue) or numbered suffixes like "Приемка 2"
+  { pattern: /^доход\s+в\s+(sol|euro)\s+при[её]мк?а?\s*$/i, field: "revenueLocalPriemka" },
+  { pattern: /доход.*(?:sol|euro).*при[её]мк?а(?!\s*\d)/i, field: "revenueLocalPriemka" },
+  { pattern: /revenue.*(sol|eur).*priemka/i, field: "revenueLocalPriemka" },
 
-  // Revenue Priemka (USDT) - MUST have "приемка" or "приёмка"
-  { pattern: /доход.*usdt.*при[её]м/i, field: "revenueUsdtPriemka" },
-  { pattern: /доход.*при[её]м.*usdt/i, field: "revenueUsdtPriemka" },
+  // Revenue Priemka (USDT)
+  // Match: "Доход в USDT Приемка"
+  { pattern: /^доход\s+в\s+usdt\s+при[её]мк?а?\s*$/i, field: "revenueUsdtPriemka" },
+  { pattern: /доход.*usdt.*при[её]мк?а(?!\s*\d)/i, field: "revenueUsdtPriemka" },
   { pattern: /revenue.*usdt.*priemka/i, field: "revenueUsdtPriemka" },
 
-  // Revenue Own (Local) - MUST have "наш"
-  { pattern: /доход.*sol.*наш/i, field: "revenueLocalOwn" },
-  { pattern: /доход.*наш.*sol/i, field: "revenueLocalOwn" },
+  // Revenue Own (Local currency: SOL, EUR)
+  // Match: "Доход в sol Наш", "Доход в euro Наш"
+  { pattern: /^доход\s+в\s+(sol|euro)\s+наш/i, field: "revenueLocalOwn" },
+  { pattern: /доход.*(?:sol|euro).*наш/i, field: "revenueLocalOwn" },
 
-  // Revenue Own (USDT) - MUST have "наш"
+  // Revenue Own (USDT)
+  // Match: "Доход в USDT Наш"
+  { pattern: /^доход\s+в\s+usdt\s+наш/i, field: "revenueUsdtOwn" },
   { pattern: /доход.*usdt.*наш/i, field: "revenueUsdtOwn" },
-  { pattern: /доход.*наш.*usdt/i, field: "revenueUsdtOwn" },
 
-  // FD Count - exclude "нФД" (non-FD)
-  { pattern: /^фд\s+кол/i, field: "fdCount" },
+  // FD Count - match "ФД КОЛ-ВО" (exclude "нФД")
+  { pattern: /^фд\s*кол/i, field: "fdCount" },
   { pattern: /^фд\s*кол-во$/i, field: "fdCount" },
 
-  // FD Sum - exclude "нФД" (non-FD)
-  { pattern: /^фд\s+сумм/i, field: "fdSumLocal" },
-  { pattern: /^фд\s*сумма\s*sol$/i, field: "fdSumLocal" },
-  { pattern: /^фд\s*сумма\s*usdt$/i, field: "fdSumLocal" },
+  // FD Sum - match "ФД СУММА SOL", "ФД СУММА USDT", "ФД СУММА EURO"
+  { pattern: /^фд\s*сумм/i, field: "fdSumLocal" },
+  { pattern: /^фд\s*сумма\s*(sol|usdt|euro)?$/i, field: "fdSumLocal" },
 
   // Chatterfy
   { pattern: /^chatterf/i, field: "chatterfyCost" },
   { pattern: /^чаттерф/i, field: "chatterfyCost" },
 
-  // Additional expenses - be more specific
+  // Additional expenses - "ДОП РАСХОДЫ"
   { pattern: /^доп\s*расход/i, field: "additionalExpenses" },
   { pattern: /^дополн.*расход/i, field: "additionalExpenses" },
 ];
