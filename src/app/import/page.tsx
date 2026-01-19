@@ -38,6 +38,7 @@ export default function ImportPage() {
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [initializing, setInitializing] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const fetchCountries = async () => {
     setLoadingCountries(true);
@@ -59,11 +60,18 @@ export default function ImportPage() {
 
   const initializeDatabase = async () => {
     setInitializing(true);
+    setInitError(null);
     try {
-      await fetch("/api/seed", { method: "POST" });
+      const res = await fetch("/api/seed", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setInitError(data.error || "Ошибка инициализации");
+        return;
+      }
       await fetchCountries();
     } catch (err) {
       console.error("Error initializing:", err);
+      setInitError("Не удалось подключиться к серверу");
     } finally {
       setInitializing(false);
     }
@@ -167,22 +175,29 @@ export default function ImportPage() {
       {countries.length === 0 && !loadingCountries && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <Database className="h-8 w-8 text-amber-600" />
-              <div className="flex-1">
-                <p className="font-medium text-amber-800">База данных не инициализирована</p>
-                <p className="text-sm text-amber-600">Нажмите кнопку для создания стран и настроек</p>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <Database className="h-8 w-8 text-amber-600" />
+                <div className="flex-1">
+                  <p className="font-medium text-amber-800">База данных не инициализирована</p>
+                  <p className="text-sm text-amber-600">Нажмите кнопку для создания стран и настроек</p>
+                </div>
+                <Button onClick={initializeDatabase} disabled={initializing}>
+                  {initializing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Инициализация...
+                    </>
+                  ) : (
+                    "Инициализировать"
+                  )}
+                </Button>
               </div>
-              <Button onClick={initializeDatabase} disabled={initializing}>
-                {initializing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Инициализация...
-                  </>
-                ) : (
-                  "Инициализировать"
-                )}
-              </Button>
+              {initError && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded text-red-800 text-sm">
+                  {initError}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
