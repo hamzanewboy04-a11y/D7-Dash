@@ -183,7 +183,7 @@ function calculateMetrics(data: Record<string, number>) {
 }
 
 async function main() {
-  const dbPath = path.join(process.cwd(), "dev.db");
+  const dbPath = process.env.DATABASE_URL?.replace("file:", "") || path.join(process.cwd(), "dev.db");
   const adapter = new PrismaBetterSqlite3({ url: dbPath });
   const prisma = new PrismaClient({ adapter });
 
