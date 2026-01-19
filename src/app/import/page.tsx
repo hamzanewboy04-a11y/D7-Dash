@@ -28,6 +28,12 @@ interface ImportResult {
     matched: Record<string, string>;
     unmatched: string[];
   };
+  sampleData?: Array<{
+    date: string;
+    totalRevenueUsdt: number;
+    revenueUsdtOwn: number;
+    totalSpend: number;
+  }>;
   errors?: string[];
   parseErrors?: string[];
 }
@@ -363,6 +369,22 @@ export default function ImportPage() {
                             <li>...и ещё {result.errors.length - 5}</li>
                           )}
                         </ul>
+                      </div>
+                    )}
+                    {/* Sample saved data */}
+                    {result.sampleData && result.sampleData.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-emerald-200">
+                        <p className="font-medium text-emerald-800 text-sm mb-2">Проверка сохраненных данных:</p>
+                        <div className="space-y-1 text-xs">
+                          {result.sampleData.map((item, idx) => (
+                            <div key={idx} className="flex items-center gap-3 bg-emerald-50 p-2 rounded">
+                              <span className="font-mono">{new Date(item.date).toLocaleDateString("ru-RU")}</span>
+                              <span className="text-slate-600">Доход: <strong className="text-emerald-700">${item.totalRevenueUsdt.toFixed(2)}</strong></span>
+                              <span className="text-slate-600">USDT Наш: <strong>${item.revenueUsdtOwn.toFixed(2)}</strong></span>
+                              <span className="text-slate-600">Спенд: <strong>${item.totalSpend.toFixed(2)}</strong></span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                     {/* Column mapping info */}

@@ -30,13 +30,16 @@ try {
 // Push database schema
 console.log('📦 Initializing database schema...');
 try {
-  execSync('npx prisma db push --skip-generate', {
+  // Note: We use better-sqlite3 adapter and ensureDatabaseTables() handles schema
+  // Prisma db push may not be needed since we create tables directly in prisma.ts
+  execSync('npx prisma db push', {
     stdio: 'inherit',
     env: { ...process.env }
   });
   console.log('✅ Database schema ready');
 } catch (error) {
   console.error('⚠️ Database schema initialization warning:', error.message);
+  console.log('📝 Will use fallback table creation via ensureDatabaseTables()');
 }
 
 // Start the server first
