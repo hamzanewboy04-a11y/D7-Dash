@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get("days") || "30");
+    const filterZeroSpend = searchParams.get("filterZeroSpend") !== "false";
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -14,14 +15,27 @@ export async function GET(request: Request) {
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
 
+    // Build where clause
+    const where: Record<string, unknown> = {
+      date: {
+        gte: startDate,
+        lte: endDate,
+      },
+      // Only include active countries
+      country: {
+        isActive: true,
+        status: { not: "disabled" },
+      },
+    };
+
+    // Filter out days with zero spend (project wasn't working)
+    if (filterZeroSpend) {
+      where.totalSpend = { gt: 0 };
+    }
+
     // Get metrics for the period (only up to today)
     const metrics = await prisma.dailyMetrics.findMany({
-      where: {
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
+      where,
       include: {
         country: true,
       },

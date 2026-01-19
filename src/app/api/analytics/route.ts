@@ -18,12 +18,17 @@ export async function GET() {
     const previousEnd = new Date();
     previousEnd.setDate(previousEnd.getDate() - 31);
 
-    // Get current period metrics
+    // Get current period metrics (filter out zero spend days and inactive countries)
     const currentMetrics = await prisma.dailyMetrics.findMany({
       where: {
         date: {
           gte: currentStart,
           lte: today,
+        },
+        totalSpend: { gt: 0 }, // Only days with actual spend
+        country: {
+          isActive: true,
+          status: { not: "disabled" },
         },
       },
       include: {
@@ -37,6 +42,11 @@ export async function GET() {
         date: {
           gte: previousStart,
           lte: previousEnd,
+        },
+        totalSpend: { gt: 0 }, // Only days with actual spend
+        country: {
+          isActive: true,
+          status: { not: "disabled" },
         },
       },
     });
@@ -150,12 +160,17 @@ export async function GET() {
     // Weekly trend (last 8 weeks)
     const weeklyData: Record<string, { week: string; revenue: number; spend: number; profit: number }> = {};
 
-    // Get all metrics from last 60 days for weekly trends
+    // Get all metrics from last 60 days for weekly trends (filter zero spend)
     const allRecentMetrics = await prisma.dailyMetrics.findMany({
       where: {
         date: {
           gte: previousStart,
           lte: today,
+        },
+        totalSpend: { gt: 0 },
+        country: {
+          isActive: true,
+          status: { not: "disabled" },
         },
       },
     });

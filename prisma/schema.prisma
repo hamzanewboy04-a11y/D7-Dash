@@ -16,6 +16,7 @@ model Country {
   code         String         @unique // PE, IT_F, IT_M, AR, CL
   currency     String         @default("USDT") // Локальная валюта для конверсии
   isActive     Boolean        @default(true)
+  status       String         @default("active") // active, paused, disabled
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
