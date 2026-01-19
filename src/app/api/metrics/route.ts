@@ -10,11 +10,23 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const limit = searchParams.get("limit");
+    const filterZeroSpend = searchParams.get("filterZeroSpend") !== "false";
 
     const where: Record<string, unknown> = {};
 
     if (countryId) {
       where.countryId = countryId;
+    }
+
+    // Only include active countries
+    where.country = {
+      isActive: true,
+      status: { not: "disabled" },
+    };
+
+    // Filter out days with zero spend (project wasn't working)
+    if (filterZeroSpend) {
+      where.totalSpend = { gt: 0 };
     }
 
     // Always filter to today or earlier to avoid showing future dates with no data

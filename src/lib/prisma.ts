@@ -72,10 +72,18 @@ export function ensureDatabaseTables() {
         code TEXT UNIQUE NOT NULL,
         currency TEXT DEFAULT 'USDT',
         isActive INTEGER DEFAULT 1,
+        status TEXT DEFAULT 'active',
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add status column if it doesn't exist (migration for existing DBs)
+    try {
+      db.exec(`ALTER TABLE Country ADD COLUMN status TEXT DEFAULT 'active'`);
+    } catch {
+      // Column already exists, ignore
+    }
 
     // AdAccount table
     db.exec(`
