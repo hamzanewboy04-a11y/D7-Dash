@@ -37,39 +37,39 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     // TODO: Save to database
-    alert("Settings saved! (Demo mode)");
+    alert("Настройки сохранены! (Демо режим)");
   };
 
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Настройки</h1>
         <p className="text-slate-500 mt-1">
-          Configure calculation rates and system settings
+          Настройка ставок расчётов и системных параметров
         </p>
       </div>
 
       <Tabs defaultValue="rates">
         <TabsList>
-          <TabsTrigger value="rates">Commission Rates</TabsTrigger>
-          <TabsTrigger value="payroll">Payroll Settings</TabsTrigger>
-          <TabsTrigger value="countries">Countries</TabsTrigger>
+          <TabsTrigger value="rates">Комиссии</TabsTrigger>
+          <TabsTrigger value="payroll">Настройки ФОТ</TabsTrigger>
+          <TabsTrigger value="countries">Страны</TabsTrigger>
         </TabsList>
 
         {/* Commission Rates */}
         <TabsContent value="rates" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Ad Agency Commission Rates</CardTitle>
+              <CardTitle>Комиссии рекламных агентств</CardTitle>
               <CardDescription>
-                Commission percentages charged by ad agencies for each account type
+                Проценты комиссий агентств для каждого типа кабинета
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="trustAgencyFee">TRUST Agency Fee (%)</Label>
+                  <Label htmlFor="trustAgencyFee">TRUST комиссия (%)</Label>
                   <Input
                     id="trustAgencyFee"
                     type="number"
@@ -79,7 +79,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="crossgifAgencyFee">CROSSGIF Agency Fee (%)</Label>
+                  <Label htmlFor="crossgifAgencyFee">CROSSGIF комиссия (%)</Label>
                   <Input
                     id="crossgifAgencyFee"
                     type="number"
@@ -89,7 +89,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fbmAgencyFee">FBM Agency Fee (%)</Label>
+                  <Label htmlFor="fbmAgencyFee">FBM комиссия (%)</Label>
                   <Input
                     id="fbmAgencyFee"
                     type="number"
@@ -104,14 +104,14 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Priemka (Partner) Commission</CardTitle>
+              <CardTitle>Комиссия приёмки (партнёра)</CardTitle>
               <CardDescription>
-                Commission rate for partner revenue processing
+                Ставка комиссии за обработку дохода через приёмку
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="max-w-xs space-y-2">
-                <Label htmlFor="priemkaCommission">Priemka Commission (%)</Label>
+                <Label htmlFor="priemkaCommission">Комиссия приёмки (%)</Label>
                 <Input
                   id="priemkaCommission"
                   type="number"
@@ -128,15 +128,15 @@ export default function SettingsPage() {
         <TabsContent value="payroll" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Percentage-Based Payroll</CardTitle>
+              <CardTitle>Процентные ставки ФОТ</CardTitle>
               <CardDescription>
-                Payroll rates calculated as percentage of revenue/spend
+                Ставки ФОТ рассчитываемые как процент от дохода/спенда
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="buyerRate">Buyer Rate (% of spend)</Label>
+                  <Label htmlFor="buyerRate">Ставка баера (% от спенда)</Label>
                   <Input
                     id="buyerRate"
                     type="number"
@@ -146,7 +146,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="rdHandlerRate">RD Handler Rate (%)</Label>
+                  <Label htmlFor="rdHandlerRate">Ставка обраб. РД (%)</Label>
                   <Input
                     id="rdHandlerRate"
                     type="number"
@@ -156,7 +156,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="headDesignerFixed">Head Designer Fixed ($)</Label>
+                  <Label htmlFor="headDesignerFixed">Хед дизайнер фикс ($)</Label>
                   <Input
                     id="headDesignerFixed"
                     type="number"
@@ -171,15 +171,15 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>FD Handler Tiered Rates</CardTitle>
+              <CardTitle>Тиры обработчика ФД</CardTitle>
               <CardDescription>
-                Payment tiers based on FD count. Formula: (count * rate + bonus) * multiplier
+                Тиры выплат на основе количества ФД. Формула: (кол-во * ставка + бонус) * множитель
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fdTier1Rate">Tier 1 Rate (count &lt; 5) $</Label>
+                  <Label htmlFor="fdTier1Rate">Тир 1 (кол-во &lt; 5) $</Label>
                   <Input
                     id="fdTier1Rate"
                     type="number"
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fdTier2Rate">Tier 2 Rate (5-10) $</Label>
+                  <Label htmlFor="fdTier2Rate">Тир 2 (5-10) $</Label>
                   <Input
                     id="fdTier2Rate"
                     type="number"
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fdTier3Rate">Tier 3 Rate (10+) $</Label>
+                  <Label htmlFor="fdTier3Rate">Тир 3 (10+) $</Label>
                   <Input
                     id="fdTier3Rate"
                     type="number"
@@ -214,7 +214,7 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fdBonusThreshold">Bonus Threshold (count &gt;=)</Label>
+                  <Label htmlFor="fdBonusThreshold">Порог бонуса (кол-во &gt;=)</Label>
                   <Input
                     id="fdBonusThreshold"
                     type="number"
@@ -223,7 +223,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fdBonus">Bonus Amount ($)</Label>
+                  <Label htmlFor="fdBonus">Сумма бонуса ($)</Label>
                   <Input
                     id="fdBonus"
                     type="number"
@@ -233,7 +233,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fdMultiplier">Multiplier</Label>
+                  <Label htmlFor="fdMultiplier">Множитель</Label>
                   <Input
                     id="fdMultiplier"
                     type="number"
@@ -252,24 +252,24 @@ export default function SettingsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Active Countries</CardTitle>
+                <CardTitle>Активные страны</CardTitle>
                 <CardDescription>
-                  Manage countries and their local currencies
+                  Управление странами и их локальными валютами
                 </CardDescription>
               </div>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Country
+                Добавить страну
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {[
-                  { name: "Peru", code: "PE", currency: "SOL", flag: "🇵🇪" },
-                  { name: "Italy (Women)", code: "IT_F", currency: "EUR", flag: "🇮🇹" },
-                  { name: "Italy (Men)", code: "IT_M", currency: "EUR", flag: "🇮🇹" },
-                  { name: "Argentina", code: "AR", currency: "ARS", flag: "🇦🇷" },
-                  { name: "Chile", code: "CL", currency: "CLP", flag: "🇨🇱" },
+                  { name: "Перу", code: "PE", currency: "SOL", flag: "🇵🇪" },
+                  { name: "Италия (Ж)", code: "IT_F", currency: "EUR", flag: "🇮🇹" },
+                  { name: "Италия (М)", code: "IT_M", currency: "EUR", flag: "🇮🇹" },
+                  { name: "Аргентина", code: "AR", currency: "ARS", flag: "🇦🇷" },
+                  { name: "Чили", code: "CL", currency: "CLP", flag: "🇨🇱" },
                 ].map((country) => (
                   <div
                     key={country.code}
@@ -279,13 +279,13 @@ export default function SettingsPage() {
                       <span className="text-2xl">{country.flag}</span>
                       <div>
                         <p className="font-medium">{country.name}</p>
-                        <p className="text-sm text-slate-500">Code: {country.code}</p>
+                        <p className="text-sm text-slate-500">Код: {country.code}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="font-medium">{country.currency}</p>
-                        <p className="text-sm text-slate-500">Currency</p>
+                        <p className="text-sm text-slate-500">Валюта</p>
                       </div>
                       <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
                         <Trash2 className="h-4 w-4" />
@@ -302,7 +302,7 @@ export default function SettingsPage() {
       {/* Save Button */}
       <Button onClick={handleSave} className="w-full" size="lg">
         <Save className="h-4 w-4 mr-2" />
-        Save Settings
+        Сохранить настройки
       </Button>
     </div>
   );

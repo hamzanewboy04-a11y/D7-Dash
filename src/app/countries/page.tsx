@@ -48,24 +48,14 @@ interface DailyMetric {
   };
 }
 
-// Fallback demo data
-const fallbackCountries = [
-  { id: "pe", name: "Peru", code: "PE", currency: "SOL" },
-  { id: "it_f", name: "Italy (Women)", code: "IT_F", currency: "EUR" },
-  { id: "it_m", name: "Italy (Men)", code: "IT_M", currency: "EUR" },
-  { id: "ar", name: "Argentina", code: "AR", currency: "ARS" },
-  { id: "cl", name: "Chile", code: "CL", currency: "CLP" },
-];
-
-const mockDailyData = [
-  { date: "2025-12-01", spend: 663.78, revenue: 2364.89, profit: 1226.80, roi: 0.52 },
-  { date: "2025-12-02", spend: 638.75, revenue: 658.71, profit: -221.41, roi: -0.25 },
-  { date: "2025-12-03", spend: 475.23, revenue: 1753.99, profit: 1030.96, roi: 0.59 },
-  { date: "2025-12-04", spend: 520.00, revenue: 1450.50, profit: 560.25, roi: 0.39 },
-  { date: "2025-12-05", spend: 480.00, revenue: 2100.00, profit: 1150.00, roi: 0.55 },
-  { date: "2025-12-06", spend: 550.00, revenue: 1890.00, profit: 790.00, roi: 0.42 },
-  { date: "2025-12-07", spend: 600.00, revenue: 2500.00, profit: 1300.00, roi: 0.52 },
-];
+// Названия стран на русском
+const countryNames: Record<string, string> = {
+  "Peru": "Перу",
+  "Italy (Women)": "Италия (Ж)",
+  "Italy (Men)": "Италия (М)",
+  "Argentina": "Аргентина",
+  "Chile": "Чили",
+};
 
 const getCountryFlag = (code: string): string => {
   const flags: Record<string, string> = {
@@ -76,6 +66,10 @@ const getCountryFlag = (code: string): string => {
     CL: "🇨🇱",
   };
   return flags[code] || "🌍";
+};
+
+const getCountryNameRu = (name: string): string => {
+  return countryNames[name] || name;
 };
 
 export default function CountriesPage() {
@@ -167,22 +161,20 @@ export default function CountriesPage() {
     ? countries.map((c) => ({
         id: c.id,
         name: c.name,
+        nameRu: getCountryNameRu(c.name),
         code: c.code,
         currency: c.currency,
         flag: getCountryFlag(c.code),
       }))
-    : fallbackCountries.map((c) => ({ ...c, flag: getCountryFlag(c.code) }));
+    : [];
 
-  const hasMetrics = metrics.length > 0;
-  const displayMetrics = hasMetrics
-    ? metrics.map((m) => ({
-        date: new Date(m.date).toISOString().split("T")[0],
-        spend: m.totalSpend,
-        revenue: m.totalRevenueUsdt,
-        profit: m.netProfitMath,
-        roi: m.roi,
-      }))
-    : mockDailyData;
+  const displayMetrics = metrics.map((m) => ({
+    date: new Date(m.date).toLocaleDateString("ru-RU"),
+    spend: m.totalSpend,
+    revenue: m.totalRevenueUsdt,
+    profit: m.netProfitMath,
+    roi: m.roi,
+  }));
 
   const currentCountry = displayCountries.find((c) => c.id === selectedCountry) || displayCountries[0];
 
@@ -194,32 +186,46 @@ export default function CountriesPage() {
     ? displayMetrics.reduce((s, d) => s + d.roi, 0) / displayMetrics.length
     : 0;
 
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Database className="h-16 w-16 text-slate-400" />
+        <h2 className="text-xl font-semibold text-slate-700">База данных пуста</h2>
+        <p className="text-slate-500">Сначала инициализируйте базу данных и импортируйте данные</p>
+        <div className="flex gap-2">
+          <Button onClick={seedDatabase} disabled={seeding}>
+            <Database className="h-4 w-4 mr-2" />
+            {seeding ? "Инициализация..." : "Инициализировать БД"}
+          </Button>
+          <Link href="/import">
+            <Button variant="outline">
+              Перейти к импорту
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Countries</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Страны</h1>
           <p className="text-slate-500 mt-1">
-            View and manage data for each country
-            {!hasData && <span className="text-orange-500 ml-2">(Demo data)</span>}
+            Просмотр и управление данными по странам
           </p>
         </div>
         <div className="flex gap-2">
-          {isSeeded === false && (
-            <Button onClick={seedDatabase} disabled={seeding} variant="outline">
-              <Database className="h-4 w-4 mr-2" />
-              {seeding ? "Initializing..." : "Initialize Database"}
-            </Button>
-          )}
           <Button onClick={() => { fetchCountries(); if (selectedCountry) fetchMetrics(selectedCountry); }} disabled={loading} variant="outline">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading || metricsLoading ? "animate-spin" : ""}`} />
-            Refresh
+            Обновить
           </Button>
           <Link href={`/countries/${selectedCountry || displayCountries[0]?.id}/add`}>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Add Daily Data
+              Добавить данные
             </Button>
           </Link>
         </div>
@@ -231,7 +237,7 @@ export default function CountriesPage() {
           {displayCountries.map((country) => (
             <TabsTrigger key={country.id} value={country.id} className="text-sm">
               <span className="mr-2">{country.flag}</span>
-              {country.name}
+              {country.nameRu}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -243,7 +249,7 @@ export default function CountriesPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-slate-600">
-                    Total Spend
+                    Общий спенд
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -251,7 +257,7 @@ export default function CountriesPage() {
                     ${totalSpend.toFixed(2)}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {displayMetrics.length} days
+                    {displayMetrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -259,7 +265,7 @@ export default function CountriesPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-slate-600">
-                    Total Revenue
+                    Общий доход
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -267,7 +273,7 @@ export default function CountriesPage() {
                     ${totalRevenue.toFixed(2)}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {displayMetrics.length} days
+                    {displayMetrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -275,7 +281,7 @@ export default function CountriesPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-slate-600">
-                    Net Profit
+                    Чистая прибыль
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -283,7 +289,7 @@ export default function CountriesPage() {
                     ${totalProfit.toFixed(2)}
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {displayMetrics.length} days
+                    {displayMetrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -291,7 +297,7 @@ export default function CountriesPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-slate-600">
-                    Average ROI
+                    Средний ROI
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -299,7 +305,7 @@ export default function CountriesPage() {
                     {(avgRoi * 100).toFixed(1)}%
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {displayMetrics.length} days avg
+                    среднее за {displayMetrics.length} дней
                   </p>
                 </CardContent>
               </Card>
@@ -309,25 +315,30 @@ export default function CountriesPage() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  Daily Metrics - {currentCountry?.name}
+                  Ежедневные метрики - {currentCountry?.nameRu}
                   {metricsLoading && <RefreshCw className="inline-block ml-2 h-4 w-4 animate-spin" />}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {displayMetrics.length === 0 ? (
                   <div className="text-center py-8 text-slate-500">
-                    No metrics data yet. Add daily data to get started.
+                    <p>Нет данных по метрикам.</p>
+                    <p className="mt-2">
+                      <Link href="/import" className="text-emerald-600 hover:underline">
+                        Импортируйте данные из Excel
+                      </Link>
+                    </p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Spend</TableHead>
-                        <TableHead className="text-right">Revenue</TableHead>
-                        <TableHead className="text-right">Profit</TableHead>
+                        <TableHead>Дата</TableHead>
+                        <TableHead className="text-right">Спенд</TableHead>
+                        <TableHead className="text-right">Доход</TableHead>
+                        <TableHead className="text-right">Прибыль</TableHead>
                         <TableHead className="text-right">ROI</TableHead>
-                        <TableHead className="text-right">Status</TableHead>
+                        <TableHead className="text-right">Статус</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -366,7 +377,7 @@ export default function CountriesPage() {
                                   : ""
                               }
                             >
-                              {row.profit >= 0 ? "Profitable" : "Loss"}
+                              {row.profit >= 0 ? "Прибыль" : "Убыток"}
                             </Badge>
                           </TableCell>
                         </TableRow>
