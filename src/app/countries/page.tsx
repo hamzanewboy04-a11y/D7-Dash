@@ -193,18 +193,34 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
             <CardTitle className="text-sm text-blue-700">📊 Расходы на рекламу</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-600">TRUST:</span>
-              <span className="font-medium">${formatNum(metric.spendTrust)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600">Кросгиф:</span>
-              <span className="font-medium">${formatNum(metric.spendCrossgif)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600">FBM:</span>
-              <span className="font-medium">${formatNum(metric.spendFbm)}</span>
-            </div>
+            {/* Показываем детализацию по аккаунтам только если есть данные */}
+            {((metric.spendTrust ?? 0) > 0 || (metric.spendCrossgif ?? 0) > 0 || (metric.spendFbm ?? 0) > 0) ? (
+              <>
+                {(metric.spendTrust ?? 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">TRUST:</span>
+                    <span className="font-medium">${formatNum(metric.spendTrust)}</span>
+                  </div>
+                )}
+                {(metric.spendCrossgif ?? 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Кросгиф:</span>
+                    <span className="font-medium">${formatNum(metric.spendCrossgif)}</span>
+                  </div>
+                )}
+                {(metric.spendFbm ?? 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">FBM:</span>
+                    <span className="font-medium">${formatNum(metric.spendFbm)}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Общий спенд:</span>
+                <span className="font-medium">${formatNum(metric.totalSpend)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-600">Комиссия агентства:</span>
               <span className="font-medium">${formatNum(metric.agencyFee)}</span>
@@ -222,30 +238,45 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
             <CardTitle className="text-sm text-purple-700">👥 ФОТ (Фонд оплаты труда)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-600">Баер (12% спенда):</span>
-              <span className="font-medium">${formatNum(metric.payrollBuyer)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600">Обработчик ФД:</span>
-              <span className="font-medium">${formatNum(metric.payrollFdHandler)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600">Обработчик РД (4%):</span>
-              <span className="font-medium">${formatNum(metric.payrollRdHandler)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600">Контент:</span>
-              <span className="font-medium">${formatNum(metric.payrollContent)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600">Дизайнер:</span>
-              <span className="font-medium">${formatNum(metric.payrollDesigner)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-600">Хед дизайнер:</span>
-              <span className="font-medium">${formatNum(metric.payrollHeadDesigner)}</span>
-            </div>
+            {(metric.payrollBuyer ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Баер (12% спенда):</span>
+                <span className="font-medium">${formatNum(metric.payrollBuyer)}</span>
+              </div>
+            )}
+            {(metric.payrollFdHandler ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Обработчик ФД:</span>
+                <span className="font-medium">${formatNum(metric.payrollFdHandler)}</span>
+              </div>
+            )}
+            {(metric.payrollRdHandler ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Обработчик РД (4%):</span>
+                <span className="font-medium">${formatNum(metric.payrollRdHandler)}</span>
+              </div>
+            )}
+            {(metric.payrollContent ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Контент:</span>
+                <span className="font-medium">${formatNum(metric.payrollContent)}</span>
+              </div>
+            )}
+            {(metric.payrollDesigner ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Дизайнер:</span>
+                <span className="font-medium">${formatNum(metric.payrollDesigner)}</span>
+              </div>
+            )}
+            {(metric.payrollHeadDesigner ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">Хед дизайнер:</span>
+                <span className="font-medium">${formatNum(metric.payrollHeadDesigner)}</span>
+              </div>
+            )}
+            {(metric.totalPayroll ?? 0) === 0 && (
+              <div className="text-slate-500 text-center py-2">Нет данных о ФОТ</div>
+            )}
             <div className="border-t pt-2 flex justify-between font-semibold text-purple-700">
               <span>Итого ФОТ:</span>
               <span>${formatNum(metric.totalPayroll)}</span>

@@ -18,11 +18,16 @@ export async function GET(request: NextRequest) {
     if (countryId) where.countryId = countryId;
     if (employeeId) where.employeeId = employeeId;
     
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) (where.date as Record<string, Date>).gte = new Date(startDate);
-      if (endDate) (where.date as Record<string, Date>).lte = new Date(endDate);
-    }
+    // Always filter to today or earlier to avoid showing future dates
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    where.date = {};
+    if (startDate) (where.date as Record<string, Date>).gte = new Date(startDate);
+    
+    // Use the earlier of endDate or today - never show future dates
+    const requestedEnd = endDate ? new Date(endDate) : today;
+    (where.date as Record<string, Date>).lte = requestedEnd > today ? today : requestedEnd;
 
     const metrics = await prisma.smmMetrics.findMany({
       where,
