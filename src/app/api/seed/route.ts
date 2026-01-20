@@ -1,124 +1,137 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import seedData from "../../../../data/seed-data.json";
 
-// POST /api/seed - Initialize database with default data
+// POST /api/seed - Initialize database with seed data
 export async function POST() {
   try {
+    const countriesCount = await prisma.country.count();
+    
+    if (countriesCount > 0) {
+      return NextResponse.json({
+        message: "Database already seeded",
+        countries: countriesCount,
+      });
+    }
+
+    console.log("Seeding database from JSON...");
+
     // Create countries
-    const countries = [
-      { name: "Peru", code: "PE", currency: "SOL" },
-      { name: "Italy (Women)", code: "IT_F", currency: "EUR" },
-      { name: "Italy (Men)", code: "IT_M", currency: "EUR" },
-      { name: "Argentina", code: "AR", currency: "ARS" },
-      { name: "Chile", code: "CL", currency: "CLP" },
-    ];
-
-    const createdCountries = [];
-    for (const countryData of countries) {
-      const country = await prisma.country.upsert({
-        where: { code: countryData.code },
+    for (const country of seedData.countries) {
+      await prisma.country.upsert({
+        where: { code: country.code },
         update: {},
-        create: countryData,
+        create: {
+          id: country.id,
+          name: country.name,
+          code: country.code,
+          currency: country.currency,
+          isActive: country.isActive,
+          status: country.status,
+        },
       });
-      createdCountries.push(country);
     }
+    console.log(`Created ${seedData.countries.length} countries`);
 
-    // Create ad accounts for each country
-    const adAccountTypes = [
-      { name: "TRUST", agencyFeeRate: 0.09 },
-      { name: "CROSSGIF", agencyFeeRate: 0.08 },
-      { name: "FBM", agencyFeeRate: 0.08 },
-    ];
+    // Create ad accounts
+    for (const account of seedData.adAccounts) {
+      await prisma.adAccount.upsert({
+        where: { id: account.id },
+        update: {},
+        create: {
+          id: account.id,
+          name: account.name,
+          agencyFeeRate: account.agencyFeeRate,
+          countryId: account.countryId,
+          isActive: account.isActive,
+        },
+      });
+    }
+    console.log(`Created ${seedData.adAccounts.length} ad accounts`);
 
-    const createdAdAccounts = [];
-    for (const country of createdCountries) {
-      for (const accountType of adAccountTypes) {
-        const existingAccount = await prisma.adAccount.findFirst({
+    // Create daily metrics in batches
+    let created = 0;
+    for (const metric of seedData.metrics) {
+      try {
+        await prisma.dailyMetrics.upsert({
           where: {
-            countryId: country.id,
-            name: accountType.name,
-          },
-        });
-
-        if (!existingAccount) {
-          const account = await prisma.adAccount.create({
-            data: {
-              name: accountType.name,
-              agencyFeeRate: accountType.agencyFeeRate,
-              countryId: country.id,
+            date_countryId: {
+              date: new Date(metric.date),
+              countryId: metric.countryId,
             },
-          });
-          createdAdAccounts.push(account);
-        }
-      }
-    }
-
-    // Create default settings
-    const settings = [
-      { key: "trust_agency_fee", value: "0.09", description: "TRUST agency fee rate (9%)" },
-      { key: "crossgif_agency_fee", value: "0.08", description: "CROSSGIF agency fee rate (8%)" },
-      { key: "fbm_agency_fee", value: "0.08", description: "FBM agency fee rate (8%)" },
-      { key: "priemka_commission", value: "0.15", description: "Partner (Priemka) commission rate (15%)" },
-      { key: "buyer_rate", value: "0.12", description: "Buyer payroll rate (12% of spend)" },
-      { key: "rd_handler_rate", value: "0.04", description: "RD Handler payroll rate (4%)" },
-      { key: "head_designer_fixed", value: "10", description: "Head Designer fixed rate ($10)" },
-      { key: "fd_tier1_rate", value: "3", description: "FD Handler tier 1 rate (count < 5)" },
-      { key: "fd_tier2_rate", value: "4", description: "FD Handler tier 2 rate (5-10)" },
-      { key: "fd_tier3_rate", value: "5", description: "FD Handler tier 3 rate (10+)" },
-      { key: "fd_bonus_threshold", value: "5", description: "FD bonus threshold (count >= 5)" },
-      { key: "fd_bonus", value: "15", description: "FD bonus amount ($15)" },
-      { key: "fd_multiplier", value: "1.2", description: "FD payroll multiplier" },
-    ];
-
-    for (const setting of settings) {
-      await prisma.settings.upsert({
-        where: { key: setting.key },
-        update: { value: setting.value, description: setting.description },
-        create: setting,
-      });
-    }
-
-    // Create sample employees
-    const employees = [
-      { name: "Buyer Peru 1", role: "buyer", countryCode: "PE", percentRate: 0.12 },
-      { name: "Buyer Peru 2", role: "buyer", countryCode: "PE", percentRate: 0.12 },
-      { name: "Buyer Italy 1", role: "buyer", countryCode: "IT_F", percentRate: 0.12 },
-      { name: "FD Handler 1", role: "fd_handler", countryCode: "PE" },
-      { name: "FD Handler 2", role: "fd_handler", countryCode: "IT_F" },
-      { name: "RD Handler 1", role: "rd_handler", countryCode: "PE", percentRate: 0.04 },
-      { name: "Content Manager", role: "content", countryCode: null },
-      { name: "Designer 1", role: "designer", countryCode: null },
-      { name: "Head Designer", role: "head_designer", countryCode: null, fixedRate: 10 },
-      { name: "Reviewer 1", role: "reviewer", countryCode: null },
-    ];
-
-    for (const emp of employees) {
-      const country = emp.countryCode
-        ? createdCountries.find(c => c.code === emp.countryCode)
-        : null;
-
-      const existingEmployee = await prisma.employee.findFirst({
-        where: { name: emp.name },
-      });
-
-      if (!existingEmployee) {
-        await prisma.employee.create({
-          data: {
-            name: emp.name,
-            role: emp.role,
-            countryId: country?.id || null,
-            fixedRate: emp.fixedRate || null,
-            percentRate: emp.percentRate || null,
+          },
+          update: {},
+          create: {
+            id: metric.id,
+            date: new Date(metric.date),
+            countryId: metric.countryId,
+            adAccountBalanceFact: metric.adAccountBalanceFact,
+            adAccountBalanceMath: metric.adAccountBalanceMath,
+            adAccountDeposit: metric.adAccountDeposit,
+            totalSpend: metric.totalSpend,
+            spendTrust: metric.spendTrust,
+            spendCrossgif: metric.spendCrossgif,
+            spendFbm: metric.spendFbm,
+            agencyFee: metric.agencyFee,
+            revenueLocalPriemka: metric.revenueLocalPriemka,
+            revenueUsdtPriemka: metric.revenueUsdtPriemka,
+            exchangeRatePriemka: metric.exchangeRatePriemka,
+            commissionPriemka: metric.commissionPriemka,
+            revenueLocalOwn: metric.revenueLocalOwn,
+            revenueUsdtOwn: metric.revenueUsdtOwn,
+            exchangeRateOwn: metric.exchangeRateOwn,
+            commissionExchange: metric.commissionExchange,
+            totalRevenueUsdt: metric.totalRevenueUsdt,
+            totalExpensesUsdt: metric.totalExpensesUsdt,
+            expensesWithoutSpend: metric.expensesWithoutSpend,
+            withdrawnFromOwn: metric.withdrawnFromOwn,
+            withdrawnFromPriemka: metric.withdrawnFromPriemka,
+            balancePriemkaMath: metric.balancePriemkaMath,
+            balanceOwnMath: metric.balanceOwnMath,
+            balancePriemkaFact: metric.balancePriemkaFact,
+            balanceOwnFact: metric.balanceOwnFact,
+            fdCount: metric.fdCount,
+            nfdCount: metric.nfdCount,
+            fdSumLocal: metric.fdSumLocal,
+            nfdSumLocal: metric.nfdSumLocal,
+            fdSumUsdt: metric.fdSumUsdt,
+            nfdSumUsdt: metric.nfdSumUsdt,
+            rdCount: metric.rdCount,
+            rdSumLocal: metric.rdSumLocal,
+            rdSumUsdt: metric.rdSumUsdt,
+            payrollRdHandler: metric.payrollRdHandler,
+            payrollFdHandler: metric.payrollFdHandler,
+            payrollContent: metric.payrollContent,
+            payrollReviews: metric.payrollReviews,
+            payrollDesigner: metric.payrollDesigner,
+            payrollBuyer: metric.payrollBuyer,
+            payrollHeadDesigner: metric.payrollHeadDesigner,
+            totalPayroll: metric.totalPayroll,
+            unpaidPayroll: metric.unpaidPayroll,
+            paidPayroll: metric.paidPayroll,
+            chatterfyCost: metric.chatterfyCost,
+            additionalExpenses: metric.additionalExpenses,
+            netProfitMath: metric.netProfitMath,
+            netProfitFact: metric.netProfitFact,
+            roi: metric.roi,
+            clicks: metric.clicks,
+            costPerClick: metric.costPerClick,
+            subscriptions: metric.subscriptions,
+            dialogs: metric.dialogs,
           },
         });
+        created++;
+      } catch (e) {
+        console.error(`Error creating metric for ${metric.date}:`, e);
       }
     }
+    console.log(`Created ${created} daily metrics`);
 
     return NextResponse.json({
       message: "Database seeded successfully",
-      countries: createdCountries.length,
-      adAccounts: createdAdAccounts.length,
-      settings: settings.length,
+      countries: seedData.countries.length,
+      adAccounts: seedData.adAccounts.length,
+      metrics: created,
     });
   } catch (error) {
     console.error("Error seeding database:", error);
@@ -133,17 +146,13 @@ export async function POST() {
 export async function GET() {
   try {
     const countriesCount = await prisma.country.count();
-    const adAccountsCount = await prisma.adAccount.count();
-    const settingsCount = await prisma.settings.count();
-    const employeesCount = await prisma.employee.count();
+    const metricsCount = await prisma.dailyMetrics.count();
 
     return NextResponse.json({
-      seeded: countriesCount > 0,
+      seeded: countriesCount > 0 && metricsCount > 0,
       counts: {
         countries: countriesCount,
-        adAccounts: adAccountsCount,
-        settings: settingsCount,
-        employees: employeesCount,
+        metrics: metricsCount,
       },
     });
   } catch (error) {
