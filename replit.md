@@ -1,20 +1,21 @@
 # D7 Team Dashboard
 
 ## Overview
-A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy, Argentina, Chile). Built with Next.js 16, React 19, and SQLite/Prisma.
+A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Project Architecture
 - **Framework**: Next.js 16.1.3 with App Router
 - **UI**: React 19, Tailwind CSS 4, Radix UI components
-- **Database**: SQLite with Prisma ORM (supports Turso for cloud deployment)
+- **Database**: PostgreSQL (Replit managed, persistent across deployments)
 - **Charts**: Recharts for data visualization
+- **ORM**: Prisma 7 with PostgreSQL adapter
 
 ## Key Directories
 - `src/app/` - Next.js app router pages and API routes
 - `src/components/` - Reusable UI components
 - `src/lib/` - Database connection and utility functions
 - `prisma/` - Database schema
-- `data.db` - SQLite database with imported data
+- `scripts/` - Data import and migration scripts
 
 ## Running the Application
 The development server runs on port 5000:
@@ -23,18 +24,34 @@ npm run dev -- -p 5000 -H 0.0.0.0
 ```
 
 ## Database
-- Local development uses SQLite (`data.db`)
-- Production can use Turso by setting `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
-- Data imported from "D7 TEAM (1).xlsx" Excel file (553 records across 5 countries)
+- Uses Replit-managed PostgreSQL (persists across deployments)
+- Connection via DATABASE_URL environment variable (auto-configured)
+- Data imported from "D7 TEAM (1).xlsx" Excel file (398 unique records across 5 countries)
 
 ## Data Import
-To re-import data from Excel:
+To re-import data from Excel to SQLite:
 ```bash
 npx tsx scripts/import-direct.ts
 ```
 
+To migrate from SQLite to PostgreSQL:
+```bash
+npx tsx scripts/migrate-to-postgres.ts
+```
+
+## Calculation Logic
+All financial calculations are in `src/lib/calculations.ts`:
+- **Agency Fee**: Trust 9%, others 8%
+- **Priemka Commission**: 15%
+- **Payroll Buyer**: 12% of spend
+- **Payroll RD Handler**: 4% of RD sum
+- **ROI**: (Revenue - Expenses) / Expenses
+
 ## Scripts
 - `npm run dev` - Development server
 - `npm run build` - Production build
-- `npm run db:push` - Push Prisma schema to database
-- `npm run db:import` - Import data from Excel
+- `npm run start` - Production server
+- `npx prisma db push` - Push Prisma schema to database
+
+## Deployment
+Configured for Autoscale deployment on Replit. Database persists across deployments.

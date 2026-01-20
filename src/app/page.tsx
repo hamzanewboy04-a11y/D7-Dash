@@ -116,12 +116,21 @@ const expenseCategories = [
   { value: "other", label: "Другое" },
 ];
 
+const PERIOD_OPTIONS = [
+  { value: "7", label: "7 дней" },
+  { value: "14", label: "14 дней" },
+  { value: "30", label: "30 дней" },
+  { value: "90", label: "90 дней" },
+  { value: "365", label: "Всё время" },
+];
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [yesterdayData, setYesterdayData] = useState<YesterdayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSeeded, setIsSeeded] = useState<boolean | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
 
   // Expense dialog state
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
@@ -134,9 +143,9 @@ export default function DashboardPage() {
   });
   const [savingExpense, setSavingExpense] = useState(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (days: string = selectedPeriod) => {
     try {
-      const response = await fetch("/api/dashboard?days=30");
+      const response = await fetch(`/api/dashboard?days=${days}`);
       if (response.ok) {
         const dashboardData = await response.json();
         setData(dashboardData);
@@ -146,6 +155,12 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePeriodChange = (value: string) => {
+    setSelectedPeriod(value);
+    setLoading(true);
+    fetchDashboardData(value);
   };
 
   const fetchYesterdayData = async () => {
@@ -331,7 +346,19 @@ export default function DashboardPage() {
             {!hasData && <span className="text-orange-500 ml-2">(Демо данные)</span>}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Период" />
+            </SelectTrigger>
+            <SelectContent>
+              {PERIOD_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={() => setExpenseDialogOpen(true)} variant="outline">
             <Plus className="h-4 w-4 mr-2" />
             Внести расход
@@ -342,7 +369,7 @@ export default function DashboardPage() {
               {seeding ? "Инициализация..." : "Инициализировать БД"}
             </Button>
           )}
-          <Button onClick={fetchDashboardData} disabled={loading} variant="outline">
+          <Button onClick={() => fetchDashboardData()} disabled={loading} variant="outline">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Обновить
           </Button>
