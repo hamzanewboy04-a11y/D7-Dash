@@ -363,12 +363,6 @@ export default function DashboardPage() {
             <Plus className="h-4 w-4 mr-2" />
             Внести расход
           </Button>
-          {isSeeded === false && (
-            <Button onClick={seedDatabase} disabled={seeding} variant="outline">
-              <Database className="h-4 w-4 mr-2" />
-              {seeding ? "Инициализация..." : "Инициализировать БД"}
-            </Button>
-          )}
           <Button onClick={() => fetchDashboardData()} disabled={loading} variant="outline">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Обновить
