@@ -24,7 +24,6 @@ export async function GET(request: Request) {
       // Only include active countries
       country: {
         isActive: true,
-        status: { not: "disabled" },
       },
     };
 

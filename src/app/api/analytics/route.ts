@@ -28,7 +28,6 @@ export async function GET() {
         totalSpend: { gt: 0 }, // Only days with actual spend
         country: {
           isActive: true,
-          status: { not: "disabled" },
         },
       },
       include: {
@@ -46,7 +45,6 @@ export async function GET() {
         totalSpend: { gt: 0 }, // Only days with actual spend
         country: {
           isActive: true,
-          status: { not: "disabled" },
         },
       },
     });
@@ -170,7 +168,6 @@ export async function GET() {
         totalSpend: { gt: 0 },
         country: {
           isActive: true,
-          status: { not: "disabled" },
         },
       },
     });
