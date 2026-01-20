@@ -311,10 +311,11 @@ function createPrismaClient() {
   const tursoUrl = process.env.TURSO_DATABASE_URL;
   const tursoToken = process.env.TURSO_AUTH_TOKEN;
 
-  // Use Turso if credentials are available
+  // PRIORITY 1: Use Turso if credentials are available (CLOUD)
   if (tursoUrl && tursoToken) {
-    console.log('[Prisma] Using Turso cloud database');
-    console.log(`[Prisma] Turso URL: ${tursoUrl}`);
+    console.log('[Prisma] ☁️  Using Turso cloud database (PRODUCTION)');
+    console.log(`[Prisma] 🌐 Turso URL: ${tursoUrl}`);
+    console.log('[Prisma] ✅ Data will persist across deployments');
 
     const libsql = createClient({
       url: tursoUrl,
@@ -329,8 +330,11 @@ function createPrismaClient() {
     });
   }
 
-  // Fallback to local SQLite
-  console.log('[Prisma] Using local SQLite database');
+  // PRIORITY 2: Fallback to local SQLite (DEVELOPMENT)
+  console.log('[Prisma] 📁 Using local SQLite database (DEVELOPMENT)');
+  console.log('[Prisma] ⚠️  WARNING: Data will be lost on redeploy!');
+  console.log('[Prisma] 💡 TIP: Add TURSO_DATABASE_URL and TURSO_AUTH_TOKEN to use cloud storage');
+
   const dbPath = getDbPath();
   const adapter = new PrismaBetterSqlite3({ url: dbPath });
 
