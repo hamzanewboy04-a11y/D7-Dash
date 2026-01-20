@@ -36,4 +36,4 @@ externalPort = 80
 [deployment]
 deploymentTarget = "autoscale"
 run = ["npm", "run", "start"]
-build = ["bash", "-c", "prisma generate && prisma db push && npm run build"]
+build = ["bash", "-c", "prisma generate && prisma db push && npx tsx scripts/seed-production.ts && npm run build"]
