@@ -15,6 +15,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Set dummy DATABASE_URL for Prisma code generation
+# (Runtime connection uses adapter, not this URL)
+ENV DATABASE_URL="file:./prisma/dev.db"
+
 # Generate Prisma client
 RUN npx prisma generate
 
