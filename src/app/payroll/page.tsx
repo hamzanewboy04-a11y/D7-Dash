@@ -334,14 +334,13 @@ export default function PayrollPage() {
               <div className="space-y-2">
                 <Label htmlFor="country">Страна (необязательно)</Label>
                 <Select
-                  value={formData.countryId}
+                  value={formData.countryId || undefined}
                   onValueChange={(v) => setFormData({ ...formData, countryId: v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Все страны" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все страны</SelectItem>
                     {countries.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
