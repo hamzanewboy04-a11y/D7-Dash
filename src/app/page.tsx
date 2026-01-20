@@ -127,6 +127,14 @@ const expenseCategories = [
   { value: "commission", label: "Комиссия" },
   { value: "chatterfy", label: "Chatterfy" },
   { value: "tools", label: "Инструменты" },
+  { value: "accounts", label: "Аккаунты" },
+  { value: "proxies", label: "Прокси" },
+  { value: "hosting", label: "Хостинг" },
+  { value: "software", label: "Софт/Подписки" },
+  { value: "advertising", label: "Реклама" },
+  { value: "banking", label: "Банковское" },
+  { value: "communications", label: "Связь" },
+  { value: "office", label: "Офис" },
   { value: "other", label: "Другое" },
 ];
 

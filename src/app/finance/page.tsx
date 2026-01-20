@@ -606,6 +606,14 @@ export default function FinancePage() {
                             {expense.category === "commission" && "Комиссия"}
                             {expense.category === "chatterfy" && "Chatterfy"}
                             {expense.category === "tools" && "Инструменты"}
+                            {expense.category === "accounts" && "Аккаунты"}
+                            {expense.category === "proxies" && "Прокси"}
+                            {expense.category === "hosting" && "Хостинг"}
+                            {expense.category === "software" && "Софт/Подписки"}
+                            {expense.category === "advertising" && "Реклама"}
+                            {expense.category === "banking" && "Банковское"}
+                            {expense.category === "communications" && "Связь"}
+                            {expense.category === "office" && "Офис"}
                             {expense.category === "other" && "Другое"}
                           </Badge>
                         </TableCell>
@@ -630,7 +638,7 @@ export default function FinancePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {["payroll", "commission", "chatterfy", "tools", "other"].map((cat) => {
+                {["payroll", "commission", "chatterfy", "tools", "accounts", "proxies", "hosting", "software", "advertising", "banking", "communications", "office", "other"].map((cat) => {
                   const categoryExpenses = additionalExpenses.filter(e => e.category === cat);
                   const total = categoryExpenses.reduce((s, e) => s + e.amount, 0);
                   const categoryName = {
@@ -638,6 +646,14 @@ export default function FinancePage() {
                     commission: "Комиссия",
                     chatterfy: "Chatterfy",
                     tools: "Инструменты",
+                    accounts: "Аккаунты",
+                    proxies: "Прокси",
+                    hosting: "Хостинг",
+                    software: "Софт/Подписки",
+                    advertising: "Реклама",
+                    banking: "Банковское",
+                    communications: "Связь",
+                    office: "Офис",
                     other: "Другое",
                   }[cat];
 

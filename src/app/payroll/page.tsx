@@ -161,12 +161,12 @@ const roleLabels: Record<string, string> = {
 };
 
 const roleDescriptions: Record<string, string> = {
-  buyer: "12% от спенда",
-  fd_handler: "По тирам (3-5$/шт)",
-  rd_handler: "4% от суммы РД",
+  buyer: "% от спенда или прибыли",
+  fd_handler: "$ за каждый ФД",
+  rd_handler: "% от суммы РД",
   content: "Фикс ставка за день",
-  designer: "% от суммы или фикс",
-  head_designer: "$10 фикс за день",
+  designer: "% или фикс ставка",
+  head_designer: "Фикс ставка",
   reviewer: "За отзыв",
 };
 
