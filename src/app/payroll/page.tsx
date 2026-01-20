@@ -100,41 +100,12 @@ interface Employee {
   country: Country | null;
   fixedRate: number | null;
   percentRate: number | null;
-  // Buyer tiers
-  buyerTier1Threshold: number | null;
-  buyerTier1Rate: number | null;
-  buyerTier2Threshold: number | null;
-  buyerTier2Rate: number | null;
-  buyerTier3Threshold: number | null;
-  buyerTier3Rate: number | null;
-  buyerBonusThreshold: number | null;
-  buyerBonusAmount: number | null;
-  // RD Handler tiers
-  rdTier1Threshold: number | null;
-  rdTier1Rate: number | null;
-  rdTier2Threshold: number | null;
-  rdTier2Rate: number | null;
-  rdTier3Threshold: number | null;
-  rdTier3Rate: number | null;
-  rdBonusThreshold: number | null;
-  rdBonusAmount: number | null;
-  // FD Handler tiers (expanded)
-  fdTier1Rate: number | null;
-  fdTier1MaxCount: number | null;
-  fdTier2Rate: number | null;
-  fdTier2MaxCount: number | null;
-  fdTier3Rate: number | null;
-  fdTier3MaxCount: number | null;
-  fdTier4Rate: number | null;
-  fdTier4MaxCount: number | null;
-  fdTier5Rate: number | null;
+  percentageBase: string | null;
   fdBonusThreshold: number | null;
   fdBonus: number | null;
-  // Additional fields
   notes: string | null;
   startDate: string | null;
   contractType: string | null;
-  // Payment settings
   paymentType: string;
   bufferDays: number;
   paymentDay1: number | null;
@@ -199,6 +170,21 @@ const roleDescriptions: Record<string, string> = {
   reviewer: "За отзыв",
 };
 
+const percentageBaseLabels: Record<string, string> = {
+  spend: "От спенда",
+  net_profit: "От чистой прибыли",
+  gross_revenue: "От валового дохода",
+  fd_sum: "От суммы ФД",
+  rd_sum: "От суммы РД",
+  all_payments: "От всех платежей",
+};
+
+const defaultRoles = ["buyer", "fd_handler", "rd_handler", "content", "designer", "head_designer", "reviewer"];
+
+const getRoleLabel = (role: string): string => {
+  return roleLabels[role] || role;
+};
+
 export default function PayrollPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -218,41 +204,12 @@ export default function PayrollPage() {
     countryId: "",
     fixedRate: "",
     percentRate: "",
-    // Buyer tiers
-    buyerTier1Threshold: "",
-    buyerTier1Rate: "",
-    buyerTier2Threshold: "",
-    buyerTier2Rate: "",
-    buyerTier3Threshold: "",
-    buyerTier3Rate: "",
-    buyerBonusThreshold: "",
-    buyerBonusAmount: "",
-    // RD Handler tiers
-    rdTier1Threshold: "",
-    rdTier1Rate: "",
-    rdTier2Threshold: "",
-    rdTier2Rate: "",
-    rdTier3Threshold: "",
-    rdTier3Rate: "",
-    rdBonusThreshold: "",
-    rdBonusAmount: "",
-    // FD Handler tiers (expanded)
-    fdTier1Rate: "",
-    fdTier1MaxCount: "",
-    fdTier2Rate: "",
-    fdTier2MaxCount: "",
-    fdTier3Rate: "",
-    fdTier3MaxCount: "",
-    fdTier4Rate: "",
-    fdTier4MaxCount: "",
-    fdTier5Rate: "",
+    percentageBase: "",
     fdBonusThreshold: "",
     fdBonus: "",
-    // Additional fields
     notes: "",
     startDate: "",
     contractType: "",
-    // Payment settings
     paymentType: "buffer",
     bufferDays: "7",
     paymentDay1: "",
@@ -334,41 +291,12 @@ export default function PayrollPage() {
       countryId: employee.countryId || "",
       fixedRate: employee.fixedRate?.toString() || "",
       percentRate: employee.percentRate?.toString() || "",
-      // Buyer tiers
-      buyerTier1Threshold: employee.buyerTier1Threshold?.toString() || "",
-      buyerTier1Rate: employee.buyerTier1Rate?.toString() || "",
-      buyerTier2Threshold: employee.buyerTier2Threshold?.toString() || "",
-      buyerTier2Rate: employee.buyerTier2Rate?.toString() || "",
-      buyerTier3Threshold: employee.buyerTier3Threshold?.toString() || "",
-      buyerTier3Rate: employee.buyerTier3Rate?.toString() || "",
-      buyerBonusThreshold: employee.buyerBonusThreshold?.toString() || "",
-      buyerBonusAmount: employee.buyerBonusAmount?.toString() || "",
-      // RD Handler tiers
-      rdTier1Threshold: employee.rdTier1Threshold?.toString() || "",
-      rdTier1Rate: employee.rdTier1Rate?.toString() || "",
-      rdTier2Threshold: employee.rdTier2Threshold?.toString() || "",
-      rdTier2Rate: employee.rdTier2Rate?.toString() || "",
-      rdTier3Threshold: employee.rdTier3Threshold?.toString() || "",
-      rdTier3Rate: employee.rdTier3Rate?.toString() || "",
-      rdBonusThreshold: employee.rdBonusThreshold?.toString() || "",
-      rdBonusAmount: employee.rdBonusAmount?.toString() || "",
-      // FD Handler tiers
-      fdTier1Rate: employee.fdTier1Rate?.toString() || "",
-      fdTier1MaxCount: employee.fdTier1MaxCount?.toString() || "",
-      fdTier2Rate: employee.fdTier2Rate?.toString() || "",
-      fdTier2MaxCount: employee.fdTier2MaxCount?.toString() || "",
-      fdTier3Rate: employee.fdTier3Rate?.toString() || "",
-      fdTier3MaxCount: employee.fdTier3MaxCount?.toString() || "",
-      fdTier4Rate: employee.fdTier4Rate?.toString() || "",
-      fdTier4MaxCount: employee.fdTier4MaxCount?.toString() || "",
-      fdTier5Rate: employee.fdTier5Rate?.toString() || "",
+      percentageBase: employee.percentageBase || "",
       fdBonusThreshold: employee.fdBonusThreshold?.toString() || "",
       fdBonus: employee.fdBonus?.toString() || "",
-      // Additional fields
       notes: employee.notes || "",
       startDate: employee.startDate ? employee.startDate.split("T")[0] : "",
       contractType: employee.contractType || "",
-      // Payment settings
       paymentType: employee.paymentType || "buffer",
       bufferDays: employee.bufferDays?.toString() || "7",
       paymentDay1: employee.paymentDay1?.toString() || "",
@@ -386,41 +314,12 @@ export default function PayrollPage() {
       countryId: "",
       fixedRate: "",
       percentRate: "",
-      // Buyer tiers
-      buyerTier1Threshold: "",
-      buyerTier1Rate: "",
-      buyerTier2Threshold: "",
-      buyerTier2Rate: "",
-      buyerTier3Threshold: "",
-      buyerTier3Rate: "",
-      buyerBonusThreshold: "",
-      buyerBonusAmount: "",
-      // RD Handler tiers
-      rdTier1Threshold: "",
-      rdTier1Rate: "",
-      rdTier2Threshold: "",
-      rdTier2Rate: "",
-      rdTier3Threshold: "",
-      rdTier3Rate: "",
-      rdBonusThreshold: "",
-      rdBonusAmount: "",
-      // FD Handler tiers
-      fdTier1Rate: "",
-      fdTier1MaxCount: "",
-      fdTier2Rate: "",
-      fdTier2MaxCount: "",
-      fdTier3Rate: "",
-      fdTier3MaxCount: "",
-      fdTier4Rate: "",
-      fdTier4MaxCount: "",
-      fdTier5Rate: "",
+      percentageBase: "",
       fdBonusThreshold: "",
       fdBonus: "",
-      // Additional fields
       notes: "",
       startDate: "",
       contractType: "",
-      // Payment settings
       paymentType: "buffer",
       bufferDays: "7",
       paymentDay1: "",
@@ -610,7 +509,7 @@ export default function PayrollPage() {
                     <SelectContent>
                       {employees.filter(e => e.isActive).map((emp) => (
                         <SelectItem key={emp.id} value={emp.id}>
-                          {emp.name} ({roleLabels[emp.role] || emp.role})
+                          {emp.name} ({getRoleLabel(emp.role)})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -695,7 +594,7 @@ export default function PayrollPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="payment-notes">Примечание (необязательно)</Label>
+                  <Label htmlFor="payment-notes">Заметки (необязательно)</Label>
                   <Textarea
                     id="payment-notes"
                     value={paymentFormData.notes}
@@ -729,7 +628,7 @@ export default function PayrollPage() {
                 Добавить сотрудника
               </Button>
             </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>
                 {editingEmployee ? "Редактировать сотрудника" : "Новый сотрудник"}
@@ -739,452 +638,264 @@ export default function PayrollPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Имя</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Имя сотрудника"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role">Роль</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(v) => setFormData({ ...formData, role: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите роль" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(roleLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country">Страна (необязательно)</Label>
-                <Select
-                  value={formData.countryId || undefined}
-                  onValueChange={(v) => setFormData({ ...formData, countryId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Все страны" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Buyer tier configuration */}
-              {formData.role === "buyer" && (
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="text-sm font-medium mb-3">Тиры комиссий баера</h4>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="percentRate">Базовая ставка (%)</Label>
-                      <Input
-                        id="percentRate"
-                        type="number"
-                        step="0.01"
-                        value={formData.percentRate}
-                        onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
-                        placeholder="12"
-                      />
-                      <p className="text-xs text-slate-500">Процент от спенда (по умолчанию 12%)</p>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-lg space-y-3">
-                      <p className="text-xs font-medium text-slate-600">Тиры по спенду (необязательно)</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 1: порог спенда ($)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerTier1Threshold} onChange={(e) => setFormData({ ...formData, buyerTier1Threshold: e.target.value })} placeholder="1000" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 1: ставка (%)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerTier1Rate} onChange={(e) => setFormData({ ...formData, buyerTier1Rate: e.target.value })} placeholder="10" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 2: порог спенда ($)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerTier2Threshold} onChange={(e) => setFormData({ ...formData, buyerTier2Threshold: e.target.value })} placeholder="5000" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 2: ставка (%)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerTier2Rate} onChange={(e) => setFormData({ ...formData, buyerTier2Rate: e.target.value })} placeholder="12" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 3: порог спенда ($)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerTier3Threshold} onChange={(e) => setFormData({ ...formData, buyerTier3Threshold: e.target.value })} placeholder="10000" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 3: ставка (%)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerTier3Rate} onChange={(e) => setFormData({ ...formData, buyerTier3Rate: e.target.value })} placeholder="15" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Порог бонуса ($)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerBonusThreshold} onChange={(e) => setFormData({ ...formData, buyerBonusThreshold: e.target.value })} placeholder="15000" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Сумма бонуса ($)</Label>
-                          <Input type="number" step="0.01" value={formData.buyerBonusAmount} onChange={(e) => setFormData({ ...formData, buyerBonusAmount: e.target.value })} placeholder="500" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+            <div className="flex-1 overflow-y-auto pr-2">
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Имя</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Имя сотрудника"
+                  />
                 </div>
-              )}
-
-              {/* RD Handler tier configuration */}
-              {formData.role === "rd_handler" && (
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="text-sm font-medium mb-3">Тиры комиссий обработчика РД</h4>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="percentRate">Базовая ставка (%)</Label>
-                      <Input
-                        id="percentRate"
-                        type="number"
-                        step="0.01"
-                        value={formData.percentRate}
-                        onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
-                        placeholder="4"
-                      />
-                      <p className="text-xs text-slate-500">Процент от суммы РД (по умолчанию 4%)</p>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-lg space-y-3">
-                      <p className="text-xs font-medium text-slate-600">Тиры по сумме РД (необязательно)</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 1: порог суммы РД ($)</Label>
-                          <Input type="number" step="0.01" value={formData.rdTier1Threshold} onChange={(e) => setFormData({ ...formData, rdTier1Threshold: e.target.value })} placeholder="500" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 1: ставка (%)</Label>
-                          <Input type="number" step="0.01" value={formData.rdTier1Rate} onChange={(e) => setFormData({ ...formData, rdTier1Rate: e.target.value })} placeholder="3" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 2: порог суммы РД ($)</Label>
-                          <Input type="number" step="0.01" value={formData.rdTier2Threshold} onChange={(e) => setFormData({ ...formData, rdTier2Threshold: e.target.value })} placeholder="2000" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 2: ставка (%)</Label>
-                          <Input type="number" step="0.01" value={formData.rdTier2Rate} onChange={(e) => setFormData({ ...formData, rdTier2Rate: e.target.value })} placeholder="4" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 3: порог суммы РД ($)</Label>
-                          <Input type="number" step="0.01" value={formData.rdTier3Threshold} onChange={(e) => setFormData({ ...formData, rdTier3Threshold: e.target.value })} placeholder="5000" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 3: ставка (%)</Label>
-                          <Input type="number" step="0.01" value={formData.rdTier3Rate} onChange={(e) => setFormData({ ...formData, rdTier3Rate: e.target.value })} placeholder="5" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Порог бонуса ($)</Label>
-                          <Input type="number" step="0.01" value={formData.rdBonusThreshold} onChange={(e) => setFormData({ ...formData, rdBonusThreshold: e.target.value })} placeholder="10000" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Сумма бонуса ($)</Label>
-                          <Input type="number" step="0.01" value={formData.rdBonusAmount} onChange={(e) => setFormData({ ...formData, rdBonusAmount: e.target.value })} placeholder="200" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {(formData.role === "content" || formData.role === "designer" || formData.role === "head_designer" || formData.role === "reviewer") && (
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="text-sm font-medium mb-3">Фиксированная ставка</h4>
-                  <div className="space-y-2">
-                    <Label htmlFor="fixedRate">Ставка за день/проект ($)</Label>
-                    <Input
-                      id="fixedRate"
-                      type="number"
-                      step="0.01"
-                      value={formData.fixedRate}
-                      onChange={(e) => setFormData({ ...formData, fixedRate: e.target.value })}
-                      placeholder={
-                        formData.role === "head_designer" ? "10" :
-                        formData.role === "designer" ? "20" :
-                        formData.role === "content" ? "15" : "10"
-                      }
-                    />
-                    <p className="text-xs text-slate-500">
-                      {formData.role === "head_designer" 
-                        ? "Фикс за активный день (по умолчанию $10)"
-                        : "Фикс за активный день × количество проектов"}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {formData.role === "fd_handler" && (
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="text-sm font-medium mb-3">Настройки оплаты ФД</h4>
-                  <div className="space-y-4">
-                    <div className="bg-slate-50 p-3 rounded-lg space-y-3">
-                      <p className="text-xs font-medium text-slate-600">Тиры по количеству ФД</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 1: ставка ($)</Label>
-                          <Input type="number" step="0.5" value={formData.fdTier1Rate} onChange={(e) => setFormData({ ...formData, fdTier1Rate: e.target.value })} placeholder="3" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 1: до кол-ва ФД</Label>
-                          <Input type="number" step="1" value={formData.fdTier1MaxCount} onChange={(e) => setFormData({ ...formData, fdTier1MaxCount: e.target.value })} placeholder="5" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 2: ставка ($)</Label>
-                          <Input type="number" step="0.5" value={formData.fdTier2Rate} onChange={(e) => setFormData({ ...formData, fdTier2Rate: e.target.value })} placeholder="4" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 2: до кол-ва ФД</Label>
-                          <Input type="number" step="1" value={formData.fdTier2MaxCount} onChange={(e) => setFormData({ ...formData, fdTier2MaxCount: e.target.value })} placeholder="10" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 3: ставка ($)</Label>
-                          <Input type="number" step="0.5" value={formData.fdTier3Rate} onChange={(e) => setFormData({ ...formData, fdTier3Rate: e.target.value })} placeholder="4.5" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 3: до кол-ва ФД</Label>
-                          <Input type="number" step="1" value={formData.fdTier3MaxCount} onChange={(e) => setFormData({ ...formData, fdTier3MaxCount: e.target.value })} placeholder="15" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 4: ставка ($)</Label>
-                          <Input type="number" step="0.5" value={formData.fdTier4Rate} onChange={(e) => setFormData({ ...formData, fdTier4Rate: e.target.value })} placeholder="5" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 4: до кол-ва ФД</Label>
-                          <Input type="number" step="1" value={formData.fdTier4MaxCount} onChange={(e) => setFormData({ ...formData, fdTier4MaxCount: e.target.value })} placeholder="20" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Тир 5: ставка за 20+ ФД ($)</Label>
-                          <Input type="number" step="0.5" value={formData.fdTier5Rate} onChange={(e) => setFormData({ ...formData, fdTier5Rate: e.target.value })} placeholder="5.5" />
-                        </div>
-                        <div className="space-y-1 opacity-50">
-                          <Label className="text-xs">Без лимита</Label>
-                          <Input disabled placeholder="∞" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="fdBonusThreshold">Порог бонуса (кол-во ФД)</Label>
-                        <Input
-                          id="fdBonusThreshold"
-                          type="number"
-                          step="1"
-                          value={formData.fdBonusThreshold}
-                          onChange={(e) => setFormData({ ...formData, fdBonusThreshold: e.target.value })}
-                          placeholder="5"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fdBonus">Сумма бонуса ($)</Label>
-                        <Input
-                          id="fdBonus"
-                          type="number"
-                          step="0.5"
-                          value={formData.fdBonus}
-                          onChange={(e) => setFormData({ ...formData, fdBonus: e.target.value })}
-                          placeholder="15"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      Оставьте поля пустыми для использования системных настроек по умолчанию
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {!formData.role && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fixedRate">Фикс. ставка ($)</Label>
-                    <Input
-                      id="fixedRate"
-                      type="number"
-                      step="0.01"
-                      value={formData.fixedRate}
-                      onChange={(e) => setFormData({ ...formData, fixedRate: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="percentRate">% ставка</Label>
-                    <Input
-                      id="percentRate"
-                      type="number"
-                      step="0.01"
-                      value={formData.percentRate}
-                      onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-medium mb-3">Дополнительная информация</h4>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="startDate">Дата начала работы</Label>
-                      <Input
-                        id="startDate"
-                        type="date"
-                        value={formData.startDate}
-                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contractType">Тип контракта</Label>
-                      <Select
-                        value={formData.contractType || undefined}
-                        onValueChange={(v) => setFormData({ ...formData, contractType: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите тип" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="full-time">Полная занятость</SelectItem>
-                          <SelectItem value="part-time">Частичная занятость</SelectItem>
-                          <SelectItem value="contractor">Подрядчик</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Заметки</Label>
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      placeholder="Дополнительные заметки о сотруднике..."
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-medium mb-3">Настройки выплат</h4>
 
                 <div className="space-y-2">
-                  <Label htmlFor="paymentType">Тип выплаты</Label>
+                  <Label htmlFor="role">Роль</Label>
+                  <Input
+                    id="role"
+                    list="role-suggestions"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    placeholder="Введите или выберите роль"
+                  />
+                  <datalist id="role-suggestions">
+                    {defaultRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {roleLabels[role]}
+                      </option>
+                    ))}
+                  </datalist>
+                  {formData.role && roleDescriptions[formData.role] && (
+                    <p className="text-xs text-slate-500">{roleDescriptions[formData.role]}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Страна (необязательно)</Label>
                   <Select
-                    value={formData.paymentType}
-                    onValueChange={(v) => setFormData({ ...formData, paymentType: v })}
+                    value={formData.countryId || undefined}
+                    onValueChange={(v) => setFormData({ ...formData, countryId: v })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Выберите тип" />
+                      <SelectValue placeholder="Все страны" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(paymentTypeLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
+                      {countries.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {formData.paymentType === "buffer" && (
-                  <div className="space-y-2 mt-3">
-                    <Label htmlFor="bufferDays">Дней буфера</Label>
-                    <Input
-                      id="bufferDays"
-                      type="number"
-                      value={formData.bufferDays}
-                      onChange={(e) => setFormData({ ...formData, bufferDays: e.target.value })}
-                      placeholder="7"
-                    />
-                  </div>
-                )}
-
-                {formData.paymentType === "twice_monthly" && (
-                  <div className="grid grid-cols-2 gap-4 mt-3">
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-medium mb-3">Ставки</h4>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="paymentDay1">День 1 (1-28)</Label>
+                      <Label htmlFor="fixedRate">Фикс. ставка ($)</Label>
                       <Input
-                        id="paymentDay1"
+                        id="fixedRate"
                         type="number"
-                        min="1"
-                        max="28"
-                        value={formData.paymentDay1}
-                        onChange={(e) => setFormData({ ...formData, paymentDay1: e.target.value })}
+                        step="0.01"
+                        value={formData.fixedRate}
+                        onChange={(e) => setFormData({ ...formData, fixedRate: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="percentRate">% ставка</Label>
+                      <Input
+                        id="percentRate"
+                        type="number"
+                        step="0.01"
+                        value={formData.percentRate}
+                        onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  
+                  {formData.percentRate && (
+                    <div className="space-y-2 mt-4">
+                      <Label htmlFor="percentageBase">Процент от чего</Label>
+                      <Select
+                        value={formData.percentageBase || undefined}
+                        onValueChange={(v) => setFormData({ ...formData, percentageBase: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите базу для процента" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(percentageBaseLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium mb-3">Бонус (необязательно)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fdBonusThreshold">Порог бонуса</Label>
+                      <Input
+                        id="fdBonusThreshold"
+                        type="number"
+                        step="1"
+                        value={formData.fdBonusThreshold}
+                        onChange={(e) => setFormData({ ...formData, fdBonusThreshold: e.target.value })}
+                        placeholder="5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fdBonus">Сумма бонуса ($)</Label>
+                      <Input
+                        id="fdBonus"
+                        type="number"
+                        step="0.5"
+                        value={formData.fdBonus}
+                        onChange={(e) => setFormData({ ...formData, fdBonus: e.target.value })}
                         placeholder="15"
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium mb-3">Дополнительная информация</h4>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="startDate">Дата начала работы</Label>
+                        <Input
+                          id="startDate"
+                          type="date"
+                          value={formData.startDate}
+                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="contractType">Тип контракта</Label>
+                        <Select
+                          value={formData.contractType || undefined}
+                          onValueChange={(v) => setFormData({ ...formData, contractType: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите тип" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="full-time">Полная занятость</SelectItem>
+                            <SelectItem value="part-time">Частичная занятость</SelectItem>
+                            <SelectItem value="contractor">Подрядчик</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="paymentDay2">День 2 (1-28)</Label>
-                      <Input
-                        id="paymentDay2"
-                        type="number"
-                        min="1"
-                        max="28"
-                        value={formData.paymentDay2}
-                        onChange={(e) => setFormData({ ...formData, paymentDay2: e.target.value })}
-                        placeholder="30"
+                      <Label htmlFor="notes">Заметки</Label>
+                      <Textarea
+                        id="notes"
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        placeholder="Дополнительные заметки о сотруднике..."
+                        rows={3}
                       />
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-medium mb-3">Баланс</h4>
-                <div className="space-y-2">
-                  <Label htmlFor="currentBalance">Текущий баланс к выплате ($)</Label>
-                  <Input
-                    id="currentBalance"
-                    type="number"
-                    step="0.01"
-                    value={formData.currentBalance}
-                    onChange={(e) => setFormData({ ...formData, currentBalance: e.target.value })}
-                    placeholder="0.00"
-                  />
-                  <p className="text-xs text-slate-500">
-                    Ручное редактирование баланса сотрудника
-                  </p>
+                <div className="border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium mb-3">Настройки выплат</h4>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentType">Тип выплаты</Label>
+                    <Select
+                      value={formData.paymentType}
+                      onValueChange={(v) => setFormData({ ...formData, paymentType: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(paymentTypeLabels).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.paymentType === "buffer" && (
+                    <div className="space-y-2 mt-3">
+                      <Label htmlFor="bufferDays">Дней буфера</Label>
+                      <Input
+                        id="bufferDays"
+                        type="number"
+                        value={formData.bufferDays}
+                        onChange={(e) => setFormData({ ...formData, bufferDays: e.target.value })}
+                        placeholder="7"
+                      />
+                    </div>
+                  )}
+
+                  {formData.paymentType === "twice_monthly" && (
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentDay1">День 1 (1-28)</Label>
+                        <Input
+                          id="paymentDay1"
+                          type="number"
+                          min="1"
+                          max="28"
+                          value={formData.paymentDay1}
+                          onChange={(e) => setFormData({ ...formData, paymentDay1: e.target.value })}
+                          placeholder="15"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="paymentDay2">День 2 (1-28)</Label>
+                        <Input
+                          id="paymentDay2"
+                          type="number"
+                          min="1"
+                          max="28"
+                          value={formData.paymentDay2}
+                          onChange={(e) => setFormData({ ...formData, paymentDay2: e.target.value })}
+                          placeholder="30"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium mb-3">Баланс</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="currentBalance">Текущий баланс к выплате ($)</Label>
+                    <Input
+                      id="currentBalance"
+                      type="number"
+                      step="0.01"
+                      value={formData.currentBalance}
+                      onChange={(e) => setFormData({ ...formData, currentBalance: e.target.value })}
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-slate-500">
+                      Ручное редактирование баланса сотрудника
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="mt-4 pt-4 border-t">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Отмена
               </Button>
@@ -1358,7 +1069,7 @@ export default function PayrollPage() {
                           <TableCell className="font-medium">{emp.employeeName}</TableCell>
                           <TableCell>
                             <Badge variant="secondary">
-                              {roleLabels[emp.role] || emp.role}
+                              {getRoleLabel(emp.role)}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -1501,7 +1212,7 @@ export default function PayrollPage() {
                           <div>
                             <p className="font-medium">{payment.employee?.name || "—"}</p>
                             <p className="text-xs text-slate-500">
-                              {roleLabels[payment.employee?.role] || payment.employee?.role || "—"}
+                              {getRoleLabel(payment.employee?.role || "")}
                             </p>
                           </div>
                         </TableCell>
@@ -1530,36 +1241,36 @@ export default function PayrollPage() {
                         </TableCell>
                         <TableCell>
                           {payment.status === "paid" ? (
-                            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                            <Badge className="bg-emerald-100 text-emerald-700">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Выплачено
                             </Badge>
                           ) : (
-                            <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                            <Badge className="bg-orange-100 text-orange-700">
                               <Clock className="h-3 w-3 mr-1" />
                               Ожидает
                             </Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex gap-1 justify-end">
                             {payment.status === "pending" && (
                               <Button
-                                variant="outline"
                                 size="sm"
+                                variant="ghost"
+                                className="text-emerald-600"
                                 onClick={() => handleMarkAsPaid(payment.id)}
-                                className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
                               >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Выплатить
+                                <CheckCircle className="h-4 w-4" />
                               </Button>
                             )}
                             <Button
+                              size="sm"
                               variant="ghost"
-                              size="icon"
+                              className="text-red-600"
                               onClick={() => handleDeletePayment(payment.id)}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -1570,76 +1281,23 @@ export default function PayrollPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Payment notes info */}
-          {payments.some(p => p.notes) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Примечания к выплатам</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {payments.filter(p => p.notes).slice(0, 5).map((payment) => (
-                    <div key={payment.id} className="p-3 bg-slate-50 rounded-lg">
-                      <div className="flex justify-between text-sm text-slate-500 mb-1">
-                        <span>{payment.employee?.name}</span>
-                        <span>{new Date(payment.paymentDate).toLocaleDateString("ru-RU")}</span>
-                      </div>
-                      <p className="text-sm">{payment.notes}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         {/* Payment Periods */}
         <TabsContent value="periods" className="space-y-6">
-          {/* Summary Cards */}
-          {payrollSummary && (
+          {payrollSummary ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-slate-600">
-                      Всего ФОТ
+                      Буферный период
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${payrollSummary.totals.totalPayroll.toFixed(2)}
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">За всё время</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-emerald-200">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-emerald-600">
-                      К выплате сейчас
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-emerald-600">
-                      ${payrollSummary.totals.payableNow.toFixed(2)}
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">Готово к выплате</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-amber-200">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-amber-600">
-                      В буфере
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-amber-600">
-                      ${payrollSummary.totals.bufferAmount.toFixed(2)}
-                    </div>
+                    <div className="text-2xl font-bold">{payrollSummary.bufferWeeks} нед.</div>
                     <p className="text-xs text-slate-500 mt-1">
-                      Буфер {payrollSummary.bufferWeeks} нед.
+                      Минимальный буфер для выплат
                     </p>
                   </CardContent>
                 </Card>
@@ -1647,115 +1305,95 @@ export default function PayrollPage() {
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-slate-600">
-                      Выплачено
+                      Доступно к выплате
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-slate-400">
-                      ${payrollSummary.totals.paidPayroll.toFixed(2)}
+                    <div className="text-2xl font-bold text-emerald-500">
+                      ${payrollSummary.totals.payableNow.toFixed(2)}
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Уже выплачено</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      После буферного периода
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-600">
+                      В буфере
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-500">
+                      ${payrollSummary.totals.bufferAmount.toFixed(2)}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Ожидает истечения буфера
+                    </p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* By Country */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>ФОТ по странам</CardTitle>
-                  <CardDescription>
-                    Распределение фонда оплаты труда по странам
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {payrollSummary.countries.map((country) => (
-                      <div
-                        key={country.code}
-                        className="flex items-center justify-between p-4 rounded-lg bg-slate-50"
-                      >
-                        <div>
-                          <p className="font-medium">{country.name}</p>
-                          <p className="text-sm text-slate-500">Код: {country.code}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-slate-500">
-                            Всего: ${country.totalPayroll.toFixed(2)}
-                          </p>
-                          {country.unpaidPayroll > 0 && (
-                            <p className="font-bold text-orange-500">
-                              К выплате: ${country.unpaidPayroll.toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Weekly Breakdown */}
+              {/* Weekly breakdown */}
               <Card>
                 <CardHeader>
                   <CardTitle>Недельные периоды</CardTitle>
                   <CardDescription>
-                    ФОТ по неделям (буфер: {payrollSummary.bufferWeeks} нед., дата отсечки: {payrollSummary.cutoffDate})
+                    Разбивка ФОТ по неделям с учётом буферного периода
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Неделя</TableHead>
+                        <TableHead>Период</TableHead>
                         <TableHead>Дней</TableHead>
                         <TableHead>Страны</TableHead>
-                        <TableHead className="text-right">Всего ФОТ</TableHead>
-                        <TableHead className="text-right">К выплате</TableHead>
-                        <TableHead className="text-right">Статус</TableHead>
+                        <TableHead className="text-right">Всего</TableHead>
+                        <TableHead className="text-right">Выплачено</TableHead>
+                        <TableHead className="text-right">Осталось</TableHead>
+                        <TableHead>Статус</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {payrollSummary.weeks.map((week) => (
-                        <TableRow key={week.weekStart}>
+                      {payrollSummary.weeks.map((week, idx) => (
+                        <TableRow key={idx}>
                           <TableCell className="font-medium">
-                            {new Date(week.weekStart).toLocaleDateString("ru-RU", {
-                              day: "numeric",
-                              month: "short",
-                            })} — {new Date(week.weekEnd).toLocaleDateString("ru-RU", {
-                              day: "numeric",
-                              month: "short",
-                            })}
+                            {week.weekStart} — {week.weekEnd}
                           </TableCell>
                           <TableCell>{week.days}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1">
-                              {week.countries.map((c) => (
+                            <div className="flex gap-1 flex-wrap">
+                              {week.countries.slice(0, 3).map((c) => (
                                 <Badge key={c} variant="outline" className="text-xs">
                                   {c}
                                 </Badge>
                               ))}
+                              {week.countries.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{week.countries.length - 3}
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right font-medium">
                             ${week.totalPayroll.toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
-                            {week.unpaidPayroll > 0 ? (
-                              <span className={week.isPayable ? "text-emerald-600 font-medium" : "text-amber-500"}>
-                                ${week.unpaidPayroll.toFixed(2)}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">$0.00</span>
-                            )}
+                            ${week.paidPayroll.toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
+                            ${week.unpaidPayroll.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
                             {week.isPayable ? (
-                              <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                              <Badge className="bg-emerald-100 text-emerald-700">
                                 <CheckCircle className="h-3 w-3 mr-1" />
-                                Готово
+                                К выплате
                               </Badge>
                             ) : (
-                              <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                              <Badge className="bg-slate-100 text-slate-600">
                                 <Clock className="h-3 w-3 mr-1" />
                                 Буфер
                               </Badge>
@@ -1768,214 +1406,191 @@ export default function PayrollPage() {
                 </CardContent>
               </Card>
             </>
-          )}
-
-          {!payrollSummary && (
+          ) : (
             <Card>
               <CardContent className="py-12 text-center text-slate-500">
-                <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Нет данных о ФОТ</p>
-                <p className="text-sm">Добавьте дневные метрики с данными о ФОТ</p>
+                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Нет данных о периодах выплат</p>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        {/* Employees */}
-        <TabsContent value="employees" className="space-y-6">
+        {/* Employees List */}
+        <TabsContent value="employees">
           <Card>
             <CardHeader>
               <CardTitle>Список сотрудников</CardTitle>
-              <CardDescription>Все сотрудники команды</CardDescription>
+              <CardDescription>
+                Все сотрудники и их текущие балансы
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {employees.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Нет сотрудников</p>
-                  <p className="text-sm">Добавьте первого сотрудника</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Имя</TableHead>
-                      <TableHead>Роль</TableHead>
-                      <TableHead>Страна</TableHead>
-                      <TableHead className="text-right">Фикс. ставка</TableHead>
-                      <TableHead className="text-right">% ставка</TableHead>
-                      <TableHead className="text-right">К выплате</TableHead>
-                      <TableHead className="text-right">Действия</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {employees.map((employee) => (
-                      <TableRow key={employee.id}>
-                        <TableCell className="font-medium">{employee.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {roleLabels[employee.role] || employee.role}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Имя</TableHead>
+                    <TableHead>Роль</TableHead>
+                    <TableHead>Страна</TableHead>
+                    <TableHead>Тип выплат</TableHead>
+                    <TableHead className="text-right">К выплате</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead className="text-right">Действия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.map((emp) => (
+                    <TableRow key={emp.id}>
+                      <TableCell className="font-medium">{emp.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {getRoleLabel(emp.role)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{emp.country?.name || "Все"}</TableCell>
+                      <TableCell>
+                        <span className="text-sm text-slate-600">
+                          {paymentTypeLabels[emp.paymentType] || emp.paymentType}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        ${(emp.unpaidBalance || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        {emp.isActive ? (
+                          <Badge className="bg-emerald-100 text-emerald-700">
+                            Активен
                           </Badge>
-                        </TableCell>
-                        <TableCell>{employee.country?.name || "Все"}</TableCell>
-                        <TableCell className="text-right">
-                          {employee.fixedRate ? `$${employee.fixedRate.toFixed(2)}` : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {employee.percentRate ? `${employee.percentRate}%` : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {employee.unpaidBalance > 0 ? (
-                            <span className="text-orange-500 font-medium">
-                              ${employee.unpaidBalance.toFixed(2)}
-                            </span>
-                          ) : (
-                            <span className="text-emerald-600">$0.00</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditDialog(employee)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(employee.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                        ) : (
+                          <Badge variant="secondary">
+                            Неактивен
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openEditDialog(emp)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-600"
+                            onClick={() => handleDelete(emp.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* By Role */}
-        <TabsContent value="byRole" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Сотрудники по ролям</CardTitle>
-              <CardDescription>
-                Количество сотрудников и суммы к выплате по ролям
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(roleLabels).map(([role, label]) => {
-                  const data = byRole[role] || { count: 0, unpaid: 0 };
-                  return (
-                    <div
-                      key={role}
-                      className="flex items-center justify-between p-4 rounded-lg bg-slate-50"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center">
-                          <Users className="h-5 w-5 text-slate-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{label}</p>
-                          <p className="text-sm text-slate-500">
-                            {roleDescriptions[role]}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-500">{data.count} сотр.</p>
-                        {data.unpaid > 0 && (
-                          <p className="font-bold text-orange-500">
-                            ${data.unpaid.toFixed(2)} к выплате
-                          </p>
-                        )}
-                      </div>
+        <TabsContent value="byRole">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(byRole).map(([role, data]) => (
+              <Card key={role}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-medium">
+                    {getRoleLabel(role)}
+                  </CardTitle>
+                  <CardDescription>
+                    {roleDescriptions[role] || "Специальная роль"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <div className="text-2xl font-bold">{data.count}</div>
+                      <p className="text-xs text-slate-500">сотрудников</p>
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="text-right">
+                      <div className="text-lg font-medium text-orange-500">
+                        ${data.unpaid.toFixed(2)}
+                      </div>
+                      <p className="text-xs text-slate-500">к выплате</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
-        {/* Rates */}
-        <TabsContent value="rates" className="space-y-6">
+        {/* Rates and Conditions */}
+        <TabsContent value="rates">
           <Card>
             <CardHeader>
-              <CardTitle>Условия оплаты</CardTitle>
+              <CardTitle>Ставки и условия оплаты</CardTitle>
               <CardDescription>
-                Стандартные ставки и формулы расчёта ФОТ
+                Индивидуальные настройки оплаты для каждого сотрудника
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                <div className="p-4 rounded-lg border">
-                  <h4 className="font-medium mb-2">Баер</h4>
-                  <p className="text-sm text-slate-600">
-                    12% от общего спенда за день. Автоматически рассчитывается из данных метрик.
-                  </p>
-                  <code className="mt-2 block text-xs bg-slate-100 p-2 rounded">
-                    ФОТ = totalSpend × 0.12
-                  </code>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h4 className="font-medium mb-2">Обработчик ФД</h4>
-                  <p className="text-sm text-slate-600">
-                    По тирам: менее 5 ФД = $3/шт, 5-9 ФД = $4/шт + $15 бонус, 10+ ФД = $5/шт + $15 бонус.
-                    Умножается на коэффициент 1.2.
-                  </p>
-                  <code className="mt-2 block text-xs bg-slate-100 p-2 rounded">
-                    ФОТ = (fdCount × rate + bonus) × 1.2
-                  </code>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h4 className="font-medium mb-2">Обработчик РД</h4>
-                  <p className="text-sm text-slate-600">
-                    4% от суммы РД в USDT.
-                  </p>
-                  <code className="mt-2 block text-xs bg-slate-100 p-2 rounded">
-                    ФОТ = rdSumUsdt × 0.04
-                  </code>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h4 className="font-medium mb-2">Контент</h4>
-                  <p className="text-sm text-slate-600">
-                    Фиксированная ставка за день работы. Указывается вручную или из Excel ($10/день типично).
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h4 className="font-medium mb-2">Хед дизайнер</h4>
-                  <p className="text-sm text-slate-600">
-                    Фиксированная ставка $10 за день.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg border">
-                  <h4 className="font-medium mb-2">Дизайнер</h4>
-                  <p className="text-sm text-slate-600">
-                    Процент от суммы или фиксированная ставка. Указывается вручную.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg border bg-amber-50 border-amber-200">
-                  <h4 className="font-medium mb-2 text-amber-800">Периоды выплат</h4>
-                  <p className="text-sm text-amber-700">
-                    Рекомендуемый буфер: 1 неделя. Выплата производится за работу прошлых недель.
-                    Например, если сотрудник работает 3 недели, выплата идёт за первые две.
-                  </p>
-                </div>
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Сотрудник</TableHead>
+                    <TableHead>Роль</TableHead>
+                    <TableHead>Фикс. ставка</TableHead>
+                    <TableHead>% ставка</TableHead>
+                    <TableHead>Процент от</TableHead>
+                    <TableHead>Бонус</TableHead>
+                    <TableHead>Тип выплат</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.map((emp) => (
+                    <TableRow key={emp.id}>
+                      <TableCell className="font-medium">{emp.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {getRoleLabel(emp.role)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {emp.fixedRate ? `$${emp.fixedRate}` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {emp.percentRate ? `${emp.percentRate}%` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {emp.percentageBase ? (
+                          <span className="text-sm">
+                            {percentageBaseLabels[emp.percentageBase] || emp.percentageBase}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {emp.fdBonus && emp.fdBonusThreshold ? (
+                          <span className="text-sm">
+                            ${emp.fdBonus} (при {emp.fdBonusThreshold}+)
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-slate-600">
+                          {paymentTypeLabels[emp.paymentType] || emp.paymentType}
+                          {emp.paymentType === "buffer" && ` (${emp.bufferDays}д)`}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>

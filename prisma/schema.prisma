@@ -160,8 +160,9 @@ model Employee {
   country     Country? @relation(fields: [countryId], references: [id])
 
   // Ставки
-  fixedRate   Float?   // Фиксированная ставка (например, 10$ для хед диза)
-  percentRate Float?   // Процентная ставка (например, 12% для баера)
+  fixedRate      Float?   // Фиксированная ставка (например, 10$ для хед диза)
+  percentRate    Float?   // Процентная ставка (например, 12% для баера)
+  percentageBase String?  // spend, net_profit, gross_revenue, fd_sum, rd_sum, all_payments
 
   // === Buyer commission tiers ===
   buyerTier1Threshold   Float?   // Spend threshold for tier 1
