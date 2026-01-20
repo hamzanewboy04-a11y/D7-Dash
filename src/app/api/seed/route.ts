@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import prisma, { ensureDatabaseTables } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
 // POST /api/seed - Initialize database with default data
 export async function POST() {
   try {
-    // Ensure tables exist before seeding (uses better-sqlite3 directly)
-    ensureDatabaseTables();
     // Create countries
     const countries = [
       { name: "Peru", code: "PE", currency: "SOL" },
@@ -134,9 +132,6 @@ export async function POST() {
 // GET /api/seed - Check if database is seeded
 export async function GET() {
   try {
-    // Ensure tables exist before checking
-    ensureDatabaseTables();
-
     const countriesCount = await prisma.country.count();
     const adAccountsCount = await prisma.adAccount.count();
     const settingsCount = await prisma.settings.count();
