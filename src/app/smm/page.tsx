@@ -48,11 +48,21 @@ import {
 } from "lucide-react";
 
 const DATE_RANGE_OPTIONS = [
+  { value: "1", label: "Сегодня" },
   { value: "7", label: "Последняя неделя" },
   { value: "30", label: "Последний месяц" },
   { value: "90", label: "Последние 3 месяца" },
   { value: "all", label: "Всё время" },
   { value: "custom", label: "Свой диапазон" },
+];
+
+const PROJECT_TABS = [
+  { code: "all", name: "Все" },
+  { code: "PE", name: "Перу" },
+  { code: "IT_F", name: "Италия (Ж)" },
+  { code: "IT_M", name: "Италия (М)" },
+  { code: "AR", name: "Аргентина" },
+  { code: "CL", name: "Чили" },
 ];
 
 interface Country {
@@ -65,15 +75,23 @@ interface SmmMetric {
   id: string;
   date: string;
   postsPlan: number;
+  postsPlanDaily: number;
+  postsFactDaily: number;
   postsTotal: number;
   postsRemaining: number;
   storiesPlan: number;
+  storiesPlanDaily: number;
+  storiesFactDaily: number;
   storiesTotal: number;
   storiesRemaining: number;
   miniReviewsPlan: number;
+  miniReviewsPlanDaily: number;
+  miniReviewsFactDaily: number;
   miniReviewsTotal: number;
   miniReviewsRemaining: number;
   bigReviewsPlan: number;
+  bigReviewsPlanDaily: number;
+  bigReviewsFactDaily: number;
   bigReviewsTotal: number;
   bigReviewsRemaining: number;
   completionRate: number;
@@ -157,6 +175,7 @@ export default function SmmPage() {
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<string>("all");
+  const [selectedProjectTab, setSelectedProjectTab] = useState<string>("all");
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMetric, setEditingMetric] = useState<SmmMetric | null>(null);
@@ -195,7 +214,12 @@ export default function SmmPage() {
       const params = new URLSearchParams();
       if (dateParams.startDate) params.set("startDate", dateParams.startDate);
       if (dateParams.endDate) params.set("endDate", dateParams.endDate);
-      if (selectedCountry !== "all") params.set("countryId", selectedCountry);
+      
+      const effectiveCountryId = selectedProjectTab !== "all" 
+        ? countries.find(c => c.code === selectedProjectTab)?.id 
+        : (selectedCountry !== "all" ? selectedCountry : undefined);
+      
+      if (effectiveCountryId) params.set("countryId", effectiveCountryId);
 
       const response = await fetch(`/api/smm?${params.toString()}`);
       if (response.ok) {
@@ -229,10 +253,10 @@ export default function SmmPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
+    if (user && countries.length > 0) {
       fetchData();
     }
-  }, [user, dateRange, customStartDate, customEndDate, selectedCountry]);
+  }, [user, dateRange, customStartDate, customEndDate, selectedCountry, selectedProjectTab, countries]);
 
   const handleOpenDialog = (metric?: SmmMetric) => {
     if (metric) {
@@ -426,6 +450,28 @@ export default function SmmPage() {
             </Button>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 bg-slate-100 p-2 rounded-lg">
+        {PROJECT_TABS.map((tab) => (
+          <Button
+            key={tab.code}
+            variant={selectedProjectTab === tab.code ? "default" : "ghost"}
+            className={
+              selectedProjectTab === tab.code
+                ? "bg-[#1e40af] hover:bg-[#3b82f6] text-white"
+                : "hover:bg-slate-200 text-slate-700"
+            }
+            onClick={() => {
+              setSelectedProjectTab(tab.code);
+              if (tab.code !== "all") {
+                setSelectedCountry("all");
+              }
+            }}
+          >
+            {tab.name}
+          </Button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -637,18 +683,18 @@ export default function SmmPage() {
                   <TableRow className="bg-slate-50/50">
                     <TableHead></TableHead>
                     <TableHead></TableHead>
-                    <TableHead className="text-center text-xs">План</TableHead>
-                    <TableHead className="text-center text-xs">Факт</TableHead>
-                    <TableHead className="text-center text-xs">Ост.</TableHead>
-                    <TableHead className="text-center text-xs">План</TableHead>
-                    <TableHead className="text-center text-xs">Факт</TableHead>
-                    <TableHead className="text-center text-xs">Ост.</TableHead>
-                    <TableHead className="text-center text-xs">План</TableHead>
-                    <TableHead className="text-center text-xs">Факт</TableHead>
-                    <TableHead className="text-center text-xs">Ост.</TableHead>
-                    <TableHead className="text-center text-xs">План</TableHead>
-                    <TableHead className="text-center text-xs">Факт</TableHead>
-                    <TableHead className="text-center text-xs">Ост.</TableHead>
+                    <TableHead className="text-center text-xs">План/День</TableHead>
+                    <TableHead className="text-center text-xs">Факт/День</TableHead>
+                    <TableHead className="text-center text-xs">Остаток</TableHead>
+                    <TableHead className="text-center text-xs">План/День</TableHead>
+                    <TableHead className="text-center text-xs">Факт/День</TableHead>
+                    <TableHead className="text-center text-xs">Остаток</TableHead>
+                    <TableHead className="text-center text-xs">План/День</TableHead>
+                    <TableHead className="text-center text-xs">Факт/День</TableHead>
+                    <TableHead className="text-center text-xs">Остаток</TableHead>
+                    <TableHead className="text-center text-xs">План/День</TableHead>
+                    <TableHead className="text-center text-xs">Факт/День</TableHead>
+                    <TableHead className="text-center text-xs">Остаток</TableHead>
                     <TableHead></TableHead>
                     {canEdit && <TableHead></TableHead>}
                   </TableRow>
@@ -662,17 +708,17 @@ export default function SmmPage() {
                       <TableCell className="font-medium">
                         {getCountryNameRu(m.country.name)}
                       </TableCell>
-                      <TableCell className="text-center text-slate-600">{m.postsPlan}</TableCell>
-                      <TableCell className="text-center font-medium">{m.postsTotal}</TableCell>
+                      <TableCell className="text-center text-slate-600">{m.postsPlanDaily || m.postsPlan}</TableCell>
+                      <TableCell className="text-center font-medium">{m.postsFactDaily || m.postsTotal}</TableCell>
                       <TableCell className="text-center text-amber-600">{m.postsRemaining}</TableCell>
-                      <TableCell className="text-center text-slate-600">{m.storiesPlan}</TableCell>
-                      <TableCell className="text-center font-medium">{m.storiesTotal}</TableCell>
+                      <TableCell className="text-center text-slate-600">{m.storiesPlanDaily || m.storiesPlan}</TableCell>
+                      <TableCell className="text-center font-medium">{m.storiesFactDaily || m.storiesTotal}</TableCell>
                       <TableCell className="text-center text-amber-600">{m.storiesRemaining}</TableCell>
-                      <TableCell className="text-center text-slate-600">{m.miniReviewsPlan}</TableCell>
-                      <TableCell className="text-center font-medium">{m.miniReviewsTotal}</TableCell>
+                      <TableCell className="text-center text-slate-600">{m.miniReviewsPlanDaily || m.miniReviewsPlan}</TableCell>
+                      <TableCell className="text-center font-medium">{m.miniReviewsFactDaily || m.miniReviewsTotal}</TableCell>
                       <TableCell className="text-center text-amber-600">{m.miniReviewsRemaining}</TableCell>
-                      <TableCell className="text-center text-slate-600">{m.bigReviewsPlan}</TableCell>
-                      <TableCell className="text-center font-medium">{m.bigReviewsTotal}</TableCell>
+                      <TableCell className="text-center text-slate-600">{m.bigReviewsPlanDaily || m.bigReviewsPlan}</TableCell>
+                      <TableCell className="text-center font-medium">{m.bigReviewsFactDaily || m.bigReviewsTotal}</TableCell>
                       <TableCell className="text-center text-amber-600">{m.bigReviewsRemaining}</TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center gap-1">
