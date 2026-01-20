@@ -163,3 +163,35 @@ export async function cleanExpiredSessions(): Promise<void> {
     },
   });
 }
+
+import { NextResponse } from "next/server";
+
+export async function requireAuth(): Promise<NextResponse | null> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
+export async function requireEditorAuth(): Promise<NextResponse | null> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!canEdit(user)) {
+    return NextResponse.json({ error: "Forbidden: Editor role required" }, { status: 403 });
+  }
+  return null;
+}
+
+export async function requireAdminAuth(): Promise<NextResponse | null> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!isAdmin(user.role)) {
+    return NextResponse.json({ error: "Forbidden: Admin role required" }, { status: 403 });
+  }
+  return null;
+}
