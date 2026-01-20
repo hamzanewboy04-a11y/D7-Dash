@@ -72,19 +72,42 @@ interface ExpenseItem {
   [key: string]: string | number;
 }
 
+interface AdditionalExpense {
+  id: string;
+  date: string;
+  amount: number;
+  description: string;
+  category: string;
+  country: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
+}
+
 const COLORS = ["#6366f1", "#8b5cf6", "#f43f5e", "#f97316", "#eab308", "#64748b", "#10b981"];
 
 export default function FinancePage() {
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
+  const [additionalExpenses, setAdditionalExpenses] = useState<AdditionalExpense[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/metrics?limit=365&filterZeroSpend=false");
-      if (res.ok) {
-        const data = await res.json();
+      const [metricsRes, expensesRes] = await Promise.all([
+        fetch("/api/metrics?limit=365&filterZeroSpend=false"),
+        fetch("/api/expenses"),
+      ]);
+
+      if (metricsRes.ok) {
+        const data = await metricsRes.json();
         setMetrics(data);
+      }
+
+      if (expensesRes.ok) {
+        const expensesData = await expensesRes.json();
+        setAdditionalExpenses(expensesData);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -308,6 +331,7 @@ export default function FinancePage() {
           <TabsTrigger value="country">По странам</TabsTrigger>
           <TabsTrigger value="weekly">P&L по неделям</TabsTrigger>
           <TabsTrigger value="expenses">Структура расходов</TabsTrigger>
+          <TabsTrigger value="additional">Доп. расходы</TabsTrigger>
         </TabsList>
 
         {/* By Country */}
@@ -537,6 +561,133 @@ export default function FinancePage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Additional Expenses */}
+        <TabsContent value="additional" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Дополнительные расходы</CardTitle>
+              <p className="text-sm text-slate-500 mt-1">
+                Все доп. расходы за всё время ({additionalExpenses.length} записей, ${additionalExpenses.reduce((s, e) => s + e.amount, 0).toFixed(2)})
+              </p>
+            </CardHeader>
+            <CardContent>
+              {additionalExpenses.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <p>Нет дополнительных расходов</p>
+                  <p className="text-sm mt-2">Добавьте расходы через кнопку "Добавить расход" на главной странице</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Дата</TableHead>
+                      <TableHead>Описание</TableHead>
+                      <TableHead>Категория</TableHead>
+                      <TableHead>Страна</TableHead>
+                      <TableHead className="text-right">Сумма</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {additionalExpenses.map((expense) => (
+                      <TableRow key={expense.id}>
+                        <TableCell className="font-medium">
+                          {new Date(expense.date).toLocaleDateString("ru-RU", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell>{expense.description}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {expense.category === "payroll" && "ФОТ"}
+                            {expense.category === "commission" && "Комиссия"}
+                            {expense.category === "chatterfy" && "Chatterfy"}
+                            {expense.category === "tools" && "Инструменты"}
+                            {expense.category === "other" && "Другое"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {expense.country ? expense.country.name : "Все страны"}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-red-600">
+                          ${expense.amount.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Summary by Category */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Расходы по категориям</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {["payroll", "commission", "chatterfy", "tools", "other"].map((cat) => {
+                  const categoryExpenses = additionalExpenses.filter(e => e.category === cat);
+                  const total = categoryExpenses.reduce((s, e) => s + e.amount, 0);
+                  const categoryName = {
+                    payroll: "ФОТ",
+                    commission: "Комиссия",
+                    chatterfy: "Chatterfy",
+                    tools: "Инструменты",
+                    other: "Другое",
+                  }[cat];
+
+                  if (total === 0) return null;
+
+                  return (
+                    <div key={cat} className="flex items-center justify-between p-4 rounded-lg bg-slate-50">
+                      <div>
+                        <p className="font-medium">{categoryName}</p>
+                        <p className="text-sm text-slate-500">{categoryExpenses.length} записей</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-red-600">${total.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Summary by Country */}
+          {additionalExpenses.some(e => e.country) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Расходы по странам</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Array.from(new Set(additionalExpenses.map(e => e.country?.code).filter(Boolean))).map((code) => {
+                    const countryExpenses = additionalExpenses.filter(e => e.country?.code === code);
+                    const total = countryExpenses.reduce((s, e) => s + e.amount, 0);
+                    const countryName = countryExpenses[0]?.country?.name;
+
+                    return (
+                      <div key={code} className="flex items-center justify-between p-4 rounded-lg bg-slate-50">
+                        <div>
+                          <p className="font-medium">{countryName}</p>
+                          <p className="text-sm text-slate-500">{countryExpenses.length} расходов</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-red-600">${total.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
