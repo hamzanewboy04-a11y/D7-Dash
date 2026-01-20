@@ -100,17 +100,23 @@ async function importBuyerMetrics() {
 
     const buyerSections: BuyerSection[] = [];
     
-    for (let colIdx = 0; colIdx < (data[0]?.length || 0); colIdx++) {
-      const cellValue = String(data[0]?.[colIdx] || "").trim();
-      for (const { pattern, buyerName } of buyerPatterns) {
-        if (cellValue.includes(pattern)) {
-          buyerSections.push({
-            buyerName,
-            deskName: cellValue,
-            startCol: colIdx,
-            colMapping: {},
-          });
-          break;
+    for (let rowScan = 0; rowScan < Math.min(5, data.length); rowScan++) {
+      const scanRow = data[rowScan] || [];
+      for (let colIdx = 0; colIdx < scanRow.length; colIdx++) {
+        const cellValue = String(scanRow[colIdx] || "").trim();
+        for (const { pattern, buyerName } of buyerPatterns) {
+          if (cellValue.includes(pattern)) {
+            const alreadyExists = buyerSections.some(s => s.startCol === colIdx);
+            if (!alreadyExists) {
+              buyerSections.push({
+                buyerName,
+                deskName: cellValue,
+                startCol: colIdx,
+                colMapping: {},
+              });
+            }
+            break;
+          }
         }
       }
     }

@@ -262,9 +262,12 @@ export default function FinancePage() {
   const countryData = getCountryData();
   const expenseBreakdown = getExpenseBreakdown();
 
+  const buyerPayrollTotal = buyerSummary?.summary?.totalPayroll || 0;
   const totalRevenue = metrics.reduce((s, m) => s + (m.totalRevenueUsdt || 0), 0);
-  const totalExpenses = metrics.reduce((s, m) => s + (m.totalExpensesUsdt || 0), 0);
-  const totalProfit = metrics.reduce((s, m) => s + (m.netProfitMath || 0), 0);
+  const metricsExpenses = metrics.reduce((s, m) => s + (m.totalExpensesUsdt || 0), 0);
+  const totalExpenses = metricsExpenses + buyerPayrollTotal;
+  const metricsProfit = metrics.reduce((s, m) => s + (m.netProfitMath || 0), 0);
+  const totalProfit = metricsProfit - buyerPayrollTotal;
   const avgRoi = totalExpenses > 0 ? totalProfit / totalExpenses : 0;
 
   if (loading) {
