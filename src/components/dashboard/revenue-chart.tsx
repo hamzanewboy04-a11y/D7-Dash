@@ -60,7 +60,7 @@ export function RevenueChart({ data, title = "Revenue vs Expenses" }: RevenueCha
                 type="monotone"
                 dataKey="revenue"
                 name="Revenue"
-                stroke="#10b981"
+                stroke="#22c55e"
                 strokeWidth={2}
                 dot={false}
               />
@@ -68,7 +68,7 @@ export function RevenueChart({ data, title = "Revenue vs Expenses" }: RevenueCha
                 type="monotone"
                 dataKey="expenses"
                 name="Expenses"
-                stroke="#f43f5e"
+                stroke="#ef4444"
                 strokeWidth={2}
                 dot={false}
               />
@@ -76,7 +76,7 @@ export function RevenueChart({ data, title = "Revenue vs Expenses" }: RevenueCha
                 type="monotone"
                 dataKey="profit"
                 name="Profit"
-                stroke="#6366f1"
+                stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
               />

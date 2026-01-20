@@ -34,20 +34,20 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "flex flex-col h-screen bg-slate-900 text-white transition-all duration-300",
+        "flex flex-col h-screen bg-[#0f172a] text-white transition-all duration-300",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-[#1e293b]">
         {!collapsed && (
-          <span className="text-xl font-bold text-emerald-400">D7 Team</span>
+          <span className="text-xl font-bold text-[#60a5fa]">D7 Team</span>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="text-slate-400 hover:text-white hover:bg-slate-800"
+          className="text-slate-300 hover:text-white hover:bg-[#1e293b]"
         >
           {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </Button>
@@ -64,8 +64,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center px-3 py-2 rounded-lg transition-colors",
                 isActive
-                  ? "bg-emerald-600 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  ? "bg-[#3b82f6] text-white"
+                  : "text-slate-300 hover:text-white hover:bg-[#1e293b]"
               )}
             >
               <item.icon className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-3")} />
@@ -77,8 +77,8 @@ export function Sidebar() {
 
       {/* Footer */}
       {!collapsed && (
-        <div className="p-4 border-t border-slate-700">
-          <p className="text-xs text-slate-500">D7 Dashboard v1.0</p>
+        <div className="p-4 border-t border-[#1e293b]">
+          <p className="text-xs text-slate-400">D7 Dashboard v1.0</p>
         </div>
       )}
     </div>

@@ -20,7 +20,7 @@ export function MetricCard({
   change,
   changeLabel,
   icon: Icon,
-  iconColor = "text-emerald-500",
+  iconColor = "text-[#3b82f6]",
   className,
 }: MetricCardProps) {
   const isPositive = change !== undefined && change >= 0;
@@ -41,10 +41,10 @@ export function MetricCard({
             <TrendIcon
               className={cn(
                 "h-3 w-3 mr-1",
-                isPositive ? "text-emerald-500" : "text-red-500"
+                isPositive ? "text-[#22c55e]" : "text-[#ef4444]"
               )}
             />
-            <span className={isPositive ? "text-emerald-500" : "text-red-500"}>
+            <span className={isPositive ? "text-[#22c55e]" : "text-[#ef4444]"}>
               {isPositive ? "+" : ""}
               {change.toFixed(2)}%
             </span>

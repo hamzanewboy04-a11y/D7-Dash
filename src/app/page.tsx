@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { CountrySummary } from "@/components/dashboard/country-summary";
+import { MotivationalCard } from "@/components/dashboard/motivational-card";
+import { Achievements } from "@/components/dashboard/achievements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,6 +40,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
+  PartyPopper,
 } from "lucide-react";
 
 interface DashboardData {
@@ -370,6 +373,29 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Motivational Card */}
+      <MotivationalCard
+        profitableDaysStreak={chartData.filter((d) => d.profit > 0).length}
+        roi={totals.roi}
+        monthlyGoal={10000}
+        currentMonthlyProfit={totals.profit}
+        dailyGoal={500}
+        currentDailyProfit={yesterdayData?.profit || 0}
+      />
+
+      {/* Congratulations Message */}
+      {totals.profit > 0 && (
+        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-sky-50 border-2 border-blue-200 rounded-xl">
+          <PartyPopper className="h-8 w-8 text-blue-500" />
+          <div>
+            <p className="font-bold text-blue-700">Поздравляем! Вы в плюсе! 🎉</p>
+            <p className="text-sm text-blue-600">
+              Прибыль за период: ${totals.profit.toLocaleString()}. Продолжайте в том же духе!
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Yesterday Summary */}
       {yesterdayData && (
         <Card className="border-2 border-slate-200 bg-gradient-to-r from-slate-50 to-white">
@@ -477,6 +503,15 @@ export default function DashboardPage() {
           iconColor="text-amber-500"
         />
       </div>
+
+      {/* Achievements Section */}
+      <Achievements
+        totalProfit={totals.profit}
+        profitableDaysStreak={chartData.filter((d) => d.profit > 0).length}
+        roi={totals.roi}
+        activeCountries={data?.countries?.length || 5}
+        totalRevenue={totals.revenue}
+      />
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
