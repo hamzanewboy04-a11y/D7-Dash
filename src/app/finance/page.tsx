@@ -85,19 +85,36 @@ interface AdditionalExpense {
   } | null;
 }
 
+interface BuyerSummary {
+  summary: {
+    totalSpend: number;
+    totalPayroll: number;
+    totalFd: number;
+    totalSubscriptions: number;
+    avgConversionRate: number;
+  };
+  byBuyer: Array<{
+    employeeId: string;
+    buyerName: string;
+    _sum: { spend: number; payrollAmount: number; fdCount: number };
+  }>;
+}
+
 const COLORS = ["#6366f1", "#8b5cf6", "#f43f5e", "#f97316", "#eab308", "#64748b", "#10b981"];
 
 export default function FinancePage() {
   const [metrics, setMetrics] = useState<DailyMetric[]>([]);
   const [additionalExpenses, setAdditionalExpenses] = useState<AdditionalExpense[]>([]);
+  const [buyerSummary, setBuyerSummary] = useState<BuyerSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [metricsRes, expensesRes] = await Promise.all([
+      const [metricsRes, expensesRes, buyerRes] = await Promise.all([
         fetch("/api/metrics?limit=365&filterZeroSpend=false"),
         fetch("/api/expenses"),
+        fetch("/api/buying/summary"),
       ]);
 
       if (metricsRes.ok) {
@@ -108,6 +125,11 @@ export default function FinancePage() {
       if (expensesRes.ok) {
         const expensesData = await expensesRes.json();
         setAdditionalExpenses(expensesData);
+      }
+
+      if (buyerRes.ok) {
+        const buyerData = await buyerRes.json();
+        setBuyerSummary(buyerData);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -223,10 +245,13 @@ export default function FinancePage() {
       totalOther += m.additionalExpenses || 0;
     }
 
+    const buyerPayroll = buyerSummary?.summary?.totalPayroll || 0;
+
     return [
       { name: "Рекламный спенд", value: Math.round(totalSpend * 100) / 100, color: "#6366f1" },
       { name: "Комиссия агентства", value: Math.round(totalAgencyFee * 100) / 100, color: "#8b5cf6" },
-      { name: "ФОТ", value: Math.round(totalPayroll * 100) / 100, color: "#f43f5e" },
+      { name: "ФОТ (общий)", value: Math.round(totalPayroll * 100) / 100, color: "#f43f5e" },
+      { name: "ФОТ Баеров", value: Math.round(buyerPayroll * 100) / 100, color: "#ec4899" },
       { name: "Комиссия приёмки", value: Math.round(totalCommission * 100) / 100, color: "#f97316" },
       { name: "Chatterfy", value: Math.round(totalChatterfy * 100) / 100, color: "#eab308" },
       { name: "Другое", value: Math.round(totalOther * 100) / 100, color: "#64748b" },

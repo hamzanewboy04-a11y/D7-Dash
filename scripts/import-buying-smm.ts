@@ -52,6 +52,13 @@ async function getOrCreateEmployee(name: string, role: string, countryId?: strin
   return employee;
 }
 
+interface BuyerSection {
+  buyerName: string;
+  deskName: string;
+  startCol: number;
+  colMapping: Record<string, number>;
+}
+
 async function importBuyerMetrics() {
   console.log("\n=== Importing Buyer Metrics ===\n");
 
@@ -67,12 +74,12 @@ async function importBuyerMetrics() {
     "Италия": { name: "Италия", code: "IT" },
   };
 
-  const buyerMappings: Record<string, string> = {
-    "Corie": "Corie",
-    "Desk3 - Corie": "Corie",
-    "Cabrera": "Cabrera",
-    "Cabrera (итальянец)": "Cabrera",
-  };
+  const buyerPatterns: Array<{ pattern: string; buyerName: string }> = [
+    { pattern: "Corie", buyerName: "Corie" },
+    { pattern: "Desk3 - Corie", buyerName: "Corie" },
+    { pattern: "Cabrera", buyerName: "Cabrera" },
+    { pattern: "Moms manager", buyerName: "Cabrera" },
+  ];
 
   let totalImported = 0;
 
@@ -87,115 +94,124 @@ async function importBuyerMetrics() {
 
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as unknown[][];
+    if (data.length < 3) continue;
 
     const country = await getOrCreateCountry(countryInfo.name, countryInfo.code);
 
-    let currentBuyer: string | null = null;
-    let currentDeskName: string | null = null;
-    let currentPlatform: string | null = null;
-    let headerRowIndex = -1;
-    let colMapping: Record<string, number> = {};
-
-    for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
-      const row = data[rowIdx];
-      if (!row || row.length === 0) continue;
-
-      const firstCell = String(row[0] || "").trim();
-
-      for (const [pattern, buyerName] of Object.entries(buyerMappings)) {
-        if (firstCell.includes(pattern) || firstCell === pattern) {
-          currentBuyer = buyerName;
-          currentDeskName = firstCell;
+    const buyerSections: BuyerSection[] = [];
+    
+    for (let colIdx = 0; colIdx < (data[0]?.length || 0); colIdx++) {
+      const cellValue = String(data[0]?.[colIdx] || "").trim();
+      for (const { pattern, buyerName } of buyerPatterns) {
+        if (cellValue.includes(pattern)) {
+          buyerSections.push({
+            buyerName,
+            deskName: cellValue,
+            startCol: colIdx,
+            colMapping: {},
+          });
           break;
         }
       }
+    }
 
-      if (firstCell.toLowerCase().includes("crossgif") || firstCell.toLowerCase().includes("fbm")) {
-        currentPlatform = firstCell;
-        continue;
+    const headerRowIdx = data.findIndex(row => 
+      row.some(cell => String(cell).trim() === "Дата")
+    );
+    if (headerRowIdx < 0) continue;
+
+    const headerRow = data[headerRowIdx];
+    
+    for (const section of buyerSections) {
+      const dateCol = headerRow.findIndex((cell, idx) => 
+        idx >= section.startCol && String(cell).trim() === "Дата"
+      );
+      if (dateCol < 0) continue;
+      
+      section.colMapping.date = dateCol;
+      
+      for (let i = dateCol + 1; i < (headerRow.length); i++) {
+        const header = String(headerRow[i]).trim();
+        if (header === "Дата" && i !== dateCol) break;
+        
+        if (header.includes("спенд") && header.includes("вручную")) section.colMapping.spendManual = i;
+        else if (header === "Общий спенд" || (header.includes("спенд") && !header.includes("вручную"))) {
+          if (!section.colMapping.spend) section.colMapping.spend = i;
+        }
+        if (header === "Подписки") section.colMapping.subscriptions = i;
+        if (header === "Диалоги") section.colMapping.dialogs = i;
+        if (header === "ФД") section.colMapping.fd = i;
+        if (header === "ЗП") section.colMapping.payroll = i;
       }
+    }
 
-      if (firstCell === "Дата") {
-        headerRowIndex = rowIdx;
-        colMapping = {};
-        row.forEach((cell, idx) => {
-          const header = String(cell).trim();
-          if (header === "Дата") colMapping.date = idx;
-          if (header.includes("спенд") && header.includes("вручную")) colMapping.spendManual = idx;
-          if (header === "Общий спенд" || (header.includes("спенд") && !header.includes("вручную"))) {
-            if (!colMapping.spend) colMapping.spend = idx;
-          }
-          if (header === "Подписки") colMapping.subscriptions = idx;
-          if (header === "Диалоги") colMapping.dialogs = idx;
-          if (header === "ФД") colMapping.fd = idx;
-          if (header === "ЗП") colMapping.payroll = idx;
-        });
-        continue;
-      }
+    for (const section of buyerSections) {
+      if (!section.colMapping.date) continue;
 
-      if (!currentBuyer || headerRowIndex < 0 || !colMapping.date) continue;
+      const employee = await getOrCreateEmployee(section.buyerName, "buyer", country.id);
+      
+      for (let rowIdx = headerRowIdx + 1; rowIdx < data.length; rowIdx++) {
+        const row = data[rowIdx];
+        const dateVal = row[section.colMapping.date];
+        if (typeof dateVal !== "number" || dateVal < 40000 || dateVal > 50000) continue;
 
-      const dateVal = row[colMapping.date];
-      if (typeof dateVal !== "number" || dateVal < 40000 || dateVal > 50000) continue;
+        const date = excelDateToJSDate(dateVal);
+        const spendManual = typeof row[section.colMapping.spendManual] === "number" ? row[section.colMapping.spendManual] as number : null;
+        const spend = typeof row[section.colMapping.spend] === "number" ? row[section.colMapping.spend] as number : (spendManual || 0);
+        const subscriptions = typeof row[section.colMapping.subscriptions] === "number" ? Math.round(row[section.colMapping.subscriptions] as number) : 0;
+        const dialogs = typeof row[section.colMapping.dialogs] === "number" ? Math.round(row[section.colMapping.dialogs] as number) : 0;
+        const fdCount = typeof row[section.colMapping.fd] === "number" ? Math.round(row[section.colMapping.fd] as number) : 0;
 
-      const date = excelDateToJSDate(dateVal);
-      const spendManual = typeof row[colMapping.spendManual] === "number" ? row[colMapping.spendManual] as number : null;
-      const spend = typeof row[colMapping.spend] === "number" ? row[colMapping.spend] as number : (spendManual || 0);
-      const subscriptions = typeof row[colMapping.subscriptions] === "number" ? Math.round(row[colMapping.subscriptions] as number) : 0;
-      const dialogs = typeof row[colMapping.dialogs] === "number" ? Math.round(row[colMapping.dialogs] as number) : 0;
-      const fdCount = typeof row[colMapping.fd] === "number" ? Math.round(row[colMapping.fd] as number) : 0;
+        if (spend === 0 && subscriptions === 0 && dialogs === 0 && fdCount === 0) continue;
 
-      if (spend === 0 && subscriptions === 0 && dialogs === 0 && fdCount === 0) continue;
+        const costPerSubscription = subscriptions > 0 ? spend / subscriptions : 0;
+        const costPerFd = fdCount > 0 ? spend / fdCount : 0;
+        const conversionRate = subscriptions > 0 ? (dialogs / subscriptions) * 100 : 0;
+        const payrollAmount = spend * 0.10;
 
-      const employee = await getOrCreateEmployee(currentBuyer, "buyer", country.id);
-
-      const costPerSubscription = subscriptions > 0 ? spend / subscriptions : 0;
-      const costPerFd = fdCount > 0 ? spend / fdCount : 0;
-      const conversionRate = subscriptions > 0 ? (dialogs / subscriptions) * 100 : 0;
-      const payrollAmount = spend * 0.10;
-
-      try {
-        await prisma.buyerMetrics.upsert({
-          where: {
-            date_employeeId_countryId: {
+        try {
+          await prisma.buyerMetrics.upsert({
+            where: {
+              date_employeeId_countryId: {
+                date,
+                employeeId: employee.id,
+                countryId: country.id,
+              },
+            },
+            update: {
+              spendManual,
+              spend,
+              subscriptions,
+              dialogs,
+              fdCount,
+              costPerSubscription,
+              costPerFd,
+              conversionRate,
+              payrollAmount,
+              deskName: section.deskName,
+              platformName: null,
+            },
+            create: {
               date,
               employeeId: employee.id,
               countryId: country.id,
+              spendManual,
+              spend,
+              subscriptions,
+              dialogs,
+              fdCount,
+              costPerSubscription,
+              costPerFd,
+              conversionRate,
+              payrollAmount,
+              deskName: section.deskName,
+              platformName: null,
             },
-          },
-          update: {
-            spendManual,
-            spend,
-            subscriptions,
-            dialogs,
-            fdCount,
-            costPerSubscription,
-            costPerFd,
-            conversionRate,
-            payrollAmount,
-            deskName: currentDeskName,
-            platformName: currentPlatform,
-          },
-          create: {
-            date,
-            employeeId: employee.id,
-            countryId: country.id,
-            spendManual,
-            spend,
-            subscriptions,
-            dialogs,
-            fdCount,
-            costPerSubscription,
-            costPerFd,
-            conversionRate,
-            payrollAmount,
-            deskName: currentDeskName,
-            platformName: currentPlatform,
-          },
-        });
-        totalImported++;
-      } catch (error) {
-        console.error(`Error importing row:`, error);
+          });
+          totalImported++;
+        } catch (error) {
+          console.error(`Error importing row:`, error);
+        }
       }
     }
   }
