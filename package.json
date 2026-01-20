@@ -9,10 +9,12 @@
     "lint": "eslint",
     "db:push": "npx prisma db push",
     "db:import": "npx tsx scripts/import-excel.ts",
+    "db:backup": "npx tsx scripts/backup-to-turso.ts",
     "setup": "npm run db:push && npm run db:import"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@libsql/client": "^0.17.0",
     "@prisma/adapter-better-sqlite3": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@radix-ui/react-dialog": "^1.1.15",

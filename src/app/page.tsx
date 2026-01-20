@@ -552,14 +552,13 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <Label htmlFor="expense-country">Страна (опционально)</Label>
               <Select
-                value={expenseForm.countryId}
+                value={expenseForm.countryId || undefined}
                 onValueChange={(v) => setExpenseForm({ ...expenseForm, countryId: v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Все страны" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все страны</SelectItem>
                   {data?.countries?.map((country) => (
                     <SelectItem key={country.id} value={country.id}>
                       {country.name}
