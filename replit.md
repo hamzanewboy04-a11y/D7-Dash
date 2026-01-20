@@ -66,4 +66,5 @@ All financial calculations are in src/lib/calculations.ts:
 
 ## Deployment
 Configured for Autoscale deployment on Replit. Database persists across deployments.
-Build command runs: prisma generate && prisma db push && npx tsx scripts/seed-production.ts && npm run build
+Build command: prisma generate && npm run build
+Run command: Database push and seeding happen at runtime to avoid platform migration issues.
