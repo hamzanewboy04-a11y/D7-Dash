@@ -16,7 +16,8 @@ if (tursoUrl && tursoToken) {
   console.log('☁️  Using Turso cloud database (PRODUCTION MODE)');
   console.log('🌐 Turso URL:', tursoUrl);
   console.log('✅ Data will persist across deployments');
-  // Do NOT set DATABASE_URL - let Prisma client use Turso credentials
+  // Set dummy DATABASE_URL to satisfy Prisma schema (adapter will override)
+  process.env.DATABASE_URL = 'file:./prisma/dummy.db';
 } else {
   console.log('📁 Using local SQLite database (DEVELOPMENT MODE)');
   console.log('⚠️  WARNING: Data will be lost on redeploy!');
