@@ -47,8 +47,17 @@ function getDbPath() {
   return fallbackPath;
 }
 
-// Create tables using better-sqlite3 directly
+// Create tables using better-sqlite3 directly (only for local SQLite)
 export function ensureDatabaseTables() {
+  // Skip if using Turso cloud database
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (tursoUrl && tursoToken) {
+    console.log("[Prisma] ☁️  Using Turso - skipping local table creation");
+    return;
+  }
+
   const dbPath = getDbPath();
   console.log("[Prisma] Ensuring database tables exist at:", dbPath);
 
