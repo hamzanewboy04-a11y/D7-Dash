@@ -14,7 +14,7 @@ A financial dashboard application for D7 Team, tracking revenue, expenses, and p
 - `src/components/` - Reusable UI components
 - `src/lib/` - Database connection and utility functions
 - `prisma/` - Database schema
-- `data.db` - Pre-populated SQLite database
+- `data.db` - SQLite database with imported data
 
 ## Running the Application
 The development server runs on port 5000:
@@ -25,6 +25,13 @@ npm run dev -- -p 5000 -H 0.0.0.0
 ## Database
 - Local development uses SQLite (`data.db`)
 - Production can use Turso by setting `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
+- Data imported from "D7 TEAM (1).xlsx" Excel file (553 records across 5 countries)
+
+## Data Import
+To re-import data from Excel:
+```bash
+npx tsx scripts/import-direct.ts
+```
 
 ## Scripts
 - `npm run dev` - Development server

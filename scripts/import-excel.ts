@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import path from "path";
+import { prisma as sharedPrisma } from "../src/lib/prisma";
 
 // Sheet name to country code mapping
 const SHEET_COUNTRY_MAP: Record<string, string> = {
@@ -52,52 +53,114 @@ const SHEET_COUNTRY_MAP: Record<string, string> = {
   "Чили декабрь": "CL",
 };
 
-// Column name mappings (Russian to field name)
+// Column name mappings (Russian to field name) - normalized to lowercase
 const COLUMN_MAP: Record<string, string> = {
   "дата": "date",
   "день": "date",
   "date": "date",
   // Trust spend
+  "спенд trust": "spendTrust",
+  "спенд траст": "spendTrust",
   "траст спенд": "spendTrust",
-  "trust спенд": "spendTrust",
-  "траст": "spendTrust",
-  // Crossgif spend
+  // Crossgif spend  
+  "спенд кросгиф": "spendCrossgif",
+  "спенд кроссгиф": "spendCrossgif",
   "кросгиф спенд": "spendCrossgif",
-  "crossgif спенд": "spendCrossgif",
-  "кросгиф": "spendCrossgif",
   // FBM spend
+  "спенд на fbm": "spendFbm",
+  "спенд fbm": "spendFbm",
   "fbm спенд": "spendFbm",
-  "фбм спенд": "spendFbm",
-  "fbm": "spendFbm",
-  // Revenue Priemka
-  "доход sol приёмка": "revenueLocalPriemka",
+  // Total spend
+  "спенд за день": "totalSpend",
+  // Ad account balance
+  "баланс рк факт": "adAccountBalanceFact",
+  "баланс рк математика": "adAccountBalanceMath",
+  "внесли на рк суммарно": "adAccountDeposit",
+  // Agency fee
+  "процент агенства от спенда (траст 9 остальные 8)": "agencyFee",
+  "процент агенства от пополнения": "agencyFeeDeposit",
+  // Revenue Priemka (without ё)
+  "доход в sol приемка": "revenueLocalPriemka",
+  "доход sol приемка": "revenueLocalPriemka",
+  "доход в usdt приемка": "revenueUsdtPriemka",
+  "доход usdt приемка": "revenueUsdtPriemka",
+  "курс обмена приемка": "exchangeRatePriemka",
+  "комиссия приемки (15%)": "commissionPriemka",
+  // Revenue Priemka (with ё)
   "доход в sol приёмка": "revenueLocalPriemka",
-  "доход sol": "revenueLocalPriemka",
-  "доход в sol": "revenueLocalPriemka",
-  "доход eur приёмка": "revenueLocalPriemka",
-  "доход в eur приёмка": "revenueLocalPriemka",
-  "доход ars приёмка": "revenueLocalPriemka",
-  "доход clp приёмка": "revenueLocalPriemka",
-  "доход usdt приёмка": "revenueUsdtPriemka",
+  "доход sol приёмка": "revenueLocalPriemka",
   "доход в usdt приёмка": "revenueUsdtPriemka",
+  "доход usdt приёмка": "revenueUsdtPriemka",
+  "курс обмена приёмка": "exchangeRatePriemka",
+  // EUR variants
+  "доход в eur приемка": "revenueLocalPriemka",
+  "доход eur приемка": "revenueLocalPriemka",
   // Revenue Own
-  "доход sol наш": "revenueLocalOwn",
   "доход в sol наш": "revenueLocalOwn",
-  "доход eur наш": "revenueLocalOwn",
-  "доход usdt наш": "revenueUsdtOwn",
+  "доход sol наш": "revenueLocalOwn",
   "доход в usdt наш": "revenueUsdtOwn",
-  // FD
+  "доход usdt наш": "revenueUsdtOwn",
+  "курс обмена наш": "exchangeRateOwn",
+  // EUR Own
+  "доход в eur наш": "revenueLocalOwn",
+  "доход eur наш": "revenueLocalOwn",
+  // Total revenue/expenses
+  "общий доход usdt": "totalRevenueUsdt",
+  "общие расходы usdt": "totalExpensesUsdt",
+  "расходы без спенда": "expensesWithoutSpend",
+  // Withdrawals
+  "выведено с наших реков": "withdrawnFromOwn",
+  "выведено с приемки": "withdrawnFromPriemka",
+  "выведено с приёмки": "withdrawnFromPriemka",
+  // Balances
+  "баланс приемка математика": "balancePriemkaMath",
+  "баланс приёмка математика": "balancePriemkaMath",
+  "баланс наша приемка математика": "balanceOwnMath",
+  "баланс приемка факт": "balancePriemkaFact",
+  "баланс приёмка факт": "balancePriemkaFact",
+  "баланс наша приемка факт": "balanceOwnFact",
+  // FD/NFD
   "фд кол-во": "fdCount",
   "фд количество": "fdCount",
   "кол-во фд": "fdCount",
   "фд сумма sol": "fdSumLocal",
   "фд сумма": "fdSumLocal",
-  "фд сумма eur": "fdSumLocal",
-  // Other
+  "фд сумма usdt": "fdSumUsdt",
+  "нфд кол-во": "nfdCount",
+  "нфд количество": "nfdCount",
+  "нфд сумма sol": "nfdSumLocal",
+  "нфд сумма usdt": "nfdSumUsdt",
+  // RD
+  "рд кол-во": "rdCount",
+  "рд количество": "rdCount",
+  "рд сумма": "rdSumLocal",
+  "рд сумма usdt": "rdSumUsdt",
+  // Payroll
+  "фот обраб рд": "payrollRdHandler",
+  "фот обраб фд": "payrollFdHandler",
+  "фот контент": "payrollContent",
+  "фот отзов": "payrollReviews",
+  "фот дизайнер": "payrollDesigner",
+  "фот баер": "payrollBuyer",
+  "фот хед диз": "payrollHeadDesigner",
+  "общий фот": "totalPayroll",
+  "невыплачено фот": "unpaidPayroll",
+  "выплата фот": "paidPayroll",
+  // Other expenses
   "chatterfy": "chatterfyCost",
   "чаттерфай": "chatterfyCost",
   "доп расходы": "additionalExpenses",
   "дополнительные расходы": "additionalExpenses",
+  // Profit
+  "чистая прибыль математика": "netProfitMath",
+  "чистая прибыль факт": "netProfitFact",
+  "roi%": "roi",
+  "roi": "roi",
+  // Funnel metrics
+  "клики": "clicks",
+  "цена клика": "costPerClick",
+  "подписки": "subscriptions",
+  "диалоги": "dialogs",
 };
 
 function parseNumber(value: unknown): number {
@@ -110,6 +173,11 @@ function parseNumber(value: unknown): number {
 
 function parseDate(value: unknown): Date | null {
   if (!value) return null;
+
+  // Handle Date objects directly (when cellDates: true)
+  if (value instanceof Date) {
+    return value;
+  }
 
   if (typeof value === "number") {
     const date = XLSX.SSF.parse_date_code(value);
@@ -191,9 +259,12 @@ function calculateMetrics(data: Record<string, number>) {
 }
 
 async function main() {
-  const dbPath = process.env.DATABASE_URL?.replace("file:", "") || path.join(process.cwd(), "dev.db");
-  const adapter = new PrismaBetterSqlite3({ url: dbPath });
-  const prisma = new PrismaClient({ adapter });
+  // Use shared prisma client which handles PostgreSQL/SQLite/Turso
+  const dbUrl = process.env.DATABASE_URL;
+  console.log("Using database:", dbUrl?.startsWith("postgresql") ? "PostgreSQL" : dbUrl?.startsWith("file:") ? "SQLite" : "Default");
+  
+  // Use the shared prisma instance which is already configured correctly
+  const prisma = sharedPrisma;
 
   console.log("🚀 Starting data import...\n");
 
@@ -323,7 +394,7 @@ async function main() {
           sheetImported++;
         }
       } catch (error) {
-        // Skip duplicate or invalid records
+        console.error("  Error saving record:", (error as Error).message);
       }
     }
 

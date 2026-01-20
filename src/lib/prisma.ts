@@ -13,7 +13,8 @@ const globalForPrisma = globalThis as unknown as {
 function getDbPath() {
   const rawUrl = process.env.DATABASE_URL;
 
-  if (rawUrl) {
+  // Only use DATABASE_URL if it's a file:// URL (not PostgreSQL or other)
+  if (rawUrl && rawUrl.startsWith("file:")) {
     const dbPath = rawUrl.replace("file:", "");
     console.log(`[Prisma] DATABASE_URL env: ${rawUrl}`);
     console.log(`[Prisma] Resolved DB path: ${dbPath}`);
@@ -21,28 +22,28 @@ function getDbPath() {
   }
 
   // Use pre-populated data.db from repo - resolve absolute path
-  // Try multiple possible locations
+  // Try multiple possible locations (including root directory)
   const possiblePaths = [
+    path.join(process.cwd(), "data.db"),
     path.join(process.cwd(), "prisma", "data.db"),
+    path.join(__dirname, "..", "..", "data.db"),
     path.join(__dirname, "..", "..", "prisma", "data.db"),
-    path.join(__dirname, "..", "..", "..", "prisma", "data.db"),
+    "./data.db",
     "./prisma/data.db",
   ];
 
-  console.log(`[Prisma] DATABASE_URL env: not set`);
+  console.log(`[Prisma] DATABASE_URL env: ${rawUrl || "not set"} (ignoring non-SQLite URL)`);
   console.log(`[Prisma] Current working directory: ${process.cwd()}`);
-  console.log(`[Prisma] __dirname: ${__dirname}`);
 
   for (const dbPath of possiblePaths) {
-    console.log(`[Prisma] Checking path: ${dbPath}, exists: ${fs.existsSync(dbPath)}`);
     if (fs.existsSync(dbPath)) {
       console.log(`[Prisma] Found database at: ${dbPath}`);
       return dbPath;
     }
   }
 
-  // Fallback to first path (will be created if not exists)
-  const fallbackPath = possiblePaths[0];
+  // Fallback to root data.db
+  const fallbackPath = path.join(process.cwd(), "data.db");
   console.log(`[Prisma] Using fallback path: ${fallbackPath}`);
   return fallbackPath;
 }
