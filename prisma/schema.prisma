@@ -163,12 +163,44 @@ model Employee {
   fixedRate   Float?   // Фиксированная ставка (например, 10$ для хед диза)
   percentRate Float?   // Процентная ставка (например, 12% для баера)
 
-  // FD Handler тиры (для индивидуальных настроек)
-  fdTier1Rate     Float?   // Rate for < 5 FD
-  fdTier2Rate     Float?   // Rate for 5-9 FD
-  fdTier3Rate     Float?   // Rate for 10+ FD
-  fdBonusThreshold Int?    // Threshold for bonus (default 5)
-  fdBonus         Float?   // Bonus amount
+  // === Buyer commission tiers ===
+  buyerTier1Threshold   Float?   // Spend threshold for tier 1
+  buyerTier1Rate        Float?   // Commission rate for tier 1
+  buyerTier2Threshold   Float?   // Spend threshold for tier 2
+  buyerTier2Rate        Float?   // Commission rate for tier 2
+  buyerTier3Threshold   Float?   // Spend threshold for tier 3
+  buyerTier3Rate        Float?   // Commission rate for tier 3
+  buyerBonusThreshold   Float?   // Spend threshold for bonus
+  buyerBonusAmount      Float?   // Bonus amount when threshold reached
+
+  // === RD Handler commission tiers ===
+  rdTier1Threshold      Float?   // RD sum threshold for tier 1
+  rdTier1Rate           Float?   // Commission rate for tier 1 (e.g. 0.04 = 4%)
+  rdTier2Threshold      Float?   // RD sum threshold for tier 2
+  rdTier2Rate           Float?   // Commission rate for tier 2
+  rdTier3Threshold      Float?   // RD sum threshold for tier 3
+  rdTier3Rate           Float?   // Commission rate for tier 3
+  rdBonusThreshold      Float?   // RD sum threshold for bonus
+  rdBonusAmount         Float?   // Bonus amount when threshold reached
+
+  // === FD Handler tiers (expanded to 5 tiers) ===
+  fdTier1Rate           Float?   // Rate for tier 1 (e.g. < 5 FD)
+  fdTier1MaxCount       Int?     // Max FD count for tier 1
+  fdTier2Rate           Float?   // Rate for tier 2 (e.g. 5-9 FD)
+  fdTier2MaxCount       Int?     // Max FD count for tier 2
+  fdTier3Rate           Float?   // Rate for tier 3 (e.g. 10-14 FD)
+  fdTier3MaxCount       Int?     // Max FD count for tier 3
+  fdTier4Rate           Float?   // Rate for tier 4 (e.g. 15-19 FD)
+  fdTier4MaxCount       Int?     // Max FD count for tier 4
+  fdTier5Rate           Float?   // Rate for tier 5 (e.g. 20+ FD)
+  fdBonusThreshold      Int?     // Threshold for bonus (default 5)
+  fdBonus               Float?   // Bonus amount
+
+  // === Additional employee fields ===
+  workConditionsJson    Json?    // Complex work conditions as JSON
+  notes                 String?  // Additional notes about employee
+  startDate             DateTime? // Employment start date
+  contractType          String?  // Contract type: full-time, part-time, contractor, etc.
 
   // Настройки периода выплат
   paymentType     String   @default("buffer")  // buffer, day_to_day, twice_monthly, weekly, monthly
@@ -310,6 +342,7 @@ model User {
   role                String    @default("viewer") // admin, editor, viewer
   email               String?
   mustChangePassword  Boolean   @default(false)
+  allowedSections     String[]  @default([]) // Empty array means all sections allowed; sections: dashboard, countries, finance, payroll, import, data-entry, analytics, settings
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -14,24 +14,80 @@ import {
   ClipboardEdit,
   ChevronLeft,
   ChevronRight,
+  LogOut,
+  User,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
+interface AuthUser {
+  id: string;
+  username: string;
+  role: string;
+  email: string | null;
+  allowedSections: string[];
+}
+
 const navigation = [
-  { name: "Дашборд", href: "/", icon: LayoutDashboard },
-  { name: "Страны", href: "/countries", icon: Globe },
-  { name: "Финансы", href: "/finance", icon: DollarSign },
-  { name: "ФОТ", href: "/payroll", icon: Users },
-  { name: "Импорт", href: "/import", icon: Upload },
-  { name: "Ввод данных", href: "/data-entry", icon: ClipboardEdit },
-  { name: "Аналитика", href: "/analytics", icon: TrendingUp },
-  { name: "Настройки", href: "/settings", icon: Settings },
+  { name: "Дашборд", href: "/", icon: LayoutDashboard, section: "dashboard" },
+  { name: "Страны", href: "/countries", icon: Globe, section: "countries" },
+  { name: "Финансы", href: "/finance", icon: DollarSign, section: "finance" },
+  { name: "ФОТ", href: "/payroll", icon: Users, section: "payroll" },
+  { name: "Импорт", href: "/import", icon: Upload, section: "import" },
+  { name: "Ввод данных", href: "/data-entry", icon: ClipboardEdit, section: "data-entry" },
+  { name: "Аналитика", href: "/analytics", icon: TrendingUp, section: "analytics" },
+  { name: "Настройки", href: "/settings", icon: Settings, section: "settings" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const filteredNavigation = navigation.filter((item) => {
+    if (!user) return true;
+    if (user.role === "admin") return true;
+    if (user.allowedSections.length === 0) return true;
+    return user.allowedSections.includes(item.section);
+  });
+
+  const getRoleLabel = (role: string): string => {
+    const labels: Record<string, string> = {
+      admin: "Админ",
+      editor: "Редактор",
+      viewer: "Просмотр",
+    };
+    return labels[role] || role;
+  };
 
   return (
     <div
@@ -57,7 +113,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -77,12 +133,47 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      {!collapsed && (
-        <div className="p-4 border-t border-[#1e293b]">
+      {/* Footer with user info */}
+      <div className="p-4 border-t border-[#1e293b]">
+        {user && !collapsed && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-[#3b82f6] flex items-center justify-center">
+                <User size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user.username}</p>
+                <p className="text-xs text-slate-400">{getRoleLabel(user.role)}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="w-full justify-start text-slate-400 hover:text-white hover:bg-[#1e293b]"
+            >
+              <LogOut size={16} className="mr-2" />
+              {loggingOut ? "Выход..." : "Выйти"}
+            </Button>
+          </div>
+        )}
+        {collapsed && user && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full text-slate-400 hover:text-white hover:bg-[#1e293b]"
+            title="Выйти"
+          >
+            <LogOut size={18} />
+          </Button>
+        )}
+        {!collapsed && (
           <p className="text-xs text-slate-400">D7 Dashboard v1.0</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

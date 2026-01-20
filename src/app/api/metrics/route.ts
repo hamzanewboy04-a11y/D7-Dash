@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { calculateAllMetrics } from "@/lib/calculations";
+import { getCurrentUser, canEdit } from "@/lib/auth";
 
 // GET /api/metrics - Get metrics with optional filters
 export async function GET(request: Request) {
@@ -77,6 +78,14 @@ export async function GET(request: Request) {
 // POST /api/metrics - Create daily metrics
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !canEdit(user)) {
+      return NextResponse.json(
+        { error: "Недостаточно прав для выполнения операции" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       date,

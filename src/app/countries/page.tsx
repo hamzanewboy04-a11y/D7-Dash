@@ -13,8 +13,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, TrendingUp, TrendingDown, RefreshCw, Database, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, RefreshCw, Database, X, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import Link from "next/link";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+
+const DATE_RANGE_OPTIONS = [
+  { value: "7", label: "Последняя неделя" },
+  { value: "30", label: "Последний месяц" },
+  { value: "90", label: "Последние 3 месяца" },
+  { value: "all", label: "Всё время" },
+  { value: "custom", label: "Свой диапазон" },
+];
 
 interface Country {
   id: string;
@@ -345,6 +361,26 @@ export default function CountriesPage() {
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [isSeeded, setIsSeeded] = useState<boolean | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [dateRange, setDateRange] = useState<string>("30");
+  const [customStartDate, setCustomStartDate] = useState<string>("");
+  const [customEndDate, setCustomEndDate] = useState<string>("");
+
+  const getDateRangeParams = () => {
+    if (dateRange === "all") {
+      return "";
+    }
+    if (dateRange === "custom" && customStartDate && customEndDate) {
+      return `&startDate=${customStartDate}&endDate=${customEndDate}`;
+    }
+    const days = parseInt(dateRange);
+    if (!isNaN(days)) {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      return `&startDate=${startDate.toISOString().split("T")[0]}&endDate=${endDate.toISOString().split("T")[0]}`;
+    }
+    return "";
+  };
 
   // Fetch countries
   const fetchCountries = async () => {
@@ -366,7 +402,9 @@ export default function CountriesPage() {
     setMetricsLoading(true);
     setExpandedRow(null);
     try {
-      const response = await fetch("/api/metrics?limit=30");
+      const dateParams = getDateRangeParams();
+      const limit = dateRange === "all" ? 10000 : 500;
+      const response = await fetch(`/api/metrics?limit=${limit}${dateParams}`);
       if (response.ok) {
         const data: DailyMetric[] = await response.json();
 
@@ -417,7 +455,9 @@ export default function CountriesPage() {
     setMetricsLoading(true);
     setExpandedRow(null);
     try {
-      const response = await fetch(`/api/metrics?countryId=${countryId}&limit=30`);
+      const dateParams = getDateRangeParams();
+      const limit = dateRange === "all" ? 10000 : 500;
+      const response = await fetch(`/api/metrics?countryId=${countryId}&limit=${limit}${dateParams}`);
       if (response.ok) {
         const data = await response.json();
         setMetrics(data);
@@ -470,7 +510,7 @@ export default function CountriesPage() {
     } else if (selectedCountry) {
       fetchMetrics(selectedCountry);
     }
-  }, [selectedCountry]);
+  }, [selectedCountry, dateRange, customStartDate, customEndDate]);
 
   const hasData = countries.length > 0;
   const displayCountries = hasData
@@ -527,8 +567,38 @@ export default function CountriesPage() {
             Просмотр и управление данными по странам. Нажмите на строку для детализации.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => { fetchCountries(); if (selectedCountry) fetchMetrics(selectedCountry); }} disabled={loading} variant="outline">
+        <div className="flex gap-2 items-center flex-wrap">
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-[180px]">
+              <Calendar className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Период" />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_RANGE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {dateRange === "custom" && (
+            <div className="flex gap-2 items-center">
+              <Input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-[140px]"
+              />
+              <span className="text-slate-500">—</span>
+              <Input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-[140px]"
+              />
+            </div>
+          )}
+          <Button onClick={() => { fetchCountries(); if (selectedCountry === "all") fetchAllMetrics(); else fetchMetrics(selectedCountry); }} disabled={loading || metricsLoading} variant="outline">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading || metricsLoading ? "animate-spin" : ""}`} />
             Обновить
           </Button>

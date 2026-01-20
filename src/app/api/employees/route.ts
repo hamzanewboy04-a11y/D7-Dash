@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getCurrentUser, canEdit } from "@/lib/auth";
 
 // GET - Получить список сотрудников
 export async function GET(request: Request) {
@@ -57,6 +58,14 @@ export async function GET(request: Request) {
 // POST - Создать нового сотрудника
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !canEdit(user)) {
+      return NextResponse.json(
+        { error: "Недостаточно прав для выполнения операции" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       name,
@@ -125,6 +134,14 @@ export async function POST(request: Request) {
 // PUT - Обновить сотрудника
 export async function PUT(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !canEdit(user)) {
+      return NextResponse.json(
+        { error: "Недостаточно прав для выполнения операции" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       id,
@@ -199,6 +216,14 @@ export async function PUT(request: Request) {
 // DELETE - Удалить сотрудника
 export async function DELETE(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !canEdit(user)) {
+      return NextResponse.json(
+        { error: "Недостаточно прав для выполнения операции" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

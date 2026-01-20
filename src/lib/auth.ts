@@ -13,6 +13,7 @@ export interface AuthUser {
   role: UserRole;
   email: string | null;
   mustChangePassword: boolean;
+  allowedSections: string[];
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -103,6 +104,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       role: true,
       email: true,
       mustChangePassword: true,
+      allowedSections: true,
     },
   });
 
@@ -123,8 +125,12 @@ export function hasRole(userRole: UserRole, requiredRole: UserRole): boolean {
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
 }
 
-export function canEdit(role: UserRole): boolean {
+export function canEditByRole(role: UserRole): boolean {
   return hasRole(role, "editor");
+}
+
+export function canEdit(user: AuthUser): boolean {
+  return hasRole(user.role, "editor");
 }
 
 export function isAdmin(role: UserRole): boolean {

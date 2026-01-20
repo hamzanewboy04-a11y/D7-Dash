@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getCurrentUser, canEdit } from "@/lib/auth";
 
 // GET /api/countries - Get all countries
 export async function GET(request: Request) {
@@ -42,6 +43,14 @@ export async function GET(request: Request) {
 // POST /api/countries - Create a new country
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !canEdit(user)) {
+      return NextResponse.json(
+        { error: "Недостаточно прав для выполнения операции" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { name, code, currency, status } = body;
 
@@ -74,6 +83,14 @@ export async function POST(request: Request) {
 // PATCH /api/countries - Update country status (bulk)
 export async function PATCH(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !canEdit(user)) {
+      return NextResponse.json(
+        { error: "Недостаточно прав для выполнения операции" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { id, status, isActive, name, code, currency } = body;
 
@@ -132,6 +149,14 @@ export async function PATCH(request: Request) {
 // DELETE /api/countries - Delete a country
 export async function DELETE(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user || !canEdit(user)) {
+      return NextResponse.json(
+        { error: "Недостаточно прав для выполнения операции" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
