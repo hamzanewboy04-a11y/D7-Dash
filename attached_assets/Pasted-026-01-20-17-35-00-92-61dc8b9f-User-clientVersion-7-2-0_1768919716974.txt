@@ -1,0 +1,116 @@
+026-01-20 17:35:00.92
+61dc8b9f
+User
+clientVersion: '7.2.0'
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+code: 'P1010',
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+Error fetching countries: Error [PrismaClientKnownRequestError]:
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+meta: [Object],
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+at async d (.next/server/chunks/[root-of-the-server]__ef97b9d3._.js:1:6650) {
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+}
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+User was denied access on the database `(not available)`
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+Invalid `prisma.country.count()` invocation:
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+prisma:error
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+at async i (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:2564)
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+Error fetching metrics: Error [PrismaClientKnownRequestError]:
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+Invalid `prisma.dailyMetrics.findMany()` invocation:
+2026-01-20 17:35:00.92
+61dc8b9f
+User
+}
+2026-01-20 17:35:01.32
+61dc8b9f
+User
+Invalid `prisma.dailyMetrics.findMany()` invocation:
+2026-01-20 17:35:01.32
+61dc8b9f
+User
+prisma:error
+2026-01-20 17:35:01.32
+61dc8b9f
+User
+Invalid `prisma.dailyMetrics.findMany()` invocation:
+2026-01-20 17:35:03.23
+61dc8b9f
+User
+at async u (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:8608) {
+2026-01-20 17:35:03.23
+61dc8b9f
+User
+prisma:error
+2026-01-20 17:35:03.23
+61dc8b9f
+User
+at async o (.next/server/chunks/[root-of-the-server]__ef97b9d3._.js:1:1217)
+2026-01-20 17:35:03.23
+61dc8b9f
+User
+Invalid `prisma.country.findMany()` invocation:
+2026-01-20 17:35:03.23
+61dc8b9f
+User
+}
+2026-01-20 17:35:03.25
+61dc8b9f
+User
+prisma:error
+2026-01-20 17:35:03.25
+61dc8b9f
+User
+code: 'P1010',
+2026-01-20 17:35:03.25
+61dc8b9f
+User
+Error fetching dashboard data: Error [PrismaClientKnownRequestError]:
+2026-01-20 17:35:03.25
+61dc8b9f
+User
+Invalid `prisma.dailyMetrics.findMany()` invocation:
+2026-01-20 17:35:03.25
+61dc8b9f
+User
+at async u (.next/server/chunks/[root-of-the-server]__ec8cd66a._.js:1:6713) {
+2026-01-20 17:35:03.25
+61dc8b9f
+User
+meta: [Object],
+2026-01-20 17:35:04.49
+61dc8b9f
+User
+Error fetching dashboard data: Error [PrismaClientKnownRequestError]:
+2026-01-20 17:35:04.49
+61dc8b9f
+User
+Error fetching dashboard data: Error [PrismaClientKnownRequestError]:
