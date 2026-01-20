@@ -150,7 +150,7 @@ function calculateMetrics(data: Record<string, number>) {
   const revenueUsdtOwn = data.revenueUsdtOwn || 0;
   const commissionPriemka = revenueUsdtPriemka * 0.15;
 
-  const totalRevenueUsdt = revenueUsdtPriemka - commissionPriemka + revenueUsdtOwn;
+  const totalRevenueUsdt = revenueUsdtPriemka + revenueUsdtOwn;
 
   const payrollBuyer = totalSpend * 0.12;
   const fdCount = data.fdCount || 0;
