@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -32,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, DollarSign, Users, Plus, Pencil, Trash2, Loader2, Calendar, AlertCircle, Wallet } from "lucide-react";
+import { CheckCircle, Clock, DollarSign, Users, Plus, Pencil, Trash2, Loader2, Calendar, AlertCircle, Wallet, CreditCard, History } from "lucide-react";
 
 interface Country {
   id: string;
@@ -51,6 +52,22 @@ interface WeeklyPayroll {
   days: number;
 }
 
+interface EmployeePayrollCalc {
+  employeeId: string;
+  employeeName: string;
+  role: string;
+  calculatedAmount: number;
+  paidAmount: number;
+  unpaidAmount: number;
+  activeProjects: number;
+  details: {
+    metric: string;
+    value: number;
+    rate: number;
+    amount: number;
+  }[];
+}
+
 interface PayrollSummary {
   totals: {
     totalPayroll: number;
@@ -58,6 +75,7 @@ interface PayrollSummary {
     unpaidPayroll: number;
     payableNow: number;
     bufferAmount: number;
+    calculatedTotal: number;
   };
   weeks: WeeklyPayroll[];
   countries: {
@@ -67,8 +85,11 @@ interface PayrollSummary {
     paidPayroll: number;
     unpaidPayroll: number;
   }[];
+  employees: EmployeePayrollCalc[];
   bufferWeeks: number;
   cutoffDate: string;
+  periodStart: string;
+  periodEnd: string;
 }
 
 interface Employee {
@@ -87,6 +108,33 @@ interface Employee {
   isActive: boolean;
   unpaidBalance: number;
 }
+
+interface Payment {
+  id: string;
+  employeeId: string;
+  employee: Employee;
+  amount: number;
+  paymentDate: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  nextPaymentDate: string | null;
+  notes: string | null;
+  paymentType: string;
+  status: string;
+  createdAt: string;
+}
+
+const paymentCategoryLabels: Record<string, string> = {
+  salary: "Зарплата",
+  bonus: "Бонус",
+  advance: "Аванс",
+  other: "Другое",
+};
+
+const paymentStatusLabels: Record<string, string> = {
+  pending: "Ожидает",
+  paid: "Выплачено",
+};
 
 const paymentTypeLabels: Record<string, string> = {
   buffer: "С буфером",
@@ -119,13 +167,16 @@ const roleDescriptions: Record<string, string> = {
 export default function PayrollPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [payrollSummary, setPayrollSummary] = useState<PayrollSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
 
-  // Form state
+  // Form state for employee
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -139,14 +190,27 @@ export default function PayrollPage() {
     currentBalance: "0",
   });
 
-  // Fetch employees, countries, and payroll summary
+  // Form state for payment
+  const [paymentFormData, setPaymentFormData] = useState({
+    employeeId: "",
+    amount: "",
+    paymentDate: new Date().toISOString().split("T")[0],
+    periodStart: "",
+    periodEnd: "",
+    nextPaymentDate: "",
+    notes: "",
+    paymentType: "salary",
+  });
+
+  // Fetch employees, countries, payments, and payroll summary
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [empRes, countryRes, payrollRes] = await Promise.all([
+        const [empRes, countryRes, payrollRes, paymentsRes] = await Promise.all([
           fetch("/api/employees"),
           fetch("/api/countries"),
           fetch("/api/payroll/summary"),
+          fetch("/api/payments"),
         ]);
 
         if (empRes.ok) {
@@ -162,6 +226,11 @@ export default function PayrollPage() {
         if (payrollRes.ok) {
           const payrollData = await payrollRes.json();
           setPayrollSummary(payrollData);
+        }
+
+        if (paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json();
+          setPayments(paymentsData);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -266,6 +335,94 @@ export default function PayrollPage() {
     }
   };
 
+  // Payment functions
+  const resetPaymentForm = () => {
+    setPaymentFormData({
+      employeeId: "",
+      amount: "",
+      paymentDate: new Date().toISOString().split("T")[0],
+      periodStart: "",
+      periodEnd: "",
+      nextPaymentDate: "",
+      notes: "",
+      paymentType: "salary",
+    });
+  };
+
+  const openPaymentDialog = () => {
+    resetPaymentForm();
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleSavePayment = async () => {
+    setSavingPayment(true);
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paymentFormData),
+      });
+
+      if (res.ok) {
+        const newPayment = await res.json();
+        setPayments([newPayment, ...payments]);
+        setIsPaymentDialogOpen(false);
+        resetPaymentForm();
+      }
+    } catch (error) {
+      console.error("Error saving payment:", error);
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  const handleMarkAsPaid = async (paymentId: string) => {
+    try {
+      const res = await fetch("/api/payments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: paymentId, status: "paid" }),
+      });
+
+      if (res.ok) {
+        setPayments(payments.map((p) =>
+          p.id === paymentId ? { ...p, status: "paid" } : p
+        ));
+        // Refresh employee data
+        const empRes = await fetch("/api/employees");
+        if (empRes.ok) {
+          setEmployees(await empRes.json());
+        }
+      }
+    } catch (error) {
+      console.error("Error updating payment:", error);
+    }
+  };
+
+  const handleDeletePayment = async (id: string) => {
+    if (!confirm("Удалить выплату?")) return;
+
+    try {
+      const res = await fetch(`/api/payments?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setPayments(payments.filter((p) => p.id !== id));
+      }
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+    }
+  };
+
+  // Calculate payment stats
+  const totalPaymentsAmount = payments
+    .filter((p) => p.status === "paid")
+    .reduce((sum, p) => sum + p.amount, 0);
+  const pendingPaymentsAmount = payments
+    .filter((p) => p.status === "pending")
+    .reduce((sum, p) => sum + p.amount, 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -284,13 +441,154 @@ export default function PayrollPage() {
             Управление сотрудниками, ставками и выплатами
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNewDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Добавить сотрудника
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openPaymentDialog} className="bg-blue-600 hover:bg-blue-700">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Внести выплату
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Внести выплату</DialogTitle>
+                <DialogDescription>
+                  Заполните данные о выплате сотруднику
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="payment-employee">Сотрудник *</Label>
+                  <Select
+                    value={paymentFormData.employeeId}
+                    onValueChange={(v) => setPaymentFormData({ ...paymentFormData, employeeId: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите сотрудника" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.filter(e => e.isActive).map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.name} ({roleLabels[emp.role] || emp.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-amount">Сумма ($) *</Label>
+                    <Input
+                      id="payment-amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={paymentFormData.amount}
+                      onChange={(e) => setPaymentFormData({ ...paymentFormData, amount: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-date">Дата выплаты *</Label>
+                    <Input
+                      id="payment-date"
+                      type="date"
+                      value={paymentFormData.paymentDate}
+                      onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment-type">Тип выплаты</Label>
+                  <Select
+                    value={paymentFormData.paymentType}
+                    onValueChange={(v) => setPaymentFormData({ ...paymentFormData, paymentType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите тип" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(paymentCategoryLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium mb-3">Период (необязательно)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="period-start">Начало периода</Label>
+                      <Input
+                        id="period-start"
+                        type="date"
+                        value={paymentFormData.periodStart}
+                        onChange={(e) => setPaymentFormData({ ...paymentFormData, periodStart: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="period-end">Конец периода</Label>
+                      <Input
+                        id="period-end"
+                        type="date"
+                        value={paymentFormData.periodEnd}
+                        onChange={(e) => setPaymentFormData({ ...paymentFormData, periodEnd: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="next-payment-date">Следующая выплата (необязательно)</Label>
+                  <Input
+                    id="next-payment-date"
+                    type="date"
+                    value={paymentFormData.nextPaymentDate}
+                    onChange={(e) => setPaymentFormData({ ...paymentFormData, nextPaymentDate: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment-notes">Примечание (необязательно)</Label>
+                  <Textarea
+                    id="payment-notes"
+                    value={paymentFormData.notes}
+                    onChange={(e) => setPaymentFormData({ ...paymentFormData, notes: e.target.value })}
+                    placeholder="Дополнительная информация о выплате..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
+                  Отмена
+                </Button>
+                <Button
+                  onClick={handleSavePayment}
+                  disabled={savingPayment || !paymentFormData.employeeId || !paymentFormData.amount || !paymentFormData.paymentDate}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {savingPayment ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Сохранить
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openNewDialog} variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить сотрудника
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
@@ -470,6 +768,7 @@ export default function PayrollPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -526,13 +825,347 @@ export default function PayrollPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="periods">
+      <Tabs defaultValue="calculated">
         <TabsList>
+          <TabsTrigger value="calculated" className="text-emerald-600 data-[state=active]:bg-emerald-50">
+            <DollarSign className="h-4 w-4 mr-1" />
+            Начислено
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-blue-600 data-[state=active]:bg-blue-50">
+            <History className="h-4 w-4 mr-1" />
+            История выплат
+          </TabsTrigger>
           <TabsTrigger value="periods">Периоды выплат</TabsTrigger>
           <TabsTrigger value="employees">Сотрудники</TabsTrigger>
           <TabsTrigger value="byRole">По ролям</TabsTrigger>
           <TabsTrigger value="rates">Ставки и условия</TabsTrigger>
         </TabsList>
+
+        {/* Calculated Payroll - Начислено */}
+        <TabsContent value="calculated" className="space-y-6">
+          {payrollSummary && payrollSummary.employees && payrollSummary.employees.length > 0 ? (
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="border-emerald-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-emerald-600">
+                      Всего начислено
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-emerald-600">
+                      ${payrollSummary.totals.calculatedTotal?.toFixed(2) || "0.00"}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      За период {payrollSummary.periodStart} — {payrollSummary.periodEnd}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-600">
+                      Выплачено
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${payrollSummary.employees.reduce((sum, e) => sum + e.paidAmount, 0).toFixed(2)}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">За период</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-orange-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-orange-600">
+                      Остаток к выплате
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-600">
+                      ${payrollSummary.employees.reduce((sum, e) => sum + Math.max(0, e.unpaidAmount), 0).toFixed(2)}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Начислено - Выплачено</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-600">
+                      Сотрудников
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{payrollSummary.employees.length}</div>
+                    <p className="text-xs text-slate-500 mt-1">С начислениями</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Employee Payroll Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Начисления по сотрудникам</CardTitle>
+                  <CardDescription>
+                    Расчёт ФОТ за период {payrollSummary.periodStart} — {payrollSummary.periodEnd}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Сотрудник</TableHead>
+                        <TableHead>Роль</TableHead>
+                        <TableHead>Проекты</TableHead>
+                        <TableHead>Расчёт</TableHead>
+                        <TableHead className="text-right">Начислено</TableHead>
+                        <TableHead className="text-right">Выплачено</TableHead>
+                        <TableHead className="text-right">Остаток</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payrollSummary.employees.map((emp) => (
+                        <TableRow key={emp.employeeId}>
+                          <TableCell className="font-medium">{emp.employeeName}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {roleLabels[emp.role] || emp.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{emp.activeProjects}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {emp.details.length > 0 && (
+                              <div className="text-xs text-slate-500">
+                                {emp.details.map((d, i) => (
+                                  <div key={i}>
+                                    {d.metric}: {d.value.toFixed(2)} × {d.rate}%
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-emerald-600">
+                            ${emp.calculatedAmount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ${emp.paidAmount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {emp.unpaidAmount > 0 ? (
+                              <span className="text-orange-500 font-medium">
+                                ${emp.unpaidAmount.toFixed(2)}
+                              </span>
+                            ) : emp.unpaidAmount < 0 ? (
+                              <span className="text-blue-500 font-medium">
+                                +${Math.abs(emp.unpaidAmount).toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">$0.00</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-slate-500">
+                <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Нет данных о начислениях</p>
+                <p className="text-sm">Добавьте сотрудников и дневные метрики с данными об активности</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Payment History */}
+        <TabsContent value="history" className="space-y-6">
+          {/* Payment Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-blue-600">
+                  Всего выплат
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {payments.length}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Записей в истории</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-emerald-600">
+                  Выплачено
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-600">
+                  ${totalPaymentsAmount.toFixed(2)}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Подтверждённые выплаты</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-orange-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-orange-600">
+                  Ожидает выплаты
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">
+                  ${pendingPaymentsAmount.toFixed(2)}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">В ожидании</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Payments Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>История выплат</CardTitle>
+              <CardDescription>
+                Все записи о выплатах сотрудникам
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {payments.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Нет записей о выплатах</p>
+                  <p className="text-sm">Используйте кнопку &quot;Внести выплату&quot; для добавления</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Дата</TableHead>
+                      <TableHead>Сотрудник</TableHead>
+                      <TableHead className="text-right">Сумма</TableHead>
+                      <TableHead>Период</TableHead>
+                      <TableHead>Тип</TableHead>
+                      <TableHead>Статус</TableHead>
+                      <TableHead className="text-right">Действия</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">
+                          {new Date(payment.paymentDate).toLocaleDateString("ru-RU", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{payment.employee?.name || "—"}</p>
+                            <p className="text-xs text-slate-500">
+                              {roleLabels[payment.employee?.role] || payment.employee?.role || "—"}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          ${payment.amount.toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {payment.periodStart && payment.periodEnd ? (
+                            <span className="text-sm">
+                              {new Date(payment.periodStart).toLocaleDateString("ru-RU", {
+                                day: "numeric",
+                                month: "short",
+                              })} — {new Date(payment.periodEnd).toLocaleDateString("ru-RU", {
+                                day: "numeric",
+                                month: "short",
+                              })}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {paymentCategoryLabels[payment.paymentType] || payment.paymentType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {payment.status === "paid" ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Выплачено
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Ожидает
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {payment.status === "pending" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMarkAsPaid(payment.id)}
+                                className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Выплатить
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeletePayment(payment.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Payment notes info */}
+          {payments.some(p => p.notes) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Примечания к выплатам</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {payments.filter(p => p.notes).slice(0, 5).map((payment) => (
+                    <div key={payment.id} className="p-3 bg-slate-50 rounded-lg">
+                      <div className="flex justify-between text-sm text-slate-500 mb-1">
+                        <span>{payment.employee?.name}</span>
+                        <span>{new Date(payment.paymentDate).toLocaleDateString("ru-RU")}</span>
+                      </div>
+                      <p className="text-sm">{payment.notes}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* Payment Periods */}
         <TabsContent value="periods" className="space-y-6">

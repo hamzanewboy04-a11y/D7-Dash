@@ -11,6 +11,7 @@ import {
   Settings,
   TrendingUp,
   Upload,
+  ClipboardEdit,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Финансы", href: "/finance", icon: DollarSign },
   { name: "ФОТ", href: "/payroll", icon: Users },
   { name: "Импорт", href: "/import", icon: Upload },
+  { name: "Ввод данных", href: "/data-entry", icon: ClipboardEdit },
   { name: "Аналитика", href: "/analytics", icon: TrendingUp },
   { name: "Настройки", href: "/settings", icon: Settings },
 ];

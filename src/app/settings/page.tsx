@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Plus, Trash2, Play, Pause, Ban, Loader2, Check, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Save, Plus, Trash2, Play, Pause, Ban, Loader2, Check, RefreshCw, Target, Users, Shield, Edit, Key } from "lucide-react";
+import { useAuth } from "@/components/providers/auth-provider";
 
 interface Country {
   id: string;
@@ -22,6 +24,15 @@ interface Country {
   };
 }
 
+interface User {
+  id: string;
+  username: string;
+  role: string;
+  email: string | null;
+  mustChangePassword: boolean;
+  createdAt: string;
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
     // Agency fees
@@ -34,6 +45,9 @@ export default function SettingsPage() {
     buyerRate: "12",
     rdHandlerRate: "4",
     headDesignerFixed: "10",
+    contentFixedRate: "15",
+    designerFixedRate: "20",
+    reviewerFixedRate: "10",
     fdTier1Rate: "3",
     fdTier2Rate: "4",
     fdTier3Rate: "5",
@@ -81,12 +95,32 @@ export default function SettingsPage() {
     dateFormat: "DD.MM.YYYY",
   });
 
+  const [goalSettings, setGoalSettings] = useState({
+    dailyProfitGoal: "500",
+    monthlyProfitGoal: "10000",
+    targetROI: "50",
+    milestone1Amount: "1000",
+    milestone2Amount: "5000",
+    milestone3Amount: "10000",
+    weekInProfitDays: "7",
+    monthOfStabilityDays: "30",
+  });
+
   const [countries, setCountries] = useState<Country[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savingGoals, setSavingGoals] = useState(false);
+  const [savedGoals, setSavedGoals] = useState(false);
   const [newCountry, setNewCountry] = useState({ name: "", code: "", currency: "USDT" });
   const [showAddCountry, setShowAddCountry] = useState(false);
+  const [newUser, setNewUser] = useState({ username: "", password: "", role: "viewer", email: "" });
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editPassword, setEditPassword] = useState("");
+  const [editRole, setEditRole] = useState("");
+  const { isAdmin } = useAuth();
 
   // Load settings from API
   const loadSettings = useCallback(async () => {
@@ -114,13 +148,68 @@ export default function SettingsPage() {
     }
   }, []);
 
+  // Load goal settings from API
+  const loadGoalSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings/goals");
+      if (res.ok) {
+        const data = await res.json();
+        setGoalSettings((prev) => ({ ...prev, ...data }));
+      }
+    } catch (error) {
+      console.error("Error loading goal settings:", error);
+    }
+  }, []);
+
+  // Load users from API
+  const loadUsers = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error("Error loading users:", error);
+    }
+  }, [isAdmin]);
+
   useEffect(() => {
-    Promise.all([loadSettings(), loadCountries()]).finally(() => setLoading(false));
-  }, [loadSettings, loadCountries]);
+    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers()]).finally(() => setLoading(false));
+  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers]);
 
   const handleSettingChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
+  };
+
+  const handleGoalSettingChange = (key: string, value: string) => {
+    setGoalSettings((prev) => ({ ...prev, [key]: value }));
+    setSavedGoals(false);
+  };
+
+  const handleSaveGoals = async () => {
+    setSavingGoals(true);
+    try {
+      const res = await fetch("/api/settings/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(goalSettings),
+      });
+
+      if (res.ok) {
+        setSavedGoals(true);
+        setTimeout(() => setSavedGoals(false), 3000);
+      } else {
+        alert("Ошибка сохранения настроек целей");
+      }
+    } catch (error) {
+      console.error("Error saving goal settings:", error);
+      alert("Ошибка сохранения настроек целей");
+    } finally {
+      setSavingGoals(false);
+    }
   };
 
   const handleSave = async () => {
@@ -206,6 +295,105 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAddUser = async () => {
+    if (!newUser.username || !newUser.password) {
+      alert("Имя пользователя и пароль обязательны");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser),
+      });
+
+      if (res.ok) {
+        await loadUsers();
+        setNewUser({ username: "", password: "", role: "viewer", email: "" });
+        setShowAddUser(false);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка добавления пользователя");
+      }
+    } catch (error) {
+      console.error("Error adding user:", error);
+    }
+  };
+
+  const handleUpdateUser = async (userId: string) => {
+    try {
+      const updateData: Record<string, unknown> = {};
+      if (editRole) updateData.role = editRole;
+      if (editPassword) updateData.password = editPassword;
+
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId, ...updateData }),
+      });
+
+      if (res.ok) {
+        await loadUsers();
+        setEditingUser(null);
+        setEditPassword("");
+        setEditRole("");
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка обновления пользователя");
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm("Вы уверены, что хотите удалить этого пользователя?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/users?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        await loadUsers();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка удаления пользователя");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "bg-red-100 text-red-700";
+      case "editor":
+        return "bg-blue-100 text-blue-700";
+      case "viewer":
+        return "bg-green-100 text-green-700";
+      default:
+        return "bg-slate-100 text-slate-700";
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "Администратор";
+      case "editor":
+        return "Редактор";
+      case "viewer":
+        return "Просмотр";
+      default:
+        return role;
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "active":
@@ -263,14 +451,14 @@ export default function SettingsPage() {
             Настройка ставок расчётов и системных параметров
           </p>
         </div>
-        <Button variant="outline" onClick={() => Promise.all([loadSettings(), loadCountries()])}>
+        <Button variant="outline" onClick={() => Promise.all([loadSettings(), loadCountries(), loadGoalSettings()])}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Обновить
         </Button>
       </div>
 
       <Tabs defaultValue="rates">
-        <TabsList className="grid grid-cols-4 lg:grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-5 lg:grid-cols-10 w-full">
           <TabsTrigger value="rates">Комиссии</TabsTrigger>
           <TabsTrigger value="payroll">ФОТ</TabsTrigger>
           <TabsTrigger value="currency">Валюты</TabsTrigger>
@@ -278,6 +466,8 @@ export default function SettingsPage() {
           <TabsTrigger value="limits">Лимиты</TabsTrigger>
           <TabsTrigger value="notifications">Уведомления</TabsTrigger>
           <TabsTrigger value="countries">Проекты</TabsTrigger>
+          <TabsTrigger value="goals">Цели</TabsTrigger>
+          {isAdmin && <TabsTrigger value="users">Пользователи</TabsTrigger>}
           <TabsTrigger value="system">Система</TabsTrigger>
         </TabsList>
 
@@ -388,6 +578,52 @@ export default function SettingsPage() {
                     value={settings.headDesignerFixed}
                     onChange={(e) => handleSettingChange("headDesignerFixed", e.target.value)}
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Фиксированные ставки ФОТ</CardTitle>
+              <CardDescription>
+                Ставки по умолчанию для ролей с фиксированной оплатой за проект/день
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contentFixedRate">Контент фикс за день ($)</Label>
+                  <Input
+                    id="contentFixedRate"
+                    type="number"
+                    step="0.5"
+                    value={settings.contentFixedRate}
+                    onChange={(e) => handleSettingChange("contentFixedRate", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">За активный день × кол-во проектов</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="designerFixedRate">Дизайнер фикс за день ($)</Label>
+                  <Input
+                    id="designerFixedRate"
+                    type="number"
+                    step="0.5"
+                    value={settings.designerFixedRate}
+                    onChange={(e) => handleSettingChange("designerFixedRate", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">За активный день × кол-во проектов</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reviewerFixedRate">Отзовик фикс за день ($)</Label>
+                  <Input
+                    id="reviewerFixedRate"
+                    type="number"
+                    step="0.5"
+                    value={settings.reviewerFixedRate}
+                    onChange={(e) => handleSettingChange("reviewerFixedRate", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">За активный день × кол-во проектов</p>
                 </div>
               </div>
             </CardContent>
@@ -967,6 +1203,339 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Goals & Achievements */}
+        <TabsContent value="goals" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Цели прибыли
+              </CardTitle>
+              <CardDescription>
+                Настройка дневных и месячных целей прибыли
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dailyProfitGoal">Дневная цель ($)</Label>
+                  <Input
+                    id="dailyProfitGoal"
+                    type="number"
+                    step="50"
+                    value={goalSettings.dailyProfitGoal}
+                    onChange={(e) => handleGoalSettingChange("dailyProfitGoal", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">Цель по прибыли за день</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyProfitGoal">Месячная цель ($)</Label>
+                  <Input
+                    id="monthlyProfitGoal"
+                    type="number"
+                    step="500"
+                    value={goalSettings.monthlyProfitGoal}
+                    onChange={(e) => handleGoalSettingChange("monthlyProfitGoal", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">Цель по прибыли за месяц</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetROI">Целевой ROI (%)</Label>
+                  <Input
+                    id="targetROI"
+                    type="number"
+                    step="5"
+                    value={goalSettings.targetROI}
+                    onChange={(e) => handleGoalSettingChange("targetROI", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">Целевой показатель ROI</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Milestones прибыли</CardTitle>
+              <CardDescription>
+                Пороговые значения для достижений по прибыли
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="milestone1Amount">Первый milestone ($)</Label>
+                  <Input
+                    id="milestone1Amount"
+                    type="number"
+                    step="100"
+                    value={goalSettings.milestone1Amount}
+                    onChange={(e) => handleGoalSettingChange("milestone1Amount", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">&quot;Первые $X&quot;</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="milestone2Amount">Второй milestone ($)</Label>
+                  <Input
+                    id="milestone2Amount"
+                    type="number"
+                    step="500"
+                    value={goalSettings.milestone2Amount}
+                    onChange={(e) => handleGoalSettingChange("milestone2Amount", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">&quot;Серьёзный игрок&quot;</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="milestone3Amount">Мастер milestone ($)</Label>
+                  <Input
+                    id="milestone3Amount"
+                    type="number"
+                    step="1000"
+                    value={goalSettings.milestone3Amount}
+                    onChange={(e) => handleGoalSettingChange("milestone3Amount", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">&quot;Мастер прибыли&quot;</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Серии дней</CardTitle>
+              <CardDescription>
+                Количество дней для достижений по стабильности
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="weekInProfitDays">Неделя в плюсе (дней)</Label>
+                  <Input
+                    id="weekInProfitDays"
+                    type="number"
+                    min="1"
+                    max="14"
+                    value={goalSettings.weekInProfitDays}
+                    onChange={(e) => handleGoalSettingChange("weekInProfitDays", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">Дней подряд для достижения &quot;Неделя в плюсе&quot;</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monthOfStabilityDays">Месяц стабильности (дней)</Label>
+                  <Input
+                    id="monthOfStabilityDays"
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={goalSettings.monthOfStabilityDays}
+                    onChange={(e) => handleGoalSettingChange("monthOfStabilityDays", e.target.value)}
+                  />
+                  <p className="text-xs text-slate-500">Дней подряд для достижения &quot;Стабильность&quot;</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button
+            onClick={handleSaveGoals}
+            className="w-full"
+            size="lg"
+            disabled={savingGoals}
+          >
+            {savingGoals ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : savedGoals ? (
+              <Check className="h-4 w-4 mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {savingGoals ? "Сохранение..." : savedGoals ? "Сохранено!" : "Сохранить настройки целей"}
+          </Button>
+        </TabsContent>
+
+        {/* Users Management */}
+        {isAdmin && (
+          <TabsContent value="users" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Управление пользователями
+                  </CardTitle>
+                  <CardDescription>
+                    Добавление, редактирование и удаление пользователей системы
+                  </CardDescription>
+                </div>
+                <Button onClick={() => setShowAddUser(!showAddUser)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить пользователя
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {showAddUser && (
+                  <div className="p-4 bg-slate-50 rounded-lg border space-y-4">
+                    <h4 className="font-medium">Новый пользователь</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="newUsername">Имя пользователя *</Label>
+                        <Input
+                          id="newUsername"
+                          value={newUser.username}
+                          onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                          placeholder="username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">Пароль *</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newUser.password}
+                          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newRole">Роль</Label>
+                        <Select
+                          value={newUser.role}
+                          onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Администратор</SelectItem>
+                            <SelectItem value="editor">Редактор</SelectItem>
+                            <SelectItem value="viewer">Просмотр</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newEmail">Email (необязательно)</Label>
+                        <Input
+                          id="newEmail"
+                          type="email"
+                          value={newUser.email}
+                          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                          placeholder="user@example.com"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleAddUser}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Создать
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowAddUser(false)}>
+                        Отмена
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {users.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-white"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 rounded-full ${getRoleBadgeColor(user.role)}`}>
+                          <Shield className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium flex items-center gap-2">
+                            {user.username}
+                            {user.mustChangePassword && (
+                              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">
+                                Сменить пароль
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {user.email || "Нет email"} • Создан: {new Date(user.createdAt).toLocaleDateString("ru")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded text-sm font-medium ${getRoleBadgeColor(user.role)}`}>
+                          {getRoleLabel(user.role)}
+                        </span>
+                        {editingUser?.id === user.id ? (
+                          <div className="flex items-center gap-2 ml-4">
+                            <Select
+                              value={editRole || user.role}
+                              onValueChange={setEditRole}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Админ</SelectItem>
+                                <SelectItem value="editor">Редактор</SelectItem>
+                                <SelectItem value="viewer">Просмотр</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="password"
+                              placeholder="Новый пароль"
+                              value={editPassword}
+                              onChange={(e) => setEditPassword(e.target.value)}
+                              className="w-32"
+                            />
+                            <Button size="sm" onClick={() => handleUpdateUser(user.id)}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => {
+                              setEditingUser(null);
+                              setEditPassword("");
+                              setEditRole("");
+                            }}>
+                              Отмена
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditingUser(user);
+                                setEditRole(user.role);
+                              }}
+                              title="Редактировать"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => handleDeleteUser(user.id)}
+                              title="Удалить"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {users.length === 0 && (
+                  <p className="text-center text-slate-500 py-8">
+                    Нет пользователей. Добавьте первого пользователя.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* System Settings */}
         <TabsContent value="system" className="space-y-6">

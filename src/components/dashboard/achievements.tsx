@@ -27,12 +27,22 @@ interface Achievement {
   maxProgress?: number;
 }
 
+interface GoalSettings {
+  milestone1Amount?: number;
+  milestone2Amount?: number;
+  milestone3Amount?: number;
+  targetROI?: number;
+  weekInProfitDays?: number;
+  monthOfStabilityDays?: number;
+}
+
 interface AchievementsProps {
   totalProfit: number;
   profitableDaysStreak: number;
   roi: number;
   activeCountries: number;
   totalRevenue: number;
+  goalSettings?: GoalSettings;
 }
 
 export function Achievements({
@@ -41,61 +51,69 @@ export function Achievements({
   roi = 0,
   activeCountries = 0,
   totalRevenue = 0,
+  goalSettings = {},
 }: AchievementsProps) {
+  const milestone1 = goalSettings.milestone1Amount || 1000;
+  const milestone2 = goalSettings.milestone2Amount || 5000;
+  const milestone3 = goalSettings.milestone3Amount || 10000;
+  const targetROI = goalSettings.targetROI || 50;
+  const weekInProfitDays = goalSettings.weekInProfitDays || 7;
+  const monthOfStabilityDays = goalSettings.monthOfStabilityDays || 30;
+
   const achievements: Achievement[] = [
     {
       id: "first-1000",
-      title: "Первые $1,000",
-      description: "Заработать первую тысячу долларов",
+      title: `Первые $${milestone1.toLocaleString()}`,
+      description: `Заработать $${milestone1.toLocaleString()} прибыли`,
       icon: Star,
-      unlocked: totalProfit >= 1000,
-      progress: Math.min(totalProfit, 1000),
-      maxProgress: 1000,
+      unlocked: totalProfit >= milestone1,
+      progress: Math.min(totalProfit, milestone1),
+      maxProgress: milestone1,
     },
     {
       id: "first-5000",
       title: "Серьёзный игрок",
-      description: "Заработать $5,000 прибыли",
+      description: `Заработать $${milestone2.toLocaleString()} прибыли`,
       icon: Trophy,
-      unlocked: totalProfit >= 5000,
-      progress: Math.min(totalProfit, 5000),
-      maxProgress: 5000,
+      unlocked: totalProfit >= milestone2,
+      progress: Math.min(totalProfit, milestone2),
+      maxProgress: milestone2,
     },
     {
       id: "first-10000",
       title: "Мастер прибыли",
-      description: "Заработать $10,000 прибыли",
+      description: `Заработать $${milestone3.toLocaleString()} прибыли`,
       icon: Crown,
-      unlocked: totalProfit >= 10000,
-      progress: Math.min(totalProfit, 10000),
-      maxProgress: 10000,
+      unlocked: totalProfit >= milestone3,
+      progress: Math.min(totalProfit, milestone3),
+      maxProgress: milestone3,
     },
     {
       id: "week-profit",
       title: "Неделя в плюсе",
-      description: "7 дней подряд с прибылью",
+      description: `${weekInProfitDays} дней подряд с прибылью`,
       icon: Flame,
-      unlocked: profitableDaysStreak >= 7,
-      progress: Math.min(profitableDaysStreak, 7),
-      maxProgress: 7,
+      unlocked: profitableDaysStreak >= weekInProfitDays,
+      progress: Math.min(profitableDaysStreak, weekInProfitDays),
+      maxProgress: weekInProfitDays,
     },
     {
       id: "month-streak",
       title: "Стабильность",
-      description: "30 дней подряд с прибылью",
+      description: `${monthOfStabilityDays} дней подряд с прибылью`,
       icon: Medal,
-      unlocked: profitableDaysStreak >= 30,
-      progress: Math.min(profitableDaysStreak, 30),
-      maxProgress: 30,
+      unlocked: profitableDaysStreak >= monthOfStabilityDays,
+      progress: Math.min(profitableDaysStreak, monthOfStabilityDays),
+      maxProgress: monthOfStabilityDays,
     },
     {
       id: "roi-champion",
       title: "ROI Чемпион",
-      description: "Достичь ROI более 50%",
+      description: `Достичь ROI более ${targetROI}%`,
       icon: TrendingUp,
-      unlocked: roi > 50,
-      progress: Math.min(roi, 50),
-      maxProgress: 50,
+      unlocked: roi > targetROI,
+      progress: Math.min(roi, targetROI),
+      maxProgress: targetROI,
     },
     {
       id: "roi-master",

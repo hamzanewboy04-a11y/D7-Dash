@@ -92,6 +92,17 @@ interface YesterdayData {
   }>;
 }
 
+interface GoalSettings {
+  dailyProfitGoal: number;
+  monthlyProfitGoal: number;
+  targetROI: number;
+  milestone1Amount: number;
+  milestone2Amount: number;
+  milestone3Amount: number;
+  weekInProfitDays: number;
+  monthOfStabilityDays: number;
+}
+
 // Fallback demo data
 const mockChartData = [
   { date: "1 дек", revenue: 2364.89, expenses: 1138.09, profit: 1226.80 },
@@ -145,6 +156,28 @@ export default function DashboardPage() {
     countryId: "",
   });
   const [savingExpense, setSavingExpense] = useState(false);
+  const [goalSettings, setGoalSettings] = useState<GoalSettings | null>(null);
+
+  const fetchGoalSettings = async () => {
+    try {
+      const response = await fetch("/api/settings/goals");
+      if (response.ok) {
+        const data = await response.json();
+        setGoalSettings({
+          dailyProfitGoal: Number(data.dailyProfitGoal) || 500,
+          monthlyProfitGoal: Number(data.monthlyProfitGoal) || 10000,
+          targetROI: Number(data.targetROI) || 50,
+          milestone1Amount: Number(data.milestone1Amount) || 1000,
+          milestone2Amount: Number(data.milestone2Amount) || 5000,
+          milestone3Amount: Number(data.milestone3Amount) || 10000,
+          weekInProfitDays: Number(data.weekInProfitDays) || 7,
+          monthOfStabilityDays: Number(data.monthOfStabilityDays) || 30,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching goal settings:", error);
+    }
+  };
 
   const fetchDashboardData = async (days: string = selectedPeriod) => {
     try {
@@ -298,6 +331,7 @@ export default function DashboardPage() {
     checkSeeded();
     fetchDashboardData();
     fetchYesterdayData();
+    fetchGoalSettings();
   }, []);
 
   if (loading) {
@@ -504,15 +538,6 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Achievements Section */}
-      <Achievements
-        totalProfit={totals.profit}
-        profitableDaysStreak={chartData.filter((d) => d.profit > 0).length}
-        roi={totals.roi}
-        activeCountries={data?.countries?.length || 5}
-        totalRevenue={totals.revenue}
-      />
-
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RevenueChart data={chartData} title="Доходы и расходы по дням" />
@@ -543,6 +568,16 @@ export default function DashboardPage() {
           <p className="text-sm opacity-75 mt-1">Все работают</p>
         </div>
       </div>
+
+      {/* Achievements Section */}
+      <Achievements
+        totalProfit={totals.profit}
+        profitableDaysStreak={chartData.filter((d) => d.profit > 0).length}
+        roi={totals.roi}
+        activeCountries={data?.countries?.length || 5}
+        totalRevenue={totals.revenue}
+        goalSettings={goalSettings || undefined}
+      />
 
       {/* Expense Dialog */}
       <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>

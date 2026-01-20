@@ -177,6 +177,7 @@ model Employee {
   updatedAt   DateTime @updatedAt
 
   payrollRecords PayrollRecord[]
+  payments       Payment[]
 }
 
 // Записи о выплатах ФОТ
@@ -196,6 +197,30 @@ model PayrollRecord {
 
   @@index([date])
   @@index([employeeId])
+}
+
+// Фактические выплаты сотрудникам
+model Payment {
+  id              String   @id @default(cuid())
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id])
+  
+  amount          Float
+  paymentDate     DateTime
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  nextPaymentDate DateTime?
+  notes           String?
+  
+  paymentType     String   @default("salary")  // salary, bonus, advance, other
+  status          String   @default("pending") // pending, paid
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([paymentDate])
+  @@index([employeeId])
+  @@index([status])
 }
 
 // Отдельные расходы (доп. расходы)
@@ -268,4 +293,25 @@ model MonthlySummary {
   updatedAt       DateTime @updatedAt
 
   @@unique([year, month, countryId])
+}
+
+// Пользователи системы (аутентификация)
+model User {
+  id                  String    @id @default(cuid())
+  username            String    @unique
+  passwordHash        String
+  role                String    @default("viewer") // admin, editor, viewer
+  email               String?
+  mustChangePassword  Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+// Сессии пользователей
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

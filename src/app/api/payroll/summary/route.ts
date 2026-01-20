@@ -1,19 +1,58 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { calculateAllEmployeesPayroll, EmployeePayrollResult } from "@/lib/payroll-calculator";
 
-// GET - Get payroll summary with unpaid balances and payment periods
+export interface PayrollSummaryResponse {
+  totals: {
+    totalPayroll: number;
+    paidPayroll: number;
+    unpaidPayroll: number;
+    payableNow: number;
+    bufferAmount: number;
+    calculatedTotal: number;
+  };
+  weeks: {
+    weekStart: string;
+    weekEnd: string;
+    totalPayroll: number;
+    paidPayroll: number;
+    unpaidPayroll: number;
+    isPayable: boolean;
+    countries: string[];
+    days: number;
+  }[];
+  countries: {
+    name: string;
+    code: string;
+    totalPayroll: number;
+    paidPayroll: number;
+    unpaidPayroll: number;
+  }[];
+  employees: EmployeePayrollResult[];
+  bufferWeeks: number;
+  cutoffDate: string;
+  periodStart: string;
+  periodEnd: string;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const countryId = searchParams.get("countryId");
     const bufferWeeks = parseInt(searchParams.get("bufferWeeks") || "1");
-
-    // Calculate the cutoff date for payable amounts (default 1 week buffer)
+    
+    const periodStartParam = searchParams.get("periodStart");
+    const periodEndParam = searchParams.get("periodEnd");
+    
     const today = new Date();
     const cutoffDate = new Date(today);
     cutoffDate.setDate(cutoffDate.getDate() - (bufferWeeks * 7));
+    
+    const periodEnd = periodEndParam ? new Date(periodEndParam) : today;
+    const periodStart = periodStartParam 
+      ? new Date(periodStartParam) 
+      : new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // Get all metrics with payroll data
     const metricsWhere: Record<string, unknown> = {
       totalPayroll: { gt: 0 },
     };
@@ -29,7 +68,6 @@ export async function GET(request: Request) {
       orderBy: { date: "desc" },
     });
 
-    // Group by week
     const weeklyData: Record<string, {
       weekStart: Date;
       weekEnd: Date;
@@ -43,7 +81,6 @@ export async function GET(request: Request) {
 
     for (const m of metrics) {
       const date = new Date(m.date);
-      // Get Monday of the week
       const day = date.getDay();
       const diff = date.getDate() - day + (day === 0 ? -6 : 1);
       const weekStart = new Date(date);
@@ -74,7 +111,6 @@ export async function GET(request: Request) {
       weeklyData[weekKey].days++;
     }
 
-    // Convert to array and format
     const weeks = Object.entries(weeklyData)
       .map(([, data]) => ({
         weekStart: data.weekStart.toISOString().split("T")[0],
@@ -88,16 +124,15 @@ export async function GET(request: Request) {
       }))
       .sort((a, b) => b.weekStart.localeCompare(a.weekStart));
 
-    // Calculate overall totals
     const totals = {
       totalPayroll: weeks.reduce((sum, w) => sum + w.totalPayroll, 0),
       paidPayroll: weeks.reduce((sum, w) => sum + w.paidPayroll, 0),
       unpaidPayroll: weeks.reduce((sum, w) => sum + w.unpaidPayroll, 0),
       payableNow: weeks.filter(w => w.isPayable).reduce((sum, w) => sum + w.unpaidPayroll, 0),
       bufferAmount: weeks.filter(w => !w.isPayable).reduce((sum, w) => sum + w.unpaidPayroll, 0),
+      calculatedTotal: 0,
     };
 
-    // Group by country
     const byCountry: Record<string, {
       name: string;
       code: string;
@@ -129,6 +164,14 @@ export async function GET(request: Request) {
       unpaidPayroll: Math.round(c.unpaidPayroll * 100) / 100,
     }));
 
+    let employees: EmployeePayrollResult[] = [];
+    try {
+      employees = await calculateAllEmployeesPayroll(periodStart, periodEnd);
+      totals.calculatedTotal = employees.reduce((sum, e) => sum + e.calculatedAmount, 0);
+    } catch (err) {
+      console.error("Error calculating employee payroll:", err);
+    }
+
     return NextResponse.json({
       totals: {
         ...totals,
@@ -137,11 +180,15 @@ export async function GET(request: Request) {
         unpaidPayroll: Math.round(totals.unpaidPayroll * 100) / 100,
         payableNow: Math.round(totals.payableNow * 100) / 100,
         bufferAmount: Math.round(totals.bufferAmount * 100) / 100,
+        calculatedTotal: Math.round(totals.calculatedTotal * 100) / 100,
       },
       weeks,
       countries,
+      employees,
       bufferWeeks,
       cutoffDate: cutoffDate.toISOString().split("T")[0],
+      periodStart: periodStart.toISOString().split("T")[0],
+      periodEnd: periodEnd.toISOString().split("T")[0],
     });
   } catch (error) {
     console.error("Error fetching payroll summary:", error);
