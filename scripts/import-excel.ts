@@ -152,12 +152,20 @@ function calculateMetrics(data: Record<string, number>) {
 
   const totalRevenueUsdt = revenueUsdtPriemka + revenueUsdtOwn;
 
+  // Calculate exchange rates and RD sum
+  const revenueLocalOwn = data.revenueLocalOwn || 0;
+  const fdSumLocal = data.fdSumLocal || 0;
+  const rdSumLocal = revenueLocalOwn - fdSumLocal;
+  const exchangeRateOwn = revenueUsdtOwn > 0 ? revenueLocalOwn / revenueUsdtOwn : 0;
+  const rdSumUsdt = exchangeRateOwn > 0 ? rdSumLocal / exchangeRateOwn : 0;
+
+  // Payroll calculations
   const payrollBuyer = totalSpend * 0.12;
   const fdCount = data.fdCount || 0;
   let fdRate = fdCount < 5 ? 3 : fdCount < 10 ? 4 : 5;
   const fdBonus = fdCount >= 5 ? 15 : 0;
   const payrollFdHandler = (fdCount * fdRate + fdBonus) * 1.2;
-  const payrollRdHandler = totalRevenueUsdt * 0.04;
+  const payrollRdHandler = rdSumUsdt * 0.04; // 4% of RD sum in USDT
   const totalPayroll = payrollBuyer + payrollFdHandler + payrollRdHandler + 10;
 
   const chatterfyCost = data.chatterfyCost || 0;

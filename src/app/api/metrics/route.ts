@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const countryId = searchParams.get("countryId");
+    const date = searchParams.get("date"); // Single date filter
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const limit = searchParams.get("limit");
@@ -33,12 +34,23 @@ export async function GET(request: Request) {
     today.setHours(23, 59, 59, 999);
 
     where.date = {};
-    if (startDate) {
-      (where.date as Record<string, unknown>).gte = new Date(startDate);
+
+    // If specific date is provided, filter for that exact day
+    if (date) {
+      const targetDate = new Date(date);
+      const nextDay = new Date(targetDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      (where.date as Record<string, unknown>).gte = targetDate;
+      (where.date as Record<string, unknown>).lt = nextDay;
+    } else {
+      // Otherwise use startDate/endDate range
+      if (startDate) {
+        (where.date as Record<string, unknown>).gte = new Date(startDate);
+      }
+      // Use the earlier of endDate or today
+      const endDateValue = endDate ? new Date(endDate) : today;
+      (where.date as Record<string, unknown>).lte = endDateValue > today ? today : endDateValue;
     }
-    // Use the earlier of endDate or today
-    const endDateValue = endDate ? new Date(endDate) : today;
-    (where.date as Record<string, unknown>).lte = endDateValue > today ? today : endDateValue;
 
     const metrics = await prisma.dailyMetrics.findMany({
       where,
