@@ -322,7 +322,7 @@ function createPrismaClient() {
       authToken: tursoToken,
     });
 
-    const adapter = new PrismaLibSql(libsql);
+    const adapter = new PrismaLibSql(libsql as any);
 
     return new PrismaClient({
       adapter,
