@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:push": "npx prisma db push",
     "db:import": "npx tsx scripts/import-excel.ts",
+    "db:backup": "npx tsx scripts/backup-to-turso.ts",
     "setup": "npm run db:push && npm run db:import"
   },
   "dependencies": {
