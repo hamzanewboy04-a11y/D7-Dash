@@ -21,7 +21,6 @@ export async function GET(request: Request) {
     // Only include active countries
     where.country = {
       isActive: true,
-      status: { not: "disabled" },
     };
 
     // Filter out days with zero spend (project wasn't working)
