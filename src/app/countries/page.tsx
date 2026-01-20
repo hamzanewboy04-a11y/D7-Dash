@@ -124,9 +124,27 @@ const getCountryNameRu = (name: string): string => {
   return countryNames[name] || name;
 };
 
+// Функция для вычисления ROI: (доход - расход) / расход * 100
+function calculateDisplayRoi(revenue: number, expenses: number): number {
+  if (expenses <= 0) return 0;
+  return ((revenue - expenses) / expenses) * 100;
+}
+
+// Функция для безопасного форматирования числа
+function formatNum(value: number | null | undefined, decimals: number = 2): string {
+  return (value ?? 0).toFixed(decimals);
+}
+
 // Detail Panel Component
 function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: () => void }) {
   const currency = metric.country?.currency || "USDT";
+  
+  // Вычисляем ROI правильно из данных
+  const calculatedRoi = calculateDisplayRoi(
+    metric.totalRevenueUsdt ?? 0, 
+    metric.totalExpensesUsdt ?? 0
+  );
+  const netProfit = (metric.totalRevenueUsdt ?? 0) - (metric.totalExpensesUsdt ?? 0);
 
   return (
     <div className="bg-slate-50 border-t border-b p-6 space-y-6">
@@ -143,28 +161,28 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
         {/* Доходы */}
         <Card className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-emerald-700">Доходы</CardTitle>
+            <CardTitle className="text-sm text-emerald-700">💰 Доходы</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">Приёмка (локал):</span>
-              <span className="font-medium">{metric.revenueLocalPriemka.toFixed(2)} {currency}</span>
+              <span className="font-medium">{formatNum(metric.revenueLocalPriemka)} {currency}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Приёмка (USDT):</span>
-              <span className="font-medium">${metric.revenueUsdtPriemka.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.revenueUsdtPriemka)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Наш (локал):</span>
-              <span className="font-medium">{metric.revenueLocalOwn.toFixed(2)} {currency}</span>
+              <span className="font-medium">{formatNum(metric.revenueLocalOwn)} {currency}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Наш (USDT):</span>
-              <span className="font-medium">${metric.revenueUsdtOwn.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.revenueUsdtOwn)}</span>
             </div>
             <div className="border-t pt-2 flex justify-between font-semibold text-emerald-700">
               <span>Итого доход:</span>
-              <span>${metric.totalRevenueUsdt.toFixed(2)}</span>
+              <span>${formatNum(metric.totalRevenueUsdt)}</span>
             </div>
           </CardContent>
         </Card>
@@ -172,28 +190,28 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
         {/* Расходы на рекламу */}
         <Card className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-blue-700">Расходы на рекламу</CardTitle>
+            <CardTitle className="text-sm text-blue-700">📊 Расходы на рекламу</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">TRUST:</span>
-              <span className="font-medium">${(metric.spendTrust || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.spendTrust)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Кросгиф:</span>
-              <span className="font-medium">${(metric.spendCrossgif || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.spendCrossgif)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">FBM:</span>
-              <span className="font-medium">${(metric.spendFbm || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.spendFbm)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Комиссия агентства:</span>
-              <span className="font-medium">${metric.agencyFee.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.agencyFee)}</span>
             </div>
             <div className="border-t pt-2 flex justify-between font-semibold text-blue-700">
-              <span>Итого спенд:</span>
-              <span>${metric.totalSpend.toFixed(2)}</span>
+              <span>Итого спенд + комиссия:</span>
+              <span>${formatNum((metric.totalSpend ?? 0) + (metric.agencyFee ?? 0))}</span>
             </div>
           </CardContent>
         </Card>
@@ -201,32 +219,36 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
         {/* ФОТ */}
         <Card className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-purple-700">ФОТ (Фонд оплаты труда)</CardTitle>
+            <CardTitle className="text-sm text-purple-700">👥 ФОТ (Фонд оплаты труда)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">Баер (12% спенда):</span>
-              <span className="font-medium">${metric.payrollBuyer.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.payrollBuyer)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Обработчик ФД:</span>
-              <span className="font-medium">${metric.payrollFdHandler.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.payrollFdHandler)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Обработчик РД (4%):</span>
-              <span className="font-medium">${metric.payrollRdHandler.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.payrollRdHandler)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Контент:</span>
-              <span className="font-medium">${(metric.payrollContent || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.payrollContent)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">Дизайнер:</span>
+              <span className="font-medium">${formatNum(metric.payrollDesigner)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Хед дизайнер:</span>
-              <span className="font-medium">${(metric.payrollHeadDesigner || 10).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.payrollHeadDesigner)}</span>
             </div>
             <div className="border-t pt-2 flex justify-between font-semibold text-purple-700">
               <span>Итого ФОТ:</span>
-              <span>${metric.totalPayroll.toFixed(2)}</span>
+              <span>${formatNum(metric.totalPayroll)}</span>
             </div>
           </CardContent>
         </Card>
@@ -236,20 +258,24 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
         {/* Комиссии и доп расходы */}
         <Card className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-orange-700">Комиссии и доп. расходы</CardTitle>
+            <CardTitle className="text-sm text-orange-700">📋 Комиссии и доп. расходы</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">Комиссия приёмки (15%):</span>
-              <span className="font-medium">${metric.commissionPriemka.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.commissionPriemka)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Chatterfy:</span>
-              <span className="font-medium">${(metric.chatterfyCost || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.chatterfyCost)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">Доп. расходы:</span>
-              <span className="font-medium">${(metric.additionalExpenses || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.additionalExpenses)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-semibold text-orange-700">
+              <span>Итого комиссии:</span>
+              <span>${formatNum((metric.commissionPriemka ?? 0) + (metric.chatterfyCost ?? 0) + (metric.additionalExpenses ?? 0))}</span>
             </div>
           </CardContent>
         </Card>
@@ -257,41 +283,41 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
         {/* ФД/РД */}
         <Card className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-cyan-700">ФД / нФД / РД</CardTitle>
+            <CardTitle className="text-sm text-cyan-700">📈 ФД / нФД / РД</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">ФД количество:</span>
-              <span className="font-medium">{metric.fdCount}</span>
+              <span className="font-medium">{metric.fdCount ?? 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">ФД сумма (локал):</span>
-              <span className="font-medium">{metric.fdSumLocal.toFixed(2)} {currency}</span>
+              <span className="font-medium">{formatNum(metric.fdSumLocal)} {currency}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">ФД сумма (USDT):</span>
-              <span className="font-medium">${metric.fdSumUsdt.toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.fdSumUsdt)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">нФД количество:</span>
-              <span className="font-medium">{metric.nfdCount || 0}</span>
+              <span className="font-medium">{metric.nfdCount ?? 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-600">нФД сумма (USDT):</span>
-              <span className="font-medium">${(metric.nfdSumUsdt || 0).toFixed(2)}</span>
+              <span className="font-medium">${formatNum(metric.nfdSumUsdt)}</span>
             </div>
             <div className="border-t pt-2">
               <div className="flex justify-between">
                 <span className="text-slate-600">РД количество:</span>
-                <span className="font-medium">{metric.rdCount || 0}</span>
+                <span className="font-medium">{metric.rdCount ?? 0}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">РД сумма (локал):</span>
-                <span className="font-medium">{(metric.rdSumLocal || 0).toFixed(2)} {currency}</span>
+                <span className="font-medium">{formatNum(metric.rdSumLocal)} {currency}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">РД сумма (USDT):</span>
-                <span className="font-medium">${metric.rdSumUsdt.toFixed(2)}</span>
+                <span className="font-medium">${formatNum(metric.rdSumUsdt)}</span>
               </div>
             </div>
           </CardContent>
@@ -300,30 +326,36 @@ function MetricDetailPanel({ metric, onClose }: { metric: DailyMetric; onClose: 
         {/* Итого */}
         <Card className="bg-white border-2 border-slate-300">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Итоговый расчёт</CardTitle>
+            <CardTitle className="text-sm">📊 Итоговый расчёт</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between text-emerald-700">
               <span>Общий доход:</span>
-              <span className="font-medium">${metric.totalRevenueUsdt.toFixed(2)}</span>
+              <span className="font-semibold">${formatNum(metric.totalRevenueUsdt)}</span>
             </div>
             <div className="flex justify-between text-red-600">
               <span>Общие расходы:</span>
-              <span className="font-medium">${metric.totalExpensesUsdt.toFixed(2)}</span>
+              <span className="font-semibold">${formatNum(metric.totalExpensesUsdt)}</span>
             </div>
-            <div className="border-t pt-2 flex justify-between font-bold text-lg">
-              <span className={metric.netProfitMath >= 0 ? "text-emerald-700" : "text-red-600"}>
+            <div className="text-xs text-slate-500 pl-2">
+              = Спенд + Комиссия агентства + ФОТ + Комиссии
+            </div>
+            <div className="border-t pt-3 flex justify-between font-bold text-lg">
+              <span className={netProfit >= 0 ? "text-emerald-700" : "text-red-600"}>
                 Чистая прибыль:
               </span>
-              <span className={metric.netProfitMath >= 0 ? "text-emerald-700" : "text-red-600"}>
-                ${metric.netProfitMath.toFixed(2)}
+              <span className={netProfit >= 0 ? "text-emerald-700" : "text-red-600"}>
+                ${formatNum(netProfit)}
               </span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-slate-600">ROI:</span>
-              <span className={`font-medium ${metric.roi >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                {(metric.roi * 100).toFixed(1)}%
+              <span className={`font-bold text-lg ${calculatedRoi >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {calculatedRoi.toFixed(2)}%
               </span>
+            </div>
+            <div className="text-xs text-slate-500 pl-2">
+              = (Доход - Расход) / Расход × 100
             </div>
           </CardContent>
         </Card>
@@ -419,26 +451,32 @@ export default function CountriesPage() {
 
         // Aggregate
         const aggregated: AggregatedMetric[] = Object.entries(byDate)
-          .map(([date, items]) => ({
-            date,
-            totalSpend: items.reduce((s, m) => s + m.totalSpend, 0),
-            totalRevenueUsdt: items.reduce((s, m) => s + m.totalRevenueUsdt, 0),
-            totalExpensesUsdt: items.reduce((s, m) => s + m.totalExpensesUsdt, 0),
-            expensesWithoutSpend: items.reduce((s, m) => s + m.expensesWithoutSpend, 0),
-            netProfitMath: items.reduce((s, m) => s + m.netProfitMath, 0),
-            roi: items.reduce((s, m) => s + m.totalSpend, 0) > 0
-              ? items.reduce((s, m) => s + m.netProfitMath, 0) / items.reduce((s, m) => s + m.totalSpend, 0)
-              : 0,
-            fdCount: items.reduce((s, m) => s + m.fdCount, 0),
-            rdCount: items.reduce((s, m) => s + m.rdCount, 0),
-            countries: items.map((m) => ({
-              code: m.country?.code || "",
-              name: m.country?.name || "",
-              spend: m.totalSpend,
-              revenue: m.totalRevenueUsdt,
-              profit: m.netProfitMath,
-            })),
-          }))
+          .map(([date, items]) => {
+            const totalRevenueUsdt = items.reduce((s, m) => s + (m.totalRevenueUsdt ?? 0), 0);
+            const totalExpensesUsdt = items.reduce((s, m) => s + (m.totalExpensesUsdt ?? 0), 0);
+            const netProfitMath = totalRevenueUsdt - totalExpensesUsdt;
+            // Правильный расчёт ROI: (доход - расход) / расход
+            const roi = totalExpensesUsdt > 0 ? (totalRevenueUsdt - totalExpensesUsdt) / totalExpensesUsdt : 0;
+            
+            return {
+              date,
+              totalSpend: items.reduce((s, m) => s + (m.totalSpend ?? 0), 0),
+              totalRevenueUsdt,
+              totalExpensesUsdt,
+              expensesWithoutSpend: items.reduce((s, m) => s + (m.expensesWithoutSpend ?? 0), 0),
+              netProfitMath,
+              roi,
+              fdCount: items.reduce((s, m) => s + (m.fdCount ?? 0), 0),
+              rdCount: items.reduce((s, m) => s + (m.rdCount ?? 0), 0),
+              countries: items.map((m) => ({
+                code: m.country?.code || "",
+                name: m.country?.name || "",
+                spend: m.totalSpend ?? 0,
+                revenue: m.totalRevenueUsdt ?? 0,
+                profit: (m.totalRevenueUsdt ?? 0) - (m.totalExpensesUsdt ?? 0),
+              })),
+            };
+          })
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         setAllMetrics(aggregated);
@@ -528,14 +566,13 @@ export default function CountriesPage() {
   const currentCountry = displayCountries.find((c) => c.id === selectedCountry) || displayCountries[0];
 
   // Calculate summary stats
-  const totalSpend = metrics.reduce((s, d) => s + d.totalSpend, 0);
-  const totalExpenses = metrics.reduce((s, d) => s + d.totalExpensesUsdt, 0);
-  const expensesWithoutSpend = metrics.reduce((s, d) => s + d.expensesWithoutSpend, 0);
-  const totalRevenue = metrics.reduce((s, d) => s + d.totalRevenueUsdt, 0);
-  const totalProfit = metrics.reduce((s, d) => s + d.netProfitMath, 0);
-  const avgRoi = metrics.length > 0
-    ? metrics.reduce((s, d) => s + d.roi, 0) / metrics.length
-    : 0;
+  const totalSpend = metrics.reduce((s, d) => s + (d.totalSpend ?? 0), 0);
+  const totalExpenses = metrics.reduce((s, d) => s + (d.totalExpensesUsdt ?? 0), 0);
+  const expensesWithoutSpend = metrics.reduce((s, d) => s + (d.expensesWithoutSpend ?? 0), 0);
+  const totalRevenue = metrics.reduce((s, d) => s + (d.totalRevenueUsdt ?? 0), 0);
+  const totalProfit = totalRevenue - totalExpenses;
+  // Правильный расчёт среднего ROI: (общий доход - общие расходы) / общие расходы * 100
+  const avgRoi = totalExpenses > 0 ? ((totalRevenue - totalExpenses) / totalExpenses) : 0;
 
   if (!hasData) {
     return (
@@ -702,14 +739,21 @@ export default function CountriesPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {allMetrics.length > 0
-                    ? ((allMetrics.reduce((s, m) => s + m.netProfitMath, 0) / allMetrics.reduce((s, m) => s + m.totalSpend, 0)) * 100).toFixed(1)
-                    : 0}%
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  все страны
-                </p>
+                {(() => {
+                  const totalRev = allMetrics.reduce((s, m) => s + m.totalRevenueUsdt, 0);
+                  const totalExp = allMetrics.reduce((s, m) => s + m.totalExpensesUsdt, 0);
+                  const roiValue = totalExp > 0 ? ((totalRev - totalExp) / totalExp * 100) : 0;
+                  return (
+                    <>
+                      <div className={`text-2xl font-bold ${roiValue >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {roiValue.toFixed(2)}%
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        все страны
+                      </p>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>
@@ -1025,34 +1069,45 @@ export default function CountriesPage() {
                               <TableCell className="text-right text-red-500">
                                 ${metric.totalExpensesUsdt.toFixed(2)}
                               </TableCell>
-                              <TableCell
-                                className={`text-right ${
-                                  metric.netProfitMath >= 0 ? "text-emerald-600" : "text-red-600"
-                                }`}
-                              >
-                                ${metric.netProfitMath.toFixed(2)}
+                              <TableCell className="text-right">
+                                {(() => {
+                                  const profit = (metric.totalRevenueUsdt ?? 0) - (metric.totalExpensesUsdt ?? 0);
+                                  return (
+                                    <span className={profit >= 0 ? "text-emerald-600" : "text-red-600"}>
+                                      ${profit.toFixed(2)}
+                                    </span>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  {metric.roi >= 0 ? (
-                                    <TrendingUp className="h-4 w-4 text-emerald-500" />
-                                  ) : (
-                                    <TrendingDown className="h-4 w-4 text-red-500" />
-                                  )}
-                                  {(metric.roi * 100).toFixed(1)}%
-                                </div>
+                                {(() => {
+                                  const calcRoi = calculateDisplayRoi(metric.totalRevenueUsdt ?? 0, metric.totalExpensesUsdt ?? 0);
+                                  return (
+                                    <div className="flex items-center justify-end gap-1">
+                                      {calcRoi >= 0 ? (
+                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                      ) : (
+                                        <TrendingDown className="h-4 w-4 text-red-500" />
+                                      )}
+                                      <span className={calcRoi >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                                        {calcRoi.toFixed(2)}%
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell className="text-right">
-                                <Badge
-                                  variant={metric.netProfitMath >= 0 ? "default" : "destructive"}
-                                  className={
-                                    metric.netProfitMath >= 0
-                                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
-                                      : ""
-                                  }
-                                >
-                                  {metric.netProfitMath >= 0 ? "Прибыль" : "Убыток"}
-                                </Badge>
+                                {(() => {
+                                  const profit = (metric.totalRevenueUsdt ?? 0) - (metric.totalExpensesUsdt ?? 0);
+                                  return (
+                                    <Badge
+                                      variant={profit >= 0 ? "default" : "destructive"}
+                                      className={profit >= 0 ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : ""}
+                                    >
+                                      {profit >= 0 ? "Прибыль" : "Убыток"}
+                                    </Badge>
+                                  );
+                                })()}
                               </TableCell>
                             </TableRow>
                             {expandedRow === metric.id && (
