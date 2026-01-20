@@ -1,0 +1,108 @@
+2026-01-20 17:16:38.26
+a28a70c2
+User
+clientVersion: '7.2.0'
+2026-01-20 17:16:38.26
+a28a70c2
+User
+User was denied access on the database `(not available)`
+2026-01-20 17:16:38.26
+a28a70c2
+User
+code: 'P1010',
+2026-01-20 17:16:38.26
+a28a70c2
+User
+meta: [Object],
+2026-01-20 17:16:38.26
+a28a70c2
+User
+at async u (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:8608) {
+2026-01-20 17:16:38.26
+a28a70c2
+User
+}
+2026-01-20 17:16:38.26
+a28a70c2
+User
+Invalid `prisma.dailyMetrics.findMany()` invocation:
+2026-01-20 17:16:38.26
+a28a70c2
+User
+Error fetching metrics: Error [PrismaClientKnownRequestError]:
+2026-01-20 17:16:38.26
+a28a70c2
+User
+at async i (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:2564)
+2026-01-20 17:16:38.26
+a28a70c2
+User
+at async i (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:2564)
+2026-01-20 17:16:38.26
+a28a70c2
+User
+Error fetching metrics: Error [PrismaClientKnownRequestError]:
+2026-01-20 17:16:38.26
+a28a70c2
+User
+Invalid `prisma.dailyMetrics.findMany()` invocation:
+2026-01-20 17:16:38.26
+a28a70c2
+User
+}
+2026-01-20 17:16:38.26
+a28a70c2
+User
+at async u (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:8608) {
+2026-01-20 17:16:38.26
+a28a70c2
+User
+meta: [Object],
+2026-01-20 17:16:38.26
+a28a70c2
+User
+code: 'P1010',
+2026-01-20 17:16:38.26
+a28a70c2
+User
+User was denied access on the database `(not available)`
+2026-01-20 17:16:38.26
+a28a70c2
+User
+clientVersion: '7.2.0'
+2026-01-20 17:16:38.26
+a28a70c2
+User
+at async i (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:2564)
+2026-01-20 17:16:38.26
+a28a70c2
+User
+Error fetching metrics: Error [PrismaClientKnownRequestError]:
+2026-01-20 17:16:38.26
+a28a70c2
+User
+Invalid `prisma.dailyMetrics.findMany()` invocation:
+2026-01-20 17:16:38.26
+a28a70c2
+User
+}
+2026-01-20 17:16:38.26
+a28a70c2
+User
+at async u (.next/server/chunks/[root-of-the-server]__d66f6336._.js:1:8608) {
+2026-01-20 17:16:38.26
+a28a70c2
+User
+meta: [Object],
+2026-01-20 17:16:38.26
+a28a70c2
+User
+code: 'P1010',
+2026-01-20 17:16:38.26
+a28a70c2
+User
+User was denied access on the database `(not available)`
+2026-01-20 17:16:38.26
+a28a70c2
+User
+clientVersion: '7.2.0'

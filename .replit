@@ -36,4 +36,4 @@ externalPort = 80
 [deployment]
 deploymentTarget = "autoscale"
 run = ["npm", "run", "start"]
-build = ["npm", "run", "build"]
+build = ["bash", "-c", "prisma generate && prisma db push && npx tsx scripts/migrate-to-postgres.ts && npm run build"]
