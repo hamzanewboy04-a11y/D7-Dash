@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaLibSQL } from "@prisma/adapter-libsql";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { createClient } from "@libsql/client";
 import Database from "better-sqlite3";
 import * as path from "path";
@@ -322,7 +322,7 @@ function createPrismaClient() {
       authToken: tursoToken,
     });
 
-    const adapter = new PrismaLibSQL(libsql);
+    const adapter = new PrismaLibSql(libsql);
 
     return new PrismaClient({
       adapter,
