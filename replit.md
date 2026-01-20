@@ -6,7 +6,9 @@ A financial dashboard application for D7 Team, tracking revenue, expenses, and p
 ## Recent Changes (January 2026)
 - **Role-Based Permissions**: Viewers can only view, editors/admins can edit (403 for unauthorized edits)
 - **Customizable Sidebar**: Per-user section visibility via allowedSections field
-- **Expanded Employee Work Conditions**: Complex tier systems for buyers (commission tiers), RD handlers (tier rates), FD handlers (5-tier system with bonuses)
+- **Simplified Employee Payroll**: Removed complex tiers, now uses simple percentRate with percentageBase field (from spend/profit/FD/RD sums)
+- **Custom Roles**: Can create custom role names for employees (not limited to predefined roles)
+- **Expanded Expense Categories**: 13 categories including accounts, proxies, hosting, software, advertising, banking, communications, office
 - **Date Period Filtering**: Countries page now has date range selector (7/30/90 days, all time, custom)
 - **Design Update**: New color scheme (black, white, blue, light blue)
 - **Motivational Features**: Daily quotes, achievement badges, profit streaks, goal tracking
