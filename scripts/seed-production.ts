@@ -153,6 +153,105 @@ async function seedProduction() {
     }
     console.log(`Created ${created} daily metrics`);
 
+    // Seed Buying and SMM data
+    const buyingSmmPath = "data/buying-smm-data.json";
+    if (fs.existsSync(buyingSmmPath)) {
+      const buyingSmmData = JSON.parse(fs.readFileSync(buyingSmmPath, "utf-8"));
+      console.log(`Loading buying/smm data: ${buyingSmmData.employees?.length || 0} employees, ${buyingSmmData.buyerMetrics?.length || 0} buyer metrics, ${buyingSmmData.smmMetrics?.length || 0} smm metrics`);
+
+      // Create employees first
+      for (const emp of buyingSmmData.employees || []) {
+        try {
+          await prisma.employee.upsert({
+            where: { id: emp.id },
+            update: {},
+            create: {
+              id: emp.id,
+              name: emp.name,
+              role: emp.role,
+              percentRate: emp.percentRate,
+              percentageBase: emp.percentageBase,
+              countryId: emp.countryId,
+              isActive: emp.isActive,
+            },
+          });
+        } catch (e) {
+          // Ignore duplicates
+        }
+      }
+      console.log(`Created ${buyingSmmData.employees?.length || 0} employees`);
+
+      // Create buyer metrics
+      let buyerCreated = 0;
+      for (const metric of buyingSmmData.buyerMetrics || []) {
+        try {
+          await prisma.buyerMetrics.upsert({
+            where: {
+              date_employeeId_countryId: {
+                date: new Date(metric.date),
+                employeeId: metric.employeeId,
+                countryId: metric.countryId,
+              },
+            },
+            update: {},
+            create: {
+              date: new Date(metric.date),
+              employeeId: metric.employeeId,
+              countryId: metric.countryId,
+              spendManual: metric.spendManual,
+              spend: metric.spend,
+              subscriptions: metric.subscriptions,
+              dialogs: metric.dialogs,
+              fdCount: metric.fdCount,
+              costPerSubscription: metric.costPerSubscription,
+              costPerFd: metric.costPerFd,
+              conversionRate: metric.conversionRate,
+              payrollAmount: metric.payrollAmount,
+              deskName: metric.deskName,
+              platformName: metric.platformName,
+            },
+          });
+          buyerCreated++;
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+      console.log(`Created ${buyerCreated} buyer metrics`);
+
+      // Create SMM metrics
+      let smmCreated = 0;
+      for (const metric of buyingSmmData.smmMetrics || []) {
+        try {
+          await prisma.smmMetrics.upsert({
+            where: {
+              date_countryId: {
+                date: new Date(metric.date),
+                countryId: metric.countryId,
+              },
+            },
+            update: {},
+            create: {
+              date: new Date(metric.date),
+              countryId: metric.countryId,
+              postsPlan: metric.postsPlan,
+              postsFact: metric.postsFact,
+              storiesPlan: metric.storiesPlan,
+              storiesFact: metric.storiesFact,
+              miniReviewsPlan: metric.miniReviewsPlan,
+              miniReviewsFact: metric.miniReviewsFact,
+              bigReviewsPlan: metric.bigReviewsPlan,
+              bigReviewsFact: metric.bigReviewsFact,
+              notes: metric.notes,
+            },
+          });
+          smmCreated++;
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+      console.log(`Created ${smmCreated} smm metrics`);
+    }
+
     console.log("Production database seeded successfully!");
     
   } catch (error) {

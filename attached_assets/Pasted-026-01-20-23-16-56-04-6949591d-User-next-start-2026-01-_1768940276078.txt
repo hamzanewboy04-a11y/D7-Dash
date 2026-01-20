@@ -1,0 +1,104 @@
+026-01-20 23:16:56.04
+6949591d
+User
+> next start
+2026-01-20 23:16:56.04
+6949591d
+User
+> d7-dash-app@0.1.0 start
+2026-01-20 23:16:56.97
+6949591d
+User
+▲ Next.js 16.1.3
+2026-01-20 23:16:56.97
+6949591d
+User
+- Local: http://localhost:5000
+2026-01-20 23:16:56.97
+6949591d
+User
+- Network: http://169.254.8.1:5000
+2026-01-20 23:16:56.97
+6949591d
+User
+✓ Starting...
+2026-01-20 23:16:58.71
+6949591d
+User
+⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2026-01-20 23:16:58.94
+6949591d
+User
+✓ Ready in 2.6s
+2026-01-20 23:16:59.47
+6949591d
+User
+[Prisma] Environment: PRODUCTION
+2026-01-20 23:16:59.47
+6949591d
+User
+[Prisma] DATABASE_URL available: true
+2026-01-20 23:16:59.47
+6949591d
+User
+[Prisma] Data will persist across deployments
+2026-01-20 23:16:59.47
+6949591d
+User
+[Prisma] Using PostgreSQL database (CLOUD)
+2026-01-20 23:17:19.07
+6949591d
+User
+(node:40) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-01-20 23:17:19.07
+6949591d
+User
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-01-20 23:17:19.07
+6949591d
+User
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-01-20 23:17:19.07
+6949591d
+User
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-01-20 23:17:19.07
+6949591d
+User
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-01-20 23:17:19.07
+6949591d
+User
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-01-20 23:17:19.07
+6949591d
+User
+To prepare for this change:
+2026-01-20 23:17:19.07
+6949591d
+User
+To prepare for this change:
+2026-01-20 23:17:19.07
+6949591d
+User
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-01-20 23:17:19.07
+6949591d
+User
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-01-20 23:17:19.07
+6949591d
+User
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-01-20 23:17:19.07
+6949591d
+User
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-01-20 23:17:19.07
+6949591d
+User
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-01-20 23:17:19.07
+6949591d
+User
+(node:40) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
