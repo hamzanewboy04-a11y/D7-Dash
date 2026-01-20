@@ -100,11 +100,41 @@ interface Employee {
   country: Country | null;
   fixedRate: number | null;
   percentRate: number | null;
+  // Buyer tiers
+  buyerTier1Threshold: number | null;
+  buyerTier1Rate: number | null;
+  buyerTier2Threshold: number | null;
+  buyerTier2Rate: number | null;
+  buyerTier3Threshold: number | null;
+  buyerTier3Rate: number | null;
+  buyerBonusThreshold: number | null;
+  buyerBonusAmount: number | null;
+  // RD Handler tiers
+  rdTier1Threshold: number | null;
+  rdTier1Rate: number | null;
+  rdTier2Threshold: number | null;
+  rdTier2Rate: number | null;
+  rdTier3Threshold: number | null;
+  rdTier3Rate: number | null;
+  rdBonusThreshold: number | null;
+  rdBonusAmount: number | null;
+  // FD Handler tiers (expanded)
   fdTier1Rate: number | null;
+  fdTier1MaxCount: number | null;
   fdTier2Rate: number | null;
+  fdTier2MaxCount: number | null;
   fdTier3Rate: number | null;
+  fdTier3MaxCount: number | null;
+  fdTier4Rate: number | null;
+  fdTier4MaxCount: number | null;
+  fdTier5Rate: number | null;
   fdBonusThreshold: number | null;
   fdBonus: number | null;
+  // Additional fields
+  notes: string | null;
+  startDate: string | null;
+  contractType: string | null;
+  // Payment settings
   paymentType: string;
   bufferDays: number;
   paymentDay1: number | null;
@@ -188,11 +218,41 @@ export default function PayrollPage() {
     countryId: "",
     fixedRate: "",
     percentRate: "",
+    // Buyer tiers
+    buyerTier1Threshold: "",
+    buyerTier1Rate: "",
+    buyerTier2Threshold: "",
+    buyerTier2Rate: "",
+    buyerTier3Threshold: "",
+    buyerTier3Rate: "",
+    buyerBonusThreshold: "",
+    buyerBonusAmount: "",
+    // RD Handler tiers
+    rdTier1Threshold: "",
+    rdTier1Rate: "",
+    rdTier2Threshold: "",
+    rdTier2Rate: "",
+    rdTier3Threshold: "",
+    rdTier3Rate: "",
+    rdBonusThreshold: "",
+    rdBonusAmount: "",
+    // FD Handler tiers (expanded)
     fdTier1Rate: "",
+    fdTier1MaxCount: "",
     fdTier2Rate: "",
+    fdTier2MaxCount: "",
     fdTier3Rate: "",
+    fdTier3MaxCount: "",
+    fdTier4Rate: "",
+    fdTier4MaxCount: "",
+    fdTier5Rate: "",
     fdBonusThreshold: "",
     fdBonus: "",
+    // Additional fields
+    notes: "",
+    startDate: "",
+    contractType: "",
+    // Payment settings
     paymentType: "buffer",
     bufferDays: "7",
     paymentDay1: "",
@@ -274,11 +334,41 @@ export default function PayrollPage() {
       countryId: employee.countryId || "",
       fixedRate: employee.fixedRate?.toString() || "",
       percentRate: employee.percentRate?.toString() || "",
+      // Buyer tiers
+      buyerTier1Threshold: employee.buyerTier1Threshold?.toString() || "",
+      buyerTier1Rate: employee.buyerTier1Rate?.toString() || "",
+      buyerTier2Threshold: employee.buyerTier2Threshold?.toString() || "",
+      buyerTier2Rate: employee.buyerTier2Rate?.toString() || "",
+      buyerTier3Threshold: employee.buyerTier3Threshold?.toString() || "",
+      buyerTier3Rate: employee.buyerTier3Rate?.toString() || "",
+      buyerBonusThreshold: employee.buyerBonusThreshold?.toString() || "",
+      buyerBonusAmount: employee.buyerBonusAmount?.toString() || "",
+      // RD Handler tiers
+      rdTier1Threshold: employee.rdTier1Threshold?.toString() || "",
+      rdTier1Rate: employee.rdTier1Rate?.toString() || "",
+      rdTier2Threshold: employee.rdTier2Threshold?.toString() || "",
+      rdTier2Rate: employee.rdTier2Rate?.toString() || "",
+      rdTier3Threshold: employee.rdTier3Threshold?.toString() || "",
+      rdTier3Rate: employee.rdTier3Rate?.toString() || "",
+      rdBonusThreshold: employee.rdBonusThreshold?.toString() || "",
+      rdBonusAmount: employee.rdBonusAmount?.toString() || "",
+      // FD Handler tiers
       fdTier1Rate: employee.fdTier1Rate?.toString() || "",
+      fdTier1MaxCount: employee.fdTier1MaxCount?.toString() || "",
       fdTier2Rate: employee.fdTier2Rate?.toString() || "",
+      fdTier2MaxCount: employee.fdTier2MaxCount?.toString() || "",
       fdTier3Rate: employee.fdTier3Rate?.toString() || "",
+      fdTier3MaxCount: employee.fdTier3MaxCount?.toString() || "",
+      fdTier4Rate: employee.fdTier4Rate?.toString() || "",
+      fdTier4MaxCount: employee.fdTier4MaxCount?.toString() || "",
+      fdTier5Rate: employee.fdTier5Rate?.toString() || "",
       fdBonusThreshold: employee.fdBonusThreshold?.toString() || "",
       fdBonus: employee.fdBonus?.toString() || "",
+      // Additional fields
+      notes: employee.notes || "",
+      startDate: employee.startDate ? employee.startDate.split("T")[0] : "",
+      contractType: employee.contractType || "",
+      // Payment settings
       paymentType: employee.paymentType || "buffer",
       bufferDays: employee.bufferDays?.toString() || "7",
       paymentDay1: employee.paymentDay1?.toString() || "",
@@ -296,11 +386,41 @@ export default function PayrollPage() {
       countryId: "",
       fixedRate: "",
       percentRate: "",
+      // Buyer tiers
+      buyerTier1Threshold: "",
+      buyerTier1Rate: "",
+      buyerTier2Threshold: "",
+      buyerTier2Rate: "",
+      buyerTier3Threshold: "",
+      buyerTier3Rate: "",
+      buyerBonusThreshold: "",
+      buyerBonusAmount: "",
+      // RD Handler tiers
+      rdTier1Threshold: "",
+      rdTier1Rate: "",
+      rdTier2Threshold: "",
+      rdTier2Rate: "",
+      rdTier3Threshold: "",
+      rdTier3Rate: "",
+      rdBonusThreshold: "",
+      rdBonusAmount: "",
+      // FD Handler tiers
       fdTier1Rate: "",
+      fdTier1MaxCount: "",
       fdTier2Rate: "",
+      fdTier2MaxCount: "",
       fdTier3Rate: "",
+      fdTier3MaxCount: "",
+      fdTier4Rate: "",
+      fdTier4MaxCount: "",
+      fdTier5Rate: "",
       fdBonusThreshold: "",
       fdBonus: "",
+      // Additional fields
+      notes: "",
+      startDate: "",
+      contractType: "",
+      // Payment settings
       paymentType: "buffer",
       bufferDays: "7",
       paymentDay1: "",
@@ -668,27 +788,130 @@ export default function PayrollPage() {
                 </Select>
               </div>
 
-              {/* Role-based rate configuration */}
-              {(formData.role === "buyer" || formData.role === "rd_handler") && (
+              {/* Buyer tier configuration */}
+              {formData.role === "buyer" && (
                 <div className="border-t pt-4 mt-4">
-                  <h4 className="text-sm font-medium mb-3">
-                    {formData.role === "buyer" ? "Ставка баера" : "Ставка обработчика РД"}
-                  </h4>
-                  <div className="space-y-2">
-                    <Label htmlFor="percentRate">Процентная ставка (%)</Label>
-                    <Input
-                      id="percentRate"
-                      type="number"
-                      step="0.01"
-                      value={formData.percentRate}
-                      onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
-                      placeholder={formData.role === "buyer" ? "12" : "4"}
-                    />
-                    <p className="text-xs text-slate-500">
-                      {formData.role === "buyer" 
-                        ? "Процент от спенда (по умолчанию 12%)"
-                        : "Процент от суммы РД (по умолчанию 4%)"}
-                    </p>
+                  <h4 className="text-sm font-medium mb-3">Тиры комиссий баера</h4>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="percentRate">Базовая ставка (%)</Label>
+                      <Input
+                        id="percentRate"
+                        type="number"
+                        step="0.01"
+                        value={formData.percentRate}
+                        onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
+                        placeholder="12"
+                      />
+                      <p className="text-xs text-slate-500">Процент от спенда (по умолчанию 12%)</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-3">
+                      <p className="text-xs font-medium text-slate-600">Тиры по спенду (необязательно)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 1: порог спенда ($)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerTier1Threshold} onChange={(e) => setFormData({ ...formData, buyerTier1Threshold: e.target.value })} placeholder="1000" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 1: ставка (%)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerTier1Rate} onChange={(e) => setFormData({ ...formData, buyerTier1Rate: e.target.value })} placeholder="10" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 2: порог спенда ($)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerTier2Threshold} onChange={(e) => setFormData({ ...formData, buyerTier2Threshold: e.target.value })} placeholder="5000" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 2: ставка (%)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerTier2Rate} onChange={(e) => setFormData({ ...formData, buyerTier2Rate: e.target.value })} placeholder="12" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 3: порог спенда ($)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerTier3Threshold} onChange={(e) => setFormData({ ...formData, buyerTier3Threshold: e.target.value })} placeholder="10000" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 3: ставка (%)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerTier3Rate} onChange={(e) => setFormData({ ...formData, buyerTier3Rate: e.target.value })} placeholder="15" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Порог бонуса ($)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerBonusThreshold} onChange={(e) => setFormData({ ...formData, buyerBonusThreshold: e.target.value })} placeholder="15000" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Сумма бонуса ($)</Label>
+                          <Input type="number" step="0.01" value={formData.buyerBonusAmount} onChange={(e) => setFormData({ ...formData, buyerBonusAmount: e.target.value })} placeholder="500" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* RD Handler tier configuration */}
+              {formData.role === "rd_handler" && (
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-medium mb-3">Тиры комиссий обработчика РД</h4>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="percentRate">Базовая ставка (%)</Label>
+                      <Input
+                        id="percentRate"
+                        type="number"
+                        step="0.01"
+                        value={formData.percentRate}
+                        onChange={(e) => setFormData({ ...formData, percentRate: e.target.value })}
+                        placeholder="4"
+                      />
+                      <p className="text-xs text-slate-500">Процент от суммы РД (по умолчанию 4%)</p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-3">
+                      <p className="text-xs font-medium text-slate-600">Тиры по сумме РД (необязательно)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 1: порог суммы РД ($)</Label>
+                          <Input type="number" step="0.01" value={formData.rdTier1Threshold} onChange={(e) => setFormData({ ...formData, rdTier1Threshold: e.target.value })} placeholder="500" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 1: ставка (%)</Label>
+                          <Input type="number" step="0.01" value={formData.rdTier1Rate} onChange={(e) => setFormData({ ...formData, rdTier1Rate: e.target.value })} placeholder="3" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 2: порог суммы РД ($)</Label>
+                          <Input type="number" step="0.01" value={formData.rdTier2Threshold} onChange={(e) => setFormData({ ...formData, rdTier2Threshold: e.target.value })} placeholder="2000" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 2: ставка (%)</Label>
+                          <Input type="number" step="0.01" value={formData.rdTier2Rate} onChange={(e) => setFormData({ ...formData, rdTier2Rate: e.target.value })} placeholder="4" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 3: порог суммы РД ($)</Label>
+                          <Input type="number" step="0.01" value={formData.rdTier3Threshold} onChange={(e) => setFormData({ ...formData, rdTier3Threshold: e.target.value })} placeholder="5000" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 3: ставка (%)</Label>
+                          <Input type="number" step="0.01" value={formData.rdTier3Rate} onChange={(e) => setFormData({ ...formData, rdTier3Rate: e.target.value })} placeholder="5" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Порог бонуса ($)</Label>
+                          <Input type="number" step="0.01" value={formData.rdBonusThreshold} onChange={(e) => setFormData({ ...formData, rdBonusThreshold: e.target.value })} placeholder="10000" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Сумма бонуса ($)</Label>
+                          <Input type="number" step="0.01" value={formData.rdBonusAmount} onChange={(e) => setFormData({ ...formData, rdBonusAmount: e.target.value })} placeholder="200" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -721,41 +944,59 @@ export default function PayrollPage() {
 
               {formData.role === "fd_handler" && (
                 <div className="border-t pt-4 mt-4">
-                  <h4 className="text-sm font-medium mb-3">Тарификация обработчика ФД</h4>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="fdTier1Rate">Ставка за &lt; 5 ФД ($)</Label>
-                        <Input
-                          id="fdTier1Rate"
-                          type="number"
-                          step="0.5"
-                          value={formData.fdTier1Rate}
-                          onChange={(e) => setFormData({ ...formData, fdTier1Rate: e.target.value })}
-                          placeholder="3"
-                        />
+                  <h4 className="text-sm font-medium mb-3">Настройки оплаты ФД</h4>
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 p-3 rounded-lg space-y-3">
+                      <p className="text-xs font-medium text-slate-600">Тиры по количеству ФД</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 1: ставка ($)</Label>
+                          <Input type="number" step="0.5" value={formData.fdTier1Rate} onChange={(e) => setFormData({ ...formData, fdTier1Rate: e.target.value })} placeholder="3" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 1: до кол-ва ФД</Label>
+                          <Input type="number" step="1" value={formData.fdTier1MaxCount} onChange={(e) => setFormData({ ...formData, fdTier1MaxCount: e.target.value })} placeholder="5" />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fdTier2Rate">Ставка за 5-9 ФД ($)</Label>
-                        <Input
-                          id="fdTier2Rate"
-                          type="number"
-                          step="0.5"
-                          value={formData.fdTier2Rate}
-                          onChange={(e) => setFormData({ ...formData, fdTier2Rate: e.target.value })}
-                          placeholder="4"
-                        />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 2: ставка ($)</Label>
+                          <Input type="number" step="0.5" value={formData.fdTier2Rate} onChange={(e) => setFormData({ ...formData, fdTier2Rate: e.target.value })} placeholder="4" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 2: до кол-ва ФД</Label>
+                          <Input type="number" step="1" value={formData.fdTier2MaxCount} onChange={(e) => setFormData({ ...formData, fdTier2MaxCount: e.target.value })} placeholder="10" />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fdTier3Rate">Ставка за 10+ ФД ($)</Label>
-                        <Input
-                          id="fdTier3Rate"
-                          type="number"
-                          step="0.5"
-                          value={formData.fdTier3Rate}
-                          onChange={(e) => setFormData({ ...formData, fdTier3Rate: e.target.value })}
-                          placeholder="5"
-                        />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 3: ставка ($)</Label>
+                          <Input type="number" step="0.5" value={formData.fdTier3Rate} onChange={(e) => setFormData({ ...formData, fdTier3Rate: e.target.value })} placeholder="4.5" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 3: до кол-ва ФД</Label>
+                          <Input type="number" step="1" value={formData.fdTier3MaxCount} onChange={(e) => setFormData({ ...formData, fdTier3MaxCount: e.target.value })} placeholder="15" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 4: ставка ($)</Label>
+                          <Input type="number" step="0.5" value={formData.fdTier4Rate} onChange={(e) => setFormData({ ...formData, fdTier4Rate: e.target.value })} placeholder="5" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 4: до кол-ва ФД</Label>
+                          <Input type="number" step="1" value={formData.fdTier4MaxCount} onChange={(e) => setFormData({ ...formData, fdTier4MaxCount: e.target.value })} placeholder="20" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Тир 5: ставка за 20+ ФД ($)</Label>
+                          <Input type="number" step="0.5" value={formData.fdTier5Rate} onChange={(e) => setFormData({ ...formData, fdTier5Rate: e.target.value })} placeholder="5.5" />
+                        </div>
+                        <div className="space-y-1 opacity-50">
+                          <Label className="text-xs">Без лимита</Label>
+                          <Input disabled placeholder="∞" />
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -815,6 +1056,49 @@ export default function PayrollPage() {
                   </div>
                 </div>
               )}
+
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium mb-3">Дополнительная информация</h4>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate">Дата начала работы</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contractType">Тип контракта</Label>
+                      <Select
+                        value={formData.contractType || undefined}
+                        onValueChange={(v) => setFormData({ ...formData, contractType: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите тип" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="full-time">Полная занятость</SelectItem>
+                          <SelectItem value="part-time">Частичная занятость</SelectItem>
+                          <SelectItem value="contractor">Подрядчик</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Заметки</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Дополнительные заметки о сотруднике..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
 
               <div className="border-t pt-4 mt-4">
                 <h4 className="text-sm font-medium mb-3">Настройки выплат</h4>
