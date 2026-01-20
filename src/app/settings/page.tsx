@@ -458,9 +458,8 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="rates">
-        <TabsList className="grid grid-cols-5 lg:grid-cols-10 w-full">
+        <TabsList className="grid grid-cols-5 lg:grid-cols-9 w-full">
           <TabsTrigger value="rates">Комиссии</TabsTrigger>
-          <TabsTrigger value="payroll">ФОТ</TabsTrigger>
           <TabsTrigger value="currency">Валюты</TabsTrigger>
           <TabsTrigger value="payments">Выплаты</TabsTrigger>
           <TabsTrigger value="limits">Лимиты</TabsTrigger>
@@ -533,175 +532,6 @@ export default function SettingsPage() {
                   value={settings.priemkaCommission}
                   onChange={(e) => handleSettingChange("priemkaCommission", e.target.value)}
                 />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Payroll Settings */}
-        <TabsContent value="payroll" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Процентные ставки ФОТ</CardTitle>
-              <CardDescription>
-                Ставки ФОТ рассчитываемые как процент от дохода/спенда
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="buyerRate">Ставка баера (% от спенда)</Label>
-                  <Input
-                    id="buyerRate"
-                    type="number"
-                    step="0.1"
-                    value={settings.buyerRate}
-                    onChange={(e) => handleSettingChange("buyerRate", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rdHandlerRate">Ставка обраб. РД (%)</Label>
-                  <Input
-                    id="rdHandlerRate"
-                    type="number"
-                    step="0.1"
-                    value={settings.rdHandlerRate}
-                    onChange={(e) => handleSettingChange("rdHandlerRate", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="headDesignerFixed">Хед дизайнер фикс ($)</Label>
-                  <Input
-                    id="headDesignerFixed"
-                    type="number"
-                    step="0.5"
-                    value={settings.headDesignerFixed}
-                    onChange={(e) => handleSettingChange("headDesignerFixed", e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Фиксированные ставки ФОТ</CardTitle>
-              <CardDescription>
-                Ставки по умолчанию для ролей с фиксированной оплатой за проект/день
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contentFixedRate">Контент фикс за день ($)</Label>
-                  <Input
-                    id="contentFixedRate"
-                    type="number"
-                    step="0.5"
-                    value={settings.contentFixedRate}
-                    onChange={(e) => handleSettingChange("contentFixedRate", e.target.value)}
-                  />
-                  <p className="text-xs text-slate-500">За активный день × кол-во проектов</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="designerFixedRate">Дизайнер фикс за день ($)</Label>
-                  <Input
-                    id="designerFixedRate"
-                    type="number"
-                    step="0.5"
-                    value={settings.designerFixedRate}
-                    onChange={(e) => handleSettingChange("designerFixedRate", e.target.value)}
-                  />
-                  <p className="text-xs text-slate-500">За активный день × кол-во проектов</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reviewerFixedRate">Отзовик фикс за день ($)</Label>
-                  <Input
-                    id="reviewerFixedRate"
-                    type="number"
-                    step="0.5"
-                    value={settings.reviewerFixedRate}
-                    onChange={(e) => handleSettingChange("reviewerFixedRate", e.target.value)}
-                  />
-                  <p className="text-xs text-slate-500">За активный день × кол-во проектов</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Тиры обработчика ФД</CardTitle>
-              <CardDescription>
-                Тиры выплат на основе количества ФД. Формула: (кол-во * ставка + бонус) * множитель
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fdTier1Rate">Тир 1 (кол-во &lt; 5) $</Label>
-                  <Input
-                    id="fdTier1Rate"
-                    type="number"
-                    step="0.5"
-                    value={settings.fdTier1Rate}
-                    onChange={(e) => handleSettingChange("fdTier1Rate", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fdTier2Rate">Тир 2 (5-10) $</Label>
-                  <Input
-                    id="fdTier2Rate"
-                    type="number"
-                    step="0.5"
-                    value={settings.fdTier2Rate}
-                    onChange={(e) => handleSettingChange("fdTier2Rate", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fdTier3Rate">Тир 3 (10+) $</Label>
-                  <Input
-                    id="fdTier3Rate"
-                    type="number"
-                    step="0.5"
-                    value={settings.fdTier3Rate}
-                    onChange={(e) => handleSettingChange("fdTier3Rate", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fdBonusThreshold">Порог бонуса (кол-во &gt;=)</Label>
-                  <Input
-                    id="fdBonusThreshold"
-                    type="number"
-                    value={settings.fdBonusThreshold}
-                    onChange={(e) => handleSettingChange("fdBonusThreshold", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fdBonus">Сумма бонуса ($)</Label>
-                  <Input
-                    id="fdBonus"
-                    type="number"
-                    step="0.5"
-                    value={settings.fdBonus}
-                    onChange={(e) => handleSettingChange("fdBonus", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fdMultiplier">Множитель</Label>
-                  <Input
-                    id="fdMultiplier"
-                    type="number"
-                    step="0.1"
-                    value={settings.fdMultiplier}
-                    onChange={(e) => handleSettingChange("fdMultiplier", e.target.value)}
-                  />
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -1385,7 +1215,7 @@ export default function SettingsPage() {
                           id="newUsername"
                           value={newUser.username}
                           onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                          placeholder="username"
+                          placeholder="имя_пользователя"
                         />
                       </div>
                       <div className="space-y-2">

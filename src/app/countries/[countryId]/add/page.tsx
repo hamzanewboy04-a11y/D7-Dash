@@ -394,7 +394,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
             <CardContent className="space-y-6">
               {/* ФД */}
               <div>
-                <h4 className="font-medium mb-3">ФД (Фактические данные)</h4>
+                <h4 className="font-medium mb-3">ФД (First Deposit)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="fdCount">Количество ФД</Label>
@@ -435,7 +435,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
 
               {/* нФД */}
               <div>
-                <h4 className="font-medium mb-3">нФД (Нефактические данные)</h4>
+                <h4 className="font-medium mb-3">нФД (нейро First Deposit)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="nfdCount">Количество нФД</Label>
@@ -476,7 +476,7 @@ export default function AddDailyDataPage({ params }: PageProps) {
 
               {/* РД */}
               <div>
-                <h4 className="font-medium mb-3">РД (Расчётные данные)</h4>
+                <h4 className="font-medium mb-3">РД (Редепозит)</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="rdCount">Количество РД</Label>

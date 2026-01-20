@@ -69,6 +69,11 @@ export async function POST(request: Request) {
       paymentDay1,
       paymentDay2,
       currentBalance,
+      fdTier1Rate,
+      fdTier2Rate,
+      fdTier3Rate,
+      fdBonusThreshold,
+      fdBonus,
     } = body;
 
     if (!name || !role) {
@@ -90,6 +95,11 @@ export async function POST(request: Request) {
         paymentDay1: paymentDay1 ? parseInt(paymentDay1) : null,
         paymentDay2: paymentDay2 ? parseInt(paymentDay2) : null,
         currentBalance: currentBalance ? parseFloat(currentBalance) : 0,
+        fdTier1Rate: fdTier1Rate ? parseFloat(fdTier1Rate) : null,
+        fdTier2Rate: fdTier2Rate ? parseFloat(fdTier2Rate) : null,
+        fdTier3Rate: fdTier3Rate ? parseFloat(fdTier3Rate) : null,
+        fdBonusThreshold: fdBonusThreshold ? parseInt(fdBonusThreshold) : null,
+        fdBonus: fdBonus ? parseFloat(fdBonus) : null,
       },
       include: {
         country: {
@@ -129,6 +139,11 @@ export async function PUT(request: Request) {
       paymentDay1,
       paymentDay2,
       currentBalance,
+      fdTier1Rate,
+      fdTier2Rate,
+      fdTier3Rate,
+      fdBonusThreshold,
+      fdBonus,
     } = body;
 
     if (!id) {
@@ -151,6 +166,11 @@ export async function PUT(request: Request) {
     if (paymentDay1 !== undefined) updateData.paymentDay1 = paymentDay1 ? parseInt(paymentDay1) : null;
     if (paymentDay2 !== undefined) updateData.paymentDay2 = paymentDay2 ? parseInt(paymentDay2) : null;
     if (currentBalance !== undefined) updateData.currentBalance = parseFloat(currentBalance);
+    if (fdTier1Rate !== undefined) updateData.fdTier1Rate = fdTier1Rate ? parseFloat(fdTier1Rate) : null;
+    if (fdTier2Rate !== undefined) updateData.fdTier2Rate = fdTier2Rate ? parseFloat(fdTier2Rate) : null;
+    if (fdTier3Rate !== undefined) updateData.fdTier3Rate = fdTier3Rate ? parseFloat(fdTier3Rate) : null;
+    if (fdBonusThreshold !== undefined) updateData.fdBonusThreshold = fdBonusThreshold ? parseInt(fdBonusThreshold) : null;
+    if (fdBonus !== undefined) updateData.fdBonus = fdBonus ? parseFloat(fdBonus) : null;
 
     const employee = await prisma.employee.update({
       where: { id },

@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 
 export const metadata: Metadata = {
   title: "D7 Team Dashboard",
-  description: "Financial dashboard for D7 Team - tracking revenue, expenses, and payroll across multiple countries",
+  description: "Финансовая панель D7 Team — учёт доходов, расходов и ФОТ по странам",
 };
 
 export default function RootLayout({

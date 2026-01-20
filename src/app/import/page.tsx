@@ -499,7 +499,7 @@ export default function ImportPage() {
               <ul className="mt-2 text-sm text-slate-500 list-disc list-inside">
                 <li>Комиссия агентства (9% Trust, 8% Crossgif/FBM)</li>
                 <li>Комиссия Приёмки (15%)</li>
-                <li>ФОТ (Байер 12%, ФД Handler по тарифу, РД Handler 4%)</li>
+                <li>ФОТ (Баер 12%, Обработчик ФД по тарифу, Обработчик РД 4%)</li>
                 <li>Чистая прибыль и ROI</li>
               </ul>
             </div>

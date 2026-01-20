@@ -151,16 +151,24 @@ export async function calculateEmployeePayroll(
 
     case "fd_handler": {
       const fdCount = metrics.reduce((sum, m) => sum + m.fdCount, 0);
-      let rate = settings.fdTier1Rate;
+      
+      // Use employee-level rates if set, otherwise fall back to global settings
+      const tier1Rate = employee.fdTier1Rate ?? settings.fdTier1Rate;
+      const tier2Rate = employee.fdTier2Rate ?? settings.fdTier2Rate;
+      const tier3Rate = employee.fdTier3Rate ?? settings.fdTier3Rate;
+      const bonusThreshold = employee.fdBonusThreshold ?? settings.fdBonusThreshold;
+      const bonus = employee.fdBonus ?? settings.fdBonus;
+      
+      let rate = tier1Rate;
       if (fdCount >= 10) {
-        rate = settings.fdTier3Rate;
+        rate = tier3Rate;
       } else if (fdCount >= 5) {
-        rate = settings.fdTier2Rate;
+        rate = tier2Rate;
       }
       
       let amount = fdCount * rate;
-      if (fdCount >= settings.fdBonusThreshold) {
-        amount += settings.fdBonus;
+      if (fdCount >= bonusThreshold) {
+        amount += bonus;
       }
       amount *= settings.fdMultiplier;
       

@@ -76,6 +76,7 @@ const COLUMN_MAP: Record<string, string> = {
   "баланс рк факт": "adAccountBalanceFact",
   "баланс рк математика": "adAccountBalanceMath",
   "внесли на рк суммарно": "adAccountDeposit",
+  "внесли на рк": "adAccountDeposit",
   // Agency fee
   "процент агенства от спенда (траст 9 остальные 8)": "agencyFee",
   "процент агенства от пополнения": "agencyFeeDeposit",
@@ -143,6 +144,8 @@ const COLUMN_MAP: Record<string, string> = {
   "фот дизайнер": "payrollDesigner",
   "фот баер": "payrollBuyer",
   "фот хед диз": "payrollHeadDesigner",
+  "фот хед диз (10$ фикс)": "payrollHeadDesigner",
+  "ФОТ ХЕД ДИЗ (10$ фикс)": "payrollHeadDesigner",
   "общий фот": "totalPayroll",
   "невыплачено фот": "unpaidPayroll",
   "выплата фот": "paidPayroll",
@@ -330,6 +333,16 @@ async function main() {
     let sheetUpdated = 0;
 
     for (const row of rawData) {
+      // Skip weekly summary rows (those with a "Неделя" column value)
+      const isWeeklySummary = Object.entries(row).some(([colName, value]) => {
+        const normalizedCol = colName.toLowerCase().trim();
+        return normalizedCol === "неделя" && value !== null && value !== undefined && value !== "";
+      });
+
+      if (isWeeklySummary) {
+        continue;
+      }
+
       // Parse row data
       const data: Record<string, number> = {};
       let date: Date | null = null;
@@ -361,6 +374,9 @@ async function main() {
         const recordData = {
           date,
           countryId,
+          spendTrust: data.spendTrust || 0,
+          spendCrossgif: data.spendCrossgif || 0,
+          spendFbm: data.spendFbm || 0,
           totalSpend: metrics.totalSpend,
           agencyFee: metrics.agencyFee,
           revenueLocalPriemka: data.revenueLocalPriemka || 0,
@@ -372,10 +388,13 @@ async function main() {
           totalExpensesUsdt: metrics.totalExpensesUsdt,
           fdCount: Math.round(data.fdCount || 0),
           fdSumLocal: data.fdSumLocal || 0,
+          payrollContent: data.payrollContent || 0,
+          payrollReviews: data.payrollReviews || 0,
+          payrollDesigner: data.payrollDesigner || 0,
           payrollBuyer: metrics.payrollBuyer,
           payrollFdHandler: metrics.payrollFdHandler,
           payrollRdHandler: metrics.payrollRdHandler,
-          payrollHeadDesigner: 10,
+          payrollHeadDesigner: data.payrollHeadDesigner || 10,
           totalPayroll: metrics.totalPayroll,
           chatterfyCost: data.chatterfyCost || 0,
           additionalExpenses: data.additionalExpenses || 0,

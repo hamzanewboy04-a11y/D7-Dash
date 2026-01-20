@@ -163,6 +163,13 @@ model Employee {
   fixedRate   Float?   // Фиксированная ставка (например, 10$ для хед диза)
   percentRate Float?   // Процентная ставка (например, 12% для баера)
 
+  // FD Handler тиры (для индивидуальных настроек)
+  fdTier1Rate     Float?   // Rate for < 5 FD
+  fdTier2Rate     Float?   // Rate for 5-9 FD
+  fdTier3Rate     Float?   // Rate for 10+ FD
+  fdBonusThreshold Int?    // Threshold for bonus (default 5)
+  fdBonus         Float?   // Bonus amount
+
   // Настройки периода выплат
   paymentType     String   @default("buffer")  // buffer, day_to_day, twice_monthly, weekly, monthly
   bufferDays      Int      @default(7)         // Дней буфера (для buffer типа)
