@@ -24,6 +24,8 @@ model Country {
   adAccounts   AdAccount[]
   employees    Employee[]
   expenses     Expense[]
+  buyerMetrics BuyerMetrics[]
+  smmMetrics   SmmMetrics[]
 }
 
 // Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
@@ -218,6 +220,8 @@ model Employee {
 
   payrollRecords PayrollRecord[]
   payments       Payment[]
+  buyerMetrics   BuyerMetrics[]
+  smmMetrics     SmmMetrics[]
 }
 
 // Записи о выплатах ФОТ
@@ -355,4 +359,93 @@ model Session {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// === БАИНГ (Buying) - Ежедневные метрики по баерам ===
+model BuyerMetrics {
+  id              String   @id @default(cuid())
+  date            DateTime
+  employeeId      String
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  countryId       String
+  country         Country  @relation(fields: [countryId], references: [id])
+  
+  // Основные метрики
+  spendManual     Float?   // Общий спенд (вручную)
+  spend           Float    @default(0) // Общий спенд (расчётный)
+  subscriptions   Int      @default(0) // Подписки
+  dialogs         Int      @default(0) // Диалоги
+  fdCount         Int      @default(0) // ФД (First Deposit)
+  
+  // Расчётные метрики
+  costPerSubscription  Float    @default(0) // Цена подписки = spend / subscriptions
+  costPerFd            Float    @default(0) // Цена ФД = spend / fdCount
+  conversionRate       Float    @default(0) // Конверсия % = dialogs / subscriptions * 100
+  
+  // ЗП (10% от спенда)
+  payrollAmount        Float    @default(0) // ЗП за день
+  
+  // Дополнительные поля
+  deskName        String?  // Название деска (Desk1, Desk3, etc.)
+  platformName    String?  // Название платформы (Crossgif, FBM, etc.)
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([date, employeeId, countryId])
+  @@index([date])
+  @@index([employeeId])
+  @@index([countryId])
+}
+
+// === SMM - План/факт контента ===
+model SmmMetrics {
+  id              String   @id @default(cuid())
+  date            DateTime
+  countryId       String
+  country         Country  @relation(fields: [countryId], references: [id])
+  employeeId      String?  // Контентщик (может быть null для общих данных)
+  employee        Employee? @relation(fields: [employeeId], references: [id])
+  
+  // Посты
+  postsPlan       Int      @default(0) // План посты
+  postsPlanDaily  Int      @default(0) // План в день
+  postsFactDaily  Int      @default(0) // Факт в день
+  postsTotal      Int      @default(0) // ИТОГО шт
+  postsRemaining  Int      @default(0) // Остаток
+  
+  // Сторис
+  storiesPlan       Int    @default(0) // План сторис
+  storiesPlanDaily  Int    @default(0) // План в день
+  storiesFactDaily  Int    @default(0) // Факт в день
+  storiesTotal      Int    @default(0) // ИТОГО шт
+  storiesRemaining  Int    @default(0) // Остаток
+  
+  // Мини-отзывы
+  miniReviewsPlan       Int    @default(0) // План мини-отзывы
+  miniReviewsPlanDaily  Int    @default(0) // План в день
+  miniReviewsFactDaily  Int    @default(0) // Факт в день
+  miniReviewsTotal      Int    @default(0) // ИТОГО шт
+  miniReviewsRemaining  Int    @default(0) // Остаток
+  
+  // Большие отзывы
+  bigReviewsPlan       Int    @default(0) // План большие отзывы
+  bigReviewsPlanDaily  Int    @default(0) // План в день
+  bigReviewsFactDaily  Int    @default(0) // Факт в день
+  bigReviewsTotal      Int    @default(0) // ИТОГО шт
+  bigReviewsRemaining  Int    @default(0) // Остаток
+  
+  // Общие метрики выполнения
+  completionRate  Float    @default(0) // Процент выполнения плана
+  
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([date, countryId])
+  @@index([date])
+  @@index([countryId])
+  @@index([employeeId])
 }
