@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaLibSQL } from "@prisma/adapter-libsql";
+import { createClient } from "@libsql/client";
 import Database from "better-sqlite3";
 import * as path from "path";
 import * as fs from "fs";
@@ -189,6 +191,11 @@ export function ensureDatabaseTables() {
         countryId TEXT,
         fixedRate REAL,
         percentRate REAL,
+        paymentType TEXT DEFAULT 'buffer',
+        bufferDays INTEGER DEFAULT 7,
+        paymentDay1 INTEGER,
+        paymentDay2 INTEGER,
+        currentBalance REAL DEFAULT 0,
         isActive INTEGER DEFAULT 1,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -209,6 +216,21 @@ export function ensureDatabaseTables() {
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (employeeId) REFERENCES Employee(id)
+      )
+    `);
+
+    // Expense table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS Expense (
+        id TEXT PRIMARY KEY,
+        date TEXT NOT NULL,
+        countryId TEXT,
+        amount REAL NOT NULL,
+        description TEXT NOT NULL,
+        category TEXT DEFAULT 'other',
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (countryId) REFERENCES Country(id)
       )
     `);
 
@@ -271,6 +293,8 @@ export function ensureDatabaseTables() {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_dailymetrics_countryid ON DailyMetrics(countryId)`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_payrollrecord_date ON PayrollRecord(date)`);
     db.exec(`CREATE INDEX IF NOT EXISTS idx_payrollrecord_employeeid ON PayrollRecord(employeeId)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_expense_date ON Expense(date)`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_expense_countryid ON Expense(countryId)`);
 
     // Count existing data
     const countryCount = db.prepare('SELECT COUNT(*) as count FROM Country').get() as { count: number };
@@ -284,6 +308,29 @@ export function ensureDatabaseTables() {
 }
 
 function createPrismaClient() {
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+  // Use Turso if credentials are available
+  if (tursoUrl && tursoToken) {
+    console.log('[Prisma] Using Turso cloud database');
+    console.log(`[Prisma] Turso URL: ${tursoUrl}`);
+
+    const libsql = createClient({
+      url: tursoUrl,
+      authToken: tursoToken,
+    });
+
+    const adapter = new PrismaLibSQL(libsql);
+
+    return new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    });
+  }
+
+  // Fallback to local SQLite
+  console.log('[Prisma] Using local SQLite database');
   const dbPath = getDbPath();
   const adapter = new PrismaBetterSqlite3({ url: dbPath });
 
