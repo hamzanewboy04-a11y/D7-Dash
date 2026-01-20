@@ -6,6 +6,10 @@ A financial dashboard application for D7 Team, tracking revenue, expenses, and p
 ## Recent Changes (January 2026)
 - **Design Update**: New color scheme (black, white, blue, light blue)
 - **Motivational Features**: Daily quotes, achievement badges, profit streaks, goal tracking
+- **Authentication**: Role-based access (admin/editor/viewer), login page, user management
+- **Payroll Per-Employee**: Employee rate configuration moved to employee cards (not global settings)
+- **Terminology**: nFD (нейро First Deposit), FD (First Deposit), RD (Редепозит)
+- **Import Fixes**: Fixed Excel import for individual ad spend and payroll detail fields
 - **Production Seeding**: Auto-seeds database during deployment
 
 ## Project Architecture
