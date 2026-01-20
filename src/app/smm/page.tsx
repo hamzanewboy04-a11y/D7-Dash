@@ -45,6 +45,7 @@ import {
   CheckCircle,
   Clock,
   TrendingUp,
+  Settings,
 } from "lucide-react";
 
 const DATE_RANGE_OPTIONS = [
@@ -135,6 +136,20 @@ interface FormData {
   notes: string;
 }
 
+interface SmmSettings {
+  id?: string;
+  countryId: string;
+  postsPlanMonthly: number;
+  storiesPlanMonthly: number;
+  miniReviewsPlanMonthly: number;
+  bigReviewsPlanMonthly: number;
+  postsPlanDaily: number;
+  storiesPlanDaily: number;
+  miniReviewsPlanDaily: number;
+  bigReviewsPlanDaily: number;
+  country?: Country;
+}
+
 const emptyForm: FormData = {
   date: new Date().toISOString().split("T")[0],
   countryId: "",
@@ -180,6 +195,10 @@ export default function SmmPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMetric, setEditingMetric] = useState<SmmMetric | null>(null);
   const [formData, setFormData] = useState<FormData>(emptyForm);
+
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [smmSettings, setSmmSettings] = useState<SmmSettings[]>([]);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -359,6 +378,71 @@ export default function SmmPage() {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch("/api/smm/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setSmmSettings(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching SMM settings:", error);
+    }
+  };
+
+  const handleOpenSettingsDialog = () => {
+    fetchSettings();
+    setIsSettingsDialogOpen(true);
+  };
+
+  const handleSaveSettings = async (countryId: string, settings: Partial<SmmSettings>) => {
+    setSavingSettings(true);
+    try {
+      const response = await fetch("/api/smm/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ countryId, ...settings }),
+      });
+      if (response.ok) {
+        await fetchSettings();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Ошибка сохранения настроек");
+      }
+    } catch (error) {
+      console.error("Error saving SMM settings:", error);
+      alert("Ошибка сохранения настроек");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const getSettingsForCountry = (countryId: string): SmmSettings | undefined => {
+    return smmSettings.find(s => s.countryId === countryId);
+  };
+
+  const updateSettingsField = (countryId: string, field: keyof SmmSettings, value: number) => {
+    setSmmSettings(prev => {
+      const existing = prev.find(s => s.countryId === countryId);
+      if (existing) {
+        return prev.map(s => s.countryId === countryId ? { ...s, [field]: value } : s);
+      } else {
+        return [...prev, {
+          countryId,
+          postsPlanMonthly: 0,
+          storiesPlanMonthly: 0,
+          miniReviewsPlanMonthly: 0,
+          bigReviewsPlanMonthly: 0,
+          postsPlanDaily: 0,
+          storiesPlanDaily: 0,
+          miniReviewsPlanDaily: 0,
+          bigReviewsPlanDaily: 0,
+          [field]: value,
+        }];
+      }
+    });
+  };
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -441,13 +525,22 @@ export default function SmmPage() {
             Обновить
           </Button>
           {canEdit && (
-            <Button
-              onClick={() => handleOpenDialog()}
-              className="bg-[#1e40af] hover:bg-[#3b82f6]"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Добавить
-            </Button>
+            <>
+              <Button
+                onClick={handleOpenSettingsDialog}
+                variant="outline"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Настройки
+              </Button>
+              <Button
+                onClick={() => handleOpenDialog()}
+                className="bg-[#1e40af] hover:bg-[#3b82f6]"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -943,6 +1036,147 @@ export default function SmmPage() {
               ) : (
                 "Добавить"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Настройки SMM планов по проектам
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-6">
+            {countries.map((country) => {
+              const settings = getSettingsForCountry(country.id);
+              return (
+                <div key={country.id} className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-[#1e40af] mb-4">
+                    {getCountryNameRu(country.name)}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-slate-600">Месячный план</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs text-slate-500">Посты</Label>
+                          <Input
+                            type="number"
+                            value={settings?.postsPlanMonthly || ""}
+                            onChange={(e) => updateSettingsField(country.id, "postsPlanMonthly", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">Сторис</Label>
+                          <Input
+                            type="number"
+                            value={settings?.storiesPlanMonthly || ""}
+                            onChange={(e) => updateSettingsField(country.id, "storiesPlanMonthly", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">Мини-отзывы</Label>
+                          <Input
+                            type="number"
+                            value={settings?.miniReviewsPlanMonthly || ""}
+                            onChange={(e) => updateSettingsField(country.id, "miniReviewsPlanMonthly", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">Большие отзывы</Label>
+                          <Input
+                            type="number"
+                            value={settings?.bigReviewsPlanMonthly || ""}
+                            onChange={(e) => updateSettingsField(country.id, "bigReviewsPlanMonthly", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-slate-600">Дневной план</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs text-slate-500">Посты</Label>
+                          <Input
+                            type="number"
+                            value={settings?.postsPlanDaily || ""}
+                            onChange={(e) => updateSettingsField(country.id, "postsPlanDaily", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">Сторис</Label>
+                          <Input
+                            type="number"
+                            value={settings?.storiesPlanDaily || ""}
+                            onChange={(e) => updateSettingsField(country.id, "storiesPlanDaily", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">Мини-отзывы</Label>
+                          <Input
+                            type="number"
+                            value={settings?.miniReviewsPlanDaily || ""}
+                            onChange={(e) => updateSettingsField(country.id, "miniReviewsPlanDaily", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-slate-500">Большие отзывы</Label>
+                          <Input
+                            type="number"
+                            value={settings?.bigReviewsPlanDaily || ""}
+                            onChange={(e) => updateSettingsField(country.id, "bigReviewsPlanDaily", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const currentSettings = getSettingsForCountry(country.id);
+                        handleSaveSettings(country.id, {
+                          postsPlanMonthly: currentSettings?.postsPlanMonthly || 0,
+                          storiesPlanMonthly: currentSettings?.storiesPlanMonthly || 0,
+                          miniReviewsPlanMonthly: currentSettings?.miniReviewsPlanMonthly || 0,
+                          bigReviewsPlanMonthly: currentSettings?.bigReviewsPlanMonthly || 0,
+                          postsPlanDaily: currentSettings?.postsPlanDaily || 0,
+                          storiesPlanDaily: currentSettings?.storiesPlanDaily || 0,
+                          miniReviewsPlanDaily: currentSettings?.miniReviewsPlanDaily || 0,
+                          bigReviewsPlanDaily: currentSettings?.bigReviewsPlanDaily || 0,
+                        });
+                      }}
+                      disabled={savingSettings}
+                      className="bg-[#1e40af] hover:bg-[#3b82f6]"
+                    >
+                      {savingSettings ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Сохранение...
+                        </>
+                      ) : (
+                        "Сохранить"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSettingsDialogOpen(false)}>
+              Закрыть
             </Button>
           </DialogFooter>
         </DialogContent>

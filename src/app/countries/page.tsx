@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 const DATE_RANGE_OPTIONS = [
+  { value: "1", label: "Сегодня" },
   { value: "7", label: "Последняя неделя" },
   { value: "30", label: "Последний месяц" },
   { value: "90", label: "Последние 3 месяца" },

@@ -26,6 +26,7 @@ model Country {
   expenses     Expense[]
   buyerMetrics BuyerMetrics[]
   smmMetrics   SmmMetrics[]
+  smmSettings  SmmProjectSettings?
 }
 
 // Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
@@ -359,6 +360,23 @@ model Session {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// === Настройки SMM планов по проектам (странам) ===
+model SmmProjectSettings {
+  id                     String   @id @default(cuid())
+  countryId              String   @unique
+  country                Country  @relation(fields: [countryId], references: [id])
+  postsPlanMonthly       Int      @default(0)
+  storiesPlanMonthly     Int      @default(0)
+  miniReviewsPlanMonthly Int      @default(0)
+  bigReviewsPlanMonthly  Int      @default(0)
+  postsPlanDaily         Int      @default(0)
+  storiesPlanDaily       Int      @default(0)
+  miniReviewsPlanDaily   Int      @default(0)
+  bigReviewsPlanDaily    Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 // === БАИНГ (Buying) - Ежедневные метрики по баерам ===
