@@ -11,6 +11,7 @@ export async function GET() {
 
     const priemkas = await prisma.priemka.findMany({
       orderBy: { name: "asc" },
+      include: { country: { select: { id: true, name: true, code: true } } },
     });
 
     return NextResponse.json(priemkas);
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, code, commissionRate, description } = body;
+    const { name, code, commissionRate, description, countryId } = body;
 
     if (!name || !code) {
       return NextResponse.json({ error: "Название и код обязательны" }, { status: 400 });
@@ -50,7 +51,9 @@ export async function POST(request: NextRequest) {
         code: code.toUpperCase(),
         commissionRate: parseFloat(commissionRate) || 15,
         description: description || null,
+        countryId: countryId || null,
       },
+      include: { country: { select: { id: true, name: true, code: true } } },
     });
 
     return NextResponse.json(priemka);
@@ -71,7 +74,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, code, commissionRate, description, isActive } = body;
+    const { id, name, code, commissionRate, description, isActive, countryId } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID обязателен" }, { status: 400 });
@@ -83,10 +86,12 @@ export async function PATCH(request: NextRequest) {
     if (commissionRate !== undefined) updateData.commissionRate = parseFloat(commissionRate);
     if (description !== undefined) updateData.description = description;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (countryId !== undefined) updateData.countryId = countryId || null;
 
     const priemka = await prisma.priemka.update({
       where: { id },
       data: updateData,
+      include: { country: { select: { id: true, name: true, code: true } } },
     });
 
     return NextResponse.json(priemka);

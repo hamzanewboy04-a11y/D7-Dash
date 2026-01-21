@@ -393,7 +393,7 @@ export default function SettingsPage() {
 
       if (res.ok) {
         await loadPriemkas();
-        setNewPriemka({ name: "", code: "", commissionRate: "15", description: "" });
+        setNewPriemka({ name: "", code: "", commissionRate: "15", description: "", countryId: "" });
         setShowAddPriemka(false);
       } else {
         const error = await res.json();
@@ -766,26 +766,6 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Комиссия приёмки (партнёра)</CardTitle>
-              <CardDescription>
-                Ставка комиссии за обработку дохода через приёмку
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="max-w-xs space-y-2">
-                <Label htmlFor="priemkaCommission">Комиссия приёмки (%)</Label>
-                <Input
-                  id="priemkaCommission"
-                  type="number"
-                  step="0.1"
-                  value={settings.priemkaCommission}
-                  onChange={(e) => handleSettingChange("priemkaCommission", e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Currency Exchange Rates */}
@@ -1816,7 +1796,7 @@ export default function SettingsPage() {
                       }`}
                     >
                       {editingPriemka?.id === priemka.id ? (
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
                           <Input
                             value={editingPriemka.name}
                             onChange={(e) => setEditingPriemka({ ...editingPriemka, name: e.target.value })}
@@ -1827,6 +1807,20 @@ export default function SettingsPage() {
                             onChange={(e) => setEditingPriemka({ ...editingPriemka, code: e.target.value.toUpperCase() })}
                             placeholder="Код"
                           />
+                          <Select
+                            value={editingPriemka.countryId || "none"}
+                            onValueChange={(value) => setEditingPriemka({ ...editingPriemka, countryId: value === "none" ? null : value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Страна" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Все страны</SelectItem>
+                              {countries.filter(c => c.isActive).map((country) => (
+                                <SelectItem key={country.id} value={country.id}>{country.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Input
                             type="number"
                             step="0.1"
@@ -1854,7 +1848,7 @@ export default function SettingsPage() {
                             <div>
                               <p className="font-medium">{priemka.name}</p>
                               <p className="text-sm text-slate-500">
-                                Код: {priemka.code} | Комиссия: {priemka.commissionRate}%
+                                Код: {priemka.code} | Гео: {priemka.country?.name || "Все страны"} | Комиссия: {priemka.commissionRate}%
                                 {priemka.description && ` | ${priemka.description}`}
                               </p>
                             </div>
