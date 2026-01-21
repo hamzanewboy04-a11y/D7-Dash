@@ -182,6 +182,12 @@ async function syncData() {
     const finalCount = await prisma.buyerMetrics.count();
     console.log(`[Sync] Final buyer metrics count: ${finalCount}`);
 
+    // Clean SMM data
+    console.log("[Sync] Cleaning SMM data...");
+    const deletedSmmMetrics = await prisma.smmMetrics.deleteMany({});
+    const deletedSmmProjectMetrics = await prisma.smmProjectMetrics.deleteMany({});
+    console.log(`[Sync] Deleted ${deletedSmmMetrics.count} SMM metrics and ${deletedSmmProjectMetrics.count} SMM project metrics`);
+
   } catch (error) {
     console.error("[Sync] Error:", error);
   } finally {
