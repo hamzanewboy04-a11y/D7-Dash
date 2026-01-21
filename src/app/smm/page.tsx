@@ -46,6 +46,7 @@ import {
   Clock,
   TrendingUp,
   Settings,
+  X,
 } from "lucide-react";
 
 const DATE_RANGE_OPTIONS = [
@@ -150,6 +151,22 @@ interface SmmSettings {
   country?: Country;
 }
 
+interface SmmProject {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  isActive: boolean;
+  postsPlanMonthly: number;
+  storiesPlanMonthly: number;
+  miniReviewsPlanMonthly: number;
+  bigReviewsPlanMonthly: number;
+  postsPlanDaily: number;
+  storiesPlanDaily: number;
+  miniReviewsPlanDaily: number;
+  bigReviewsPlanDaily: number;
+}
+
 const emptyForm: FormData = {
   date: new Date().toISOString().split("T")[0],
   countryId: "",
@@ -199,6 +216,11 @@ export default function SmmPage() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [smmSettings, setSmmSettings] = useState<SmmSettings[]>([]);
   const [savingSettings, setSavingSettings] = useState(false);
+
+  const [customProjects, setCustomProjects] = useState<SmmProject[]>([]);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectCode, setNewProjectCode] = useState("");
+  const [savingProject, setSavingProject] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -390,9 +412,67 @@ export default function SmmPage() {
     }
   };
 
+  const fetchCustomProjects = async () => {
+    try {
+      const response = await fetch("/api/smm/projects");
+      if (response.ok) {
+        const data = await response.json();
+        setCustomProjects(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching SMM projects:", error);
+    }
+  };
+
   const handleOpenSettingsDialog = () => {
     fetchSettings();
+    fetchCustomProjects();
     setIsSettingsDialogOpen(true);
+  };
+
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim() || !newProjectCode.trim()) {
+      alert("Введите название и код проекта");
+      return;
+    }
+    setSavingProject(true);
+    try {
+      const response = await fetch("/api/smm/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newProjectName.trim(),
+          code: newProjectCode.trim().toUpperCase().replace(/\s+/g, "_"),
+        }),
+      });
+      if (response.ok) {
+        setNewProjectName("");
+        setNewProjectCode("");
+        await fetchCustomProjects();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Ошибка создания проекта");
+      }
+    } catch (error) {
+      console.error("Error creating project:", error);
+      alert("Ошибка создания проекта");
+    } finally {
+      setSavingProject(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm("Удалить этот проект?")) return;
+    try {
+      const response = await fetch(`/api/smm/projects?id=${projectId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        await fetchCustomProjects();
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
+    }
   };
 
   const handleSaveSettings = async (countryId: string, settings: Partial<SmmSettings>) => {
@@ -1050,6 +1130,61 @@ export default function SmmPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-6">
+            {/* Секция добавления сторонних проектов */}
+            <div className="border-2 border-dashed border-[#3b82f6] rounded-lg p-4 bg-blue-50">
+              <h3 className="text-lg font-semibold text-[#1e40af] mb-4">
+                Добавить сторонний проект
+              </h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Добавьте проекты, которые не связаны со странами (каналы, партнёры и т.д.)
+              </p>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <Label className="text-xs text-slate-500">Название проекта</Label>
+                  <Input
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Например: Telegram канал"
+                  />
+                </div>
+                <div className="w-32">
+                  <Label className="text-xs text-slate-500">Код</Label>
+                  <Input
+                    value={newProjectCode}
+                    onChange={(e) => setNewProjectCode(e.target.value.toUpperCase())}
+                    placeholder="TG_CH"
+                  />
+                </div>
+                <Button
+                  onClick={handleCreateProject}
+                  disabled={savingProject}
+                  className="bg-[#1e40af] hover:bg-[#3b82f6]"
+                >
+                  {savingProject ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                </Button>
+              </div>
+              {customProjects.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <Label className="text-xs text-slate-500">Созданные проекты:</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {customProjects.map((project) => (
+                      <div key={project.id} className="flex items-center gap-2 bg-white border rounded-full px-3 py-1">
+                        <span className="text-sm font-medium">{project.name}</span>
+                        <span className="text-xs text-slate-400">({project.code})</span>
+                        <button
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="text-red-400 hover:text-red-600 ml-1"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Настройки стран */}
             {countries.map((country) => {
               const settings = getSettingsForCountry(country.id);
               return (
@@ -1059,7 +1194,29 @@ export default function SmmPage() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h4 className="font-medium text-slate-600">Месячный план</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-slate-600">Месячный план</h4>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const currentSettings = getSettingsForCountry(country.id);
+                            const daily = {
+                              posts: currentSettings?.postsPlanDaily || 0,
+                              stories: currentSettings?.storiesPlanDaily || 0,
+                              miniReviews: currentSettings?.miniReviewsPlanDaily || 0,
+                              bigReviews: currentSettings?.bigReviewsPlanDaily || 0,
+                            };
+                            updateSettingsField(country.id, "postsPlanMonthly", daily.posts * 30);
+                            updateSettingsField(country.id, "storiesPlanMonthly", daily.stories * 30);
+                            updateSettingsField(country.id, "miniReviewsPlanMonthly", daily.miniReviews * 30);
+                            updateSettingsField(country.id, "bigReviewsPlanMonthly", daily.bigReviews * 30);
+                          }}
+                          className="text-xs"
+                        >
+                          Рассчитать x30
+                        </Button>
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Label className="text-xs text-slate-500">Посты</Label>

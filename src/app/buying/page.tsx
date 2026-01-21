@@ -201,9 +201,22 @@ export default function BuyingPage() {
       if (selectedCountry !== "all") params.set("countryId", selectedCountry);
       if (selectedEmployee !== "all") params.set("employeeId", selectedEmployee);
 
+      console.log('[Buying Page] Fetching with params:', {
+        dateRange,
+        selectedCountry,
+        selectedEmployee,
+        params: params.toString()
+      });
+
       const response = await fetch(`/api/buying?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('[Buying Page] Received metrics count:', data.metrics?.length);
+        const countryCounts: Record<string, number> = {};
+        (data.metrics || []).forEach((m: BuyerMetric) => {
+          countryCounts[m.country.name] = (countryCounts[m.country.name] || 0) + 1;
+        });
+        console.log('[Buying Page] Metrics by country:', countryCounts);
         setMetrics(data.metrics || []);
         setTotals(data.totals || null);
       }

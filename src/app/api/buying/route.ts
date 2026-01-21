@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    console.log('[Buying API] Query params:', { countryId, employeeId, startDate, endDate });
+
     const where: Record<string, unknown> = {};
     
     if (countryId) where.countryId = countryId;
@@ -24,6 +26,8 @@ export async function GET(request: NextRequest) {
       if (endDate) (where.date as Record<string, Date>).lte = new Date(endDate);
     }
 
+    console.log('[Buying API] Where clause:', JSON.stringify(where));
+
     const metrics = await prisma.buyerMetrics.findMany({
       where,
       include: {
@@ -32,6 +36,12 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [{ date: "desc" }, { employeeId: "asc" }],
     });
+
+    const countryCounts: Record<string, number> = {};
+    metrics.forEach(m => {
+      countryCounts[m.country.name] = (countryCounts[m.country.name] || 0) + 1;
+    });
+    console.log('[Buying API] Results by country:', countryCounts, 'Total:', metrics.length);
 
     const totals = await prisma.buyerMetrics.aggregate({
       where,
