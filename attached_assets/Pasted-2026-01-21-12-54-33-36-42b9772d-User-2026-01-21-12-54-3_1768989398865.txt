@@ -1,0 +1,164 @@
+2026-01-21 12:54:33.36
+42b9772d
+User
+}
+2026-01-21 12:54:33.36
+42b9772d
+User
+[Buying API] Query params: {
+2026-01-21 12:54:33.45
+42b9772d
+User
+[Buying API] Records by countryId: [{"_count":{"id":124},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":51},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":5},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:54:33.45
+42b9772d
+User
+[Buying API] Total records in DB: 180
+2026-01-21 12:54:33.58
+42b9772d
+User
+[Buying API] Results by country: { Peru: 42, 'Italy (Men)': 30, Argentina: 5 } Total: 77
+2026-01-21 12:55:03.26
+42b9772d
+User
+[Buying API] Where clause: {}
+2026-01-21 12:55:03.26
+42b9772d
+User
+[Buying API] Query params: { countryId: null, employeeId: null, startDate: null, endDate: null }
+2026-01-21 12:55:03.35
+42b9772d
+User
+[Buying API] Total records in DB: 180
+2026-01-21 12:55:03.35
+42b9772d
+User
+[Buying API] Records by countryId: [{"_count":{"id":124},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":51},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":5},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:55:03.77
+42b9772d
+User
+[Buying API] Results by country: { Peru: 124, 'Italy (Men)': 51, Argentina: 5 } Total: 180
+2026-01-21 12:55:30.27
+42b9772d
+User
+[Buying API] Query params: {
+2026-01-21 12:55:30.27
+42b9772d
+User
+startDate: '2025-12-22',
+2026-01-21 12:55:30.27
+42b9772d
+User
+countryId: null,
+2026-01-21 12:55:30.27
+42b9772d
+User
+endDate: '2026-01-21'
+2026-01-21 12:55:30.27
+42b9772d
+User
+employeeId: null,
+2026-01-21 12:55:30.27
+42b9772d
+User
+}
+2026-01-21 12:55:30.27
+42b9772d
+User
+[Buying API] Where clause: {"date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 12:55:30.36
+42b9772d
+User
+[Buying API] Records by countryId: [{"_count":{"id":124},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":51},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":5},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:55:30.36
+42b9772d
+User
+[Buying API] Total records in DB: 180
+2026-01-21 12:55:30.50
+42b9772d
+User
+[Buying API] Results by country: { Peru: 42, 'Italy (Men)': 30, Argentina: 5 } Total: 77
+2026-01-21 12:55:54.45
+42b9772d
+User
+}
+2026-01-21 12:55:54.45
+42b9772d
+User
+employeeId: null,
+2026-01-21 12:55:54.45
+42b9772d
+User
+endDate: '2026-01-21'
+2026-01-21 12:55:54.45
+42b9772d
+User
+startDate: '2025-12-22',
+2026-01-21 12:55:54.45
+42b9772d
+User
+[Buying API] Query params: {
+2026-01-21 12:55:54.45
+42b9772d
+User
+countryId: null,
+2026-01-21 12:55:54.45
+42b9772d
+User
+[Buying API] Where clause: {"date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 12:55:54.53
+42b9772d
+User
+[Buying API] Records by countryId: [{"_count":{"id":124},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":51},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":5},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:55:54.53
+42b9772d
+User
+[Buying API] Total records in DB: 180
+2026-01-21 12:55:54.70
+42b9772d
+User
+[Buying API] Results by country: { Peru: 42, 'Italy (Men)': 30, Argentina: 5 } Total: 77
+2026-01-21 12:56:01.54
+42b9772d
+User
+startDate: '2025-12-22',
+2026-01-21 12:56:01.54
+42b9772d
+User
+[Buying API] Where clause: {"date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 12:56:01.54
+42b9772d
+User
+}
+2026-01-21 12:56:01.54
+42b9772d
+User
+endDate: '2026-01-21'
+2026-01-21 12:56:01.54
+42b9772d
+User
+employeeId: null,
+2026-01-21 12:56:01.54
+42b9772d
+User
+[Buying API] Query params: {
+2026-01-21 12:56:01.54
+42b9772d
+User
+countryId: null,
+2026-01-21 12:56:01.63
+42b9772d
+User
+[Buying API] Total records in DB: 180
+2026-01-21 12:56:01.63
+42b9772d
+User
+[Buying API] Records by countryId: [{"_count":{"id":124},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":51},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":5},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:56:01.76
+42b9772d
+User
+[Buying API] Results by country: { Peru: 42, 'Italy (Men)': 30, Argentina: 5 } Total: 77
+2026-01-21 12:56:01.76
+42b9772d
+User
+[Buying API] Results by country: { Peru: 42, 'Italy (Men)': 30, Argentina: 5 } Total: 77

@@ -733,14 +733,14 @@ export default function CabinetsPage() {
             )}
             <Label htmlFor="assign-employee">Сотрудник</Label>
             <Select
-              value={assignEmployeeId}
-              onValueChange={setAssignEmployeeId}
+              value={assignEmployeeId || "none"}
+              onValueChange={(v) => setAssignEmployeeId(v === "none" ? "" : v)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Не назначен</SelectItem>
+                <SelectItem value="none">Не назначен</SelectItem>
                 {employees.map((e) => (
                   <SelectItem key={e.id} value={e.id}>
                     {e.name} ({e.role})
