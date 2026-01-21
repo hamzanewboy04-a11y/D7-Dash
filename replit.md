@@ -4,6 +4,8 @@
 A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Recent Changes (January 2026)
+- **Cabinet & Desk Management**: New feature to create/manage ad cabinets (Camila 3, Corie, Cabrera) and desks (Desk1, Desk3), with employee assignment
+- **Comprehensive Excel Import**: Imports ALL tables from ALL sheets including secondary tables (e.g., Перу январь has 2 tables, декабрь has 5 tables)
 - **Role-Based Permissions**: Viewers can only view, editors/admins can edit (403 for unauthorized edits)
 - **Customizable Sidebar**: Per-user section visibility via allowedSections field
 - **Simplified Employee Payroll**: Removed complex tiers, now uses simple percentRate with percentageBase field (from spend/profit/FD/RD sums)
@@ -17,6 +19,12 @@ A financial dashboard application for D7 Team, tracking revenue, expenses, and p
 - **Terminology**: nFD (нейро First Deposit), FD (First Deposit), RD (Редепозит)
 - **Import Fixes**: Fixed Excel import for individual ad spend and payroll detail fields
 - **Production Seeding**: Auto-seeds database during deployment
+
+## Data Structure: Cabinets & Desks
+- **Cabinet**: Ad account/кабинет (e.g., "Camila 3", "Corie", "Cabrera") with platform info
+- **Desk**: Desk within cabinet (e.g., "Desk1", "Desk3", "Default") linked to cabinet
+- **BuyerMetrics**: Daily metrics linked to desk (not employee) for accurate tracking
+- Employees can be assigned to desks for payroll tracking
 
 ## Project Architecture
 - **Framework**: Next.js 16.1.3 with App Router

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth, requireEditorAuth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const authError = await requireAuth();
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const cabinetId = searchParams.get("cabinetId");
@@ -26,6 +30,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireEditorAuth();
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { name, cabinetId, employeeId, description } = body;

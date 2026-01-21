@@ -18,6 +18,7 @@ import {
   User,
   ShoppingCart,
   Share2,
+  Building2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ const navigation = [
   { name: "Дашборд", href: "/", icon: LayoutDashboard, section: "dashboard" },
   { name: "Страны", href: "/countries", icon: Globe, section: "countries" },
   { name: "Баинг", href: "/buying", icon: ShoppingCart, section: "buying" },
+  { name: "Кабинеты", href: "/cabinets", icon: Building2, section: "cabinets" },
   { name: "SMM", href: "/smm", icon: Share2, section: "smm" },
   { name: "Финансы", href: "/finance", icon: DollarSign, section: "finance" },
   { name: "ФОТ", href: "/payroll", icon: Users, section: "payroll" },
