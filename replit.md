@@ -99,6 +99,8 @@
 - Управление пользователями (создание/редактирование аккаунтов)
 - Настройка целей (goals)
 - Конфигурация расчётов
+- **Приёмки** — управление платёжными системами (название, код, комиссия)
+- **SMM Проекты** — настройка планов для сторонних SMM проектов (посты, сторис, мини-обзоры, большие обзоры)
 
 ---
 
@@ -132,6 +134,7 @@
 A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Recent Changes (January 2026)
+- **SMM Project Management**: New Settings > SMM Проекты tab for managing custom SMM projects with monthly/daily content plans (posts, stories, mini reviews, big reviews)
 - **Priemka (Payment Processor) Management**: New feature to create/manage priemkas with name, code, commission rate in Settings > Приёмки tab
 - **Multiple Priemkas per Day**: Data entry page now supports entering revenue from multiple priemkas per country per day with auto-calculated exchange rates
 - **PriemkaEntry Model**: Tracks daily priemka revenue (local/USDT) and exchange rates per country
