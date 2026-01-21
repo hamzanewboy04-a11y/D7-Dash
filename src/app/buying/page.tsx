@@ -83,12 +83,12 @@ interface BuyerMetric {
     id: string;
     name: string;
     role: string;
-  };
+  } | null;
   country: {
     id: string;
     name: string;
     code: string;
-  };
+  } | null;
 }
 
 interface Totals {
@@ -214,10 +214,13 @@ export default function BuyingPage() {
         console.log('[Buying Page] Received metrics count:', data.metrics?.length);
         const countryCounts: Record<string, number> = {};
         (data.metrics || []).forEach((m: BuyerMetric) => {
-          countryCounts[m.country.name] = (countryCounts[m.country.name] || 0) + 1;
+          const countryName = m.country?.name || 'Unknown';
+          countryCounts[countryName] = (countryCounts[countryName] || 0) + 1;
         });
         console.log('[Buying Page] Metrics by country:', countryCounts);
-        setMetrics(data.metrics || []);
+        // Filter out records with missing employee or country
+        const validMetrics = (data.metrics || []).filter((m: BuyerMetric) => m.employee && m.country);
+        setMetrics(validMetrics);
         setTotals(data.totals || null);
       }
     } catch (error) {
@@ -275,8 +278,8 @@ export default function BuyingPage() {
       setEditingMetric(metric);
       setFormData({
         date: metric.date.split("T")[0],
-        employeeId: metric.employee.id,
-        countryId: metric.country.id,
+        employeeId: metric.employee?.id || "",
+        countryId: metric.country?.id || "",
         spendManual: metric.spendManual?.toString() || metric.spend.toString(),
         subscriptions: metric.subscriptions.toString(),
         dialogs: metric.dialogs.toString(),
@@ -556,8 +559,8 @@ export default function BuyingPage() {
                     <TableCell>
                       {new Date(m.date).toLocaleDateString("ru-RU")}
                     </TableCell>
-                    <TableCell className="font-medium">{m.employee.name}</TableCell>
-                    <TableCell>{getCountryNameRu(m.country.name)}</TableCell>
+                    <TableCell className="font-medium">{m.employee?.name || '-'}</TableCell>
+                    <TableCell>{getCountryNameRu(m.country?.name || '')}</TableCell>
                     <TableCell className="text-right">
                       ${m.spend.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>

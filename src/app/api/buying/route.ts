@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
 
     const countryCounts: Record<string, number> = {};
     metrics.forEach(m => {
-      countryCounts[m.country.name] = (countryCounts[m.country.name] || 0) + 1;
+      const countryName = m.country?.name || 'Unknown';
+      countryCounts[countryName] = (countryCounts[countryName] || 0) + 1;
     });
     console.log('[Buying API] Results by country:', countryCounts, 'Total:', metrics.length);
 
