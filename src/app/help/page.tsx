@@ -21,6 +21,7 @@ import {
   Calculator,
   FileText,
   ArrowUp,
+  Edit,
 } from "lucide-react";
 
 const sections = [
@@ -32,6 +33,7 @@ const sections = [
   { id: "cabinets", title: "Кабинеты и Дески", icon: Building2 },
   { id: "employees", title: "Сотрудники", icon: Users },
   { id: "expenses", title: "Расходы", icon: Receipt },
+  { id: "data-entry", title: "Ввод данных", icon: Edit },
   { id: "settings", title: "Настройки", icon: Settings },
   { id: "formulas", title: "Формулы расчётов", icon: Calculator },
   { id: "glossary", title: "Словарь терминов", icon: FileText },
@@ -660,6 +662,88 @@ export default function HelpPage() {
           </Card>
         </section>
 
+        <section id="data-entry" className="scroll-mt-4">
+          <Card className="border-l-4 border-l-[#3b82f6]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-[#3b82f6]" />
+                Ввод данных
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-slate-700">
+                Раздел для ежедневного ввода метрик по каждой стране.
+              </p>
+
+              <div className="space-y-3">
+                <h4 className="font-semibold text-slate-800">Как вводить данные:</h4>
+                <ol className="list-decimal list-inside space-y-2 text-slate-600 ml-4">
+                  <li>Выберите дату в верхней части страницы</li>
+                  <li>Выберите страну на вкладках</li>
+                  <li>Заполните поля с метриками: спенд, доходы, FD, RD</li>
+                  <li>Нажмите <strong>"Сохранить"</strong></li>
+                </ol>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">Основные метрики:</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="font-medium text-slate-800">Спенд</p>
+                    <p className="text-slate-600 text-sm">Расходы на рекламу за день</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="font-medium text-slate-800">Доход (приёмка/наш)</p>
+                    <p className="text-slate-600 text-sm">Доход в локальной валюте и USDT</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="font-medium text-slate-800">FD (количество и сумма)</p>
+                    <p className="text-slate-600 text-sm">Первые депозиты клиентов</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="font-medium text-slate-800">RD (количество и сумма)</p>
+                    <p className="text-slate-600 text-sm">Повторные депозиты</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">Поддержка нескольких приёмок:</h4>
+                <p className="text-slate-600">
+                  Система позволяет вводить доход от разных платёжных процессоров (приёмок) за один день:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-slate-600 ml-4">
+                  <li>Нажмите <strong>"+ Добавить приёмку"</strong> в разделе страны</li>
+                  <li>Выберите приёмку из списка (например, "Main", "Backup")</li>
+                  <li>Введите доход в локальной валюте и USDT</li>
+                  <li>Можно добавить несколько приёмок для одной страны за один день</li>
+                </ul>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">Автоматический расчёт курса:</h4>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-800">
+                    При вводе суммы в локальной валюте и USDT система автоматически рассчитывает курс обмена по формуле:
+                  </p>
+                  <p className="text-blue-900 font-mono mt-2 text-center">
+                    Курс = Локальная валюта ÷ USDT
+                  </p>
+                  <p className="text-blue-700 text-sm mt-2">
+                    Например: 1000 SOL ÷ 280 USDT = 3.57 (курс SOL/USDT)
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+                <p className="text-amber-800">
+                  <strong>Важно:</strong> Данные сохраняются отдельно для каждой даты. Перед переходом к другой дате не забудьте сохранить изменения.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         <section id="settings" className="scroll-mt-4">
           <Card className="border-l-4 border-l-[#3b82f6]">
             <CardHeader>
@@ -670,7 +754,7 @@ export default function HelpPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-slate-700">
-                Раздел только для администраторов.
+                Раздел настройки системы. Большинство функций доступно только администраторам.
               </p>
 
               <div className="space-y-3">
@@ -684,14 +768,85 @@ export default function HelpPage() {
               </div>
 
               <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">Ограничение доступа к разделам:</h4>
+                <p className="text-slate-600">
+                  Администратор может настроить, какие разделы бокового меню видны каждому пользователю:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-slate-600 ml-4">
+                  <li>Откройте редактирование пользователя (иконка карандаша)</li>
+                  <li>В разделе <strong>"Доступные разделы"</strong> отметьте нужные пункты меню</li>
+                  <li>Снимите галочки с разделов, которые пользователь не должен видеть</li>
+                  <li>Сохраните изменения</li>
+                </ul>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-2">
+                  <p className="text-green-800">
+                    <strong>Пример:</strong> Можно скрыть "Финансы" и "ФОТ" от редакторов, оставив им доступ только к "Баинг" и "Ввод данных".
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">Приёмки (Платёжные процессоры):</h4>
+                <p className="text-slate-600">
+                  Управление платёжными процессорами для приёма платежей:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-slate-600 ml-4">
+                  <li><strong>Создание:</strong> Нажмите "Добавить приёмку", укажите название, код и комиссию</li>
+                  <li><strong>Редактирование:</strong> Нажмите иконку карандаша для изменения настроек</li>
+                  <li><strong>Удаление:</strong> Нажмите иконку корзины (приёмка должна быть неактивной)</li>
+                </ul>
+                <div className="bg-slate-50 rounded-lg p-4 mt-2">
+                  <p className="text-slate-700"><strong>Поля приёмки:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 text-slate-600 ml-4 mt-2">
+                    <li><strong>Название</strong> — например, "Основная приёмка", "Резервная"</li>
+                    <li><strong>Код</strong> — короткий идентификатор (MAIN, BACKUP)</li>
+                    <li><strong>Комиссия %</strong> — процент комиссии процессора (например, 15%)</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">SMM Проекты:</h4>
+                <p className="text-slate-600">
+                  Настройка проектов для отслеживания SMM-активности с планами публикаций:
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-slate-600 ml-4">
+                  <li><strong>Создание:</strong> Нажмите "Добавить SMM проект"</li>
+                  <li><strong>Настройка планов:</strong> Укажите месячные и дневные планы для каждого типа контента</li>
+                  <li><strong>Редактирование:</strong> Измените планы по мере необходимости</li>
+                </ul>
+                <div className="bg-slate-50 rounded-lg p-4 mt-2">
+                  <p className="text-slate-700"><strong>Типы контента в SMM:</strong></p>
+                  <ul className="list-disc list-inside space-y-1 text-slate-600 ml-4 mt-2">
+                    <li><strong>Посты</strong> — обычные публикации</li>
+                    <li><strong>Сториз</strong> — истории (stories)</li>
+                    <li><strong>Мини-обзоры</strong> — краткие обзоры</li>
+                    <li><strong>Большие обзоры</strong> — развёрнутые обзоры</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-4">
                 <h4 className="font-semibold text-slate-800">Настройка целей:</h4>
                 <p className="text-slate-600">
                   Можно установить целевые показатели для отслеживания прогресса:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-slate-600 ml-4">
-                  <li>Целевой доход</li>
+                  <li>Целевой доход (дневной и месячный)</li>
                   <li>Целевой ROI</li>
-                  <li>Целевое количество FD</li>
+                  <li>Вехи достижений (milestones)</li>
+                </ul>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">Управление странами:</h4>
+                <p className="text-slate-600">
+                  Добавление новых стран и изменение их статуса:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-slate-600 ml-4">
+                  <li><strong>Active</strong> — страна активна и отображается везде</li>
+                  <li><strong>Paused</strong> — временно приостановлена</li>
+                  <li><strong>Stopped</strong> — работа остановлена</li>
                 </ul>
               </div>
             </CardContent>
@@ -799,7 +954,8 @@ export default function HelpPage() {
                   { term: "ROI", desc: "Return on Investment — возврат инвестиций. Показывает, насколько выгодно работает бизнес." },
                   { term: "Конверсия", desc: "Процент людей, которые совершили целевое действие (например, начали диалог)." },
                   { term: "Agency Fee", desc: "Комиссия агентства за использование рекламных аккаунтов." },
-                  { term: "Приёмка", desc: "Процесс приёма и обработки платежей с комиссией." },
+                  { term: "Приёмка", desc: "Платёжный процессор для приёма платежей. Настраивается в разделе Настройки с указанием названия, кода и процента комиссии. Можно использовать несколько приёмок для одной страны." },
+                  { term: "Курс обмена", desc: "Соотношение локальной валюты к USDT. Рассчитывается автоматически: Локальная валюта ÷ USDT." },
                 ].map((item) => (
                   <div key={item.term} className="bg-slate-50 rounded-lg p-4">
                     <p className="font-semibold text-slate-800">{item.term}</p>
