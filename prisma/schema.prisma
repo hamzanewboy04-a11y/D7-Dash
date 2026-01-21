@@ -27,6 +27,7 @@ model Country {
   buyerMetrics BuyerMetrics[]
   smmMetrics   SmmMetrics[]
   smmSettings  SmmProjectSettings?
+  cabinets     Cabinet[]
 }
 
 // Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
@@ -41,6 +42,43 @@ model AdAccount {
   updatedAt       DateTime @updatedAt
 
   dailyAdSpends   DailyAdSpend[]
+}
+
+// Рекламные кабинеты баеров (Camila 3, Corie, Cabrera, etc.)
+model Cabinet {
+  id              String   @id @default(cuid())
+  name            String   // Camila 3, Corie, Cabrera
+  platform        String?  // Crossgif, FBM, etc.
+  platformId      String?  // ID платформы (например 759443220489882)
+  countryId       String?
+  country         Country? @relation(fields: [countryId], references: [id])
+  description     String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  desks           Desk[]
+  buyerMetrics    BuyerMetrics[]
+
+  @@unique([name, countryId])
+}
+
+// Дески внутри кабинетов (Desk1, Desk3, etc.)
+model Desk {
+  id              String   @id @default(cuid())
+  name            String   // Desk1, Desk3, Desk основной
+  cabinetId       String
+  cabinet         Cabinet  @relation(fields: [cabinetId], references: [id], onDelete: Cascade)
+  employeeId      String?  // Привязанный сотрудник
+  employee        Employee? @relation(fields: [employeeId], references: [id])
+  description     String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  buyerMetrics    BuyerMetrics[]
+
+  @@unique([name, cabinetId])
 }
 
 // Ежедневные метрики по стране
@@ -225,6 +263,7 @@ model Employee {
   payments       Payment[]
   buyerMetrics   BuyerMetrics[]
   smmMetrics     SmmMetrics[]
+  desks          Desk[]
 }
 
 // Записи о выплатах ФОТ
@@ -449,10 +488,16 @@ model SmmProjectMetrics {
 model BuyerMetrics {
   id              String   @id @default(cuid())
   date            DateTime
-  employeeId      String
-  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId      String?  // Может быть null если нет привязки к сотруднику
+  employee        Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   countryId       String
   country         Country  @relation(fields: [countryId], references: [id])
+  
+  // Связь с кабинетом и деском
+  cabinetId       String?
+  cabinet         Cabinet? @relation(fields: [cabinetId], references: [id])
+  deskId          String?
+  desk            Desk?    @relation(fields: [deskId], references: [id])
   
   // Основные метрики
   spendManual     Float?   // Общий спенд (вручную)
@@ -469,18 +514,20 @@ model BuyerMetrics {
   // ЗП (10% от спенда)
   payrollAmount        Float    @default(0) // ЗП за день
   
-  // Дополнительные поля
-  deskName        String?  // Название деска (Desk1, Desk3, etc.)
+  // Дополнительные поля (для совместимости)
+  deskName        String?  // Название деска (Desk1, Desk3, etc.) - legacy
   platformName    String?  // Название платформы (Crossgif, FBM, etc.)
   notes           String?
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
-  @@unique([date, employeeId, countryId])
+  @@unique([date, deskId, countryId])
   @@index([date])
   @@index([employeeId])
   @@index([countryId])
+  @@index([cabinetId])
+  @@index([deskId])
 }
 
 // === SMM - План/факт контента ===
