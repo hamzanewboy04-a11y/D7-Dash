@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   Share2,
   Building2,
+  HelpCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ const navigation = [
   { name: "Ввод данных", href: "/data-entry", icon: ClipboardEdit, section: "data-entry" },
   { name: "Аналитика", href: "/analytics", icon: TrendingUp, section: "analytics" },
   { name: "Настройки", href: "/settings", icon: Settings, section: "settings" },
+  { name: "Справка", href: "/help", icon: HelpCircle, section: "help" },
 ];
 
 export function Sidebar() {
