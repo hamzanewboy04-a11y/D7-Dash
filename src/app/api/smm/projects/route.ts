@@ -2,15 +2,18 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireEditorAuth } from "@/lib/auth";
+import { requireAuth, requireEditorAuth, getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const authError = await requireAuth();
   if (authError) return authError;
 
   try {
+    const { searchParams } = new URL(request.url);
+    const includeInactive = searchParams.get("includeInactive") === "true";
+
     const projects = await prisma.smmProject.findMany({
-      where: { isActive: true },
+      where: includeInactive ? {} : { isActive: true },
       orderBy: { name: "asc" },
     });
 
@@ -64,17 +67,31 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   const authError = await requireEditorAuth();
   if (authError) return authError;
 
   try {
     const data = await request.json();
-    const { id, ...updateData } = data;
+    const { id, name, code, description, isActive, postsPlanMonthly, storiesPlanMonthly, miniReviewsPlanMonthly, bigReviewsPlanMonthly, postsPlanDaily, storiesPlanDaily, miniReviewsPlanDaily, bigReviewsPlanDaily } = data;
 
     if (!id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "ID обязателен" }, { status: 400 });
     }
+
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (code !== undefined) updateData.code = code.toUpperCase().replace(/\s+/g, "_");
+    if (description !== undefined) updateData.description = description;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (postsPlanMonthly !== undefined) updateData.postsPlanMonthly = parseInt(postsPlanMonthly) || 0;
+    if (storiesPlanMonthly !== undefined) updateData.storiesPlanMonthly = parseInt(storiesPlanMonthly) || 0;
+    if (miniReviewsPlanMonthly !== undefined) updateData.miniReviewsPlanMonthly = parseInt(miniReviewsPlanMonthly) || 0;
+    if (bigReviewsPlanMonthly !== undefined) updateData.bigReviewsPlanMonthly = parseInt(bigReviewsPlanMonthly) || 0;
+    if (postsPlanDaily !== undefined) updateData.postsPlanDaily = parseInt(postsPlanDaily) || 0;
+    if (storiesPlanDaily !== undefined) updateData.storiesPlanDaily = parseInt(storiesPlanDaily) || 0;
+    if (miniReviewsPlanDaily !== undefined) updateData.miniReviewsPlanDaily = parseInt(miniReviewsPlanDaily) || 0;
+    if (bigReviewsPlanDaily !== undefined) updateData.bigReviewsPlanDaily = parseInt(bigReviewsPlanDaily) || 0;
 
     const project = await prisma.smmProject.update({
       where: { id },
@@ -84,30 +101,33 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(project);
   } catch (error) {
     console.error("Error updating SMM project:", error);
-    return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
+    return NextResponse.json({ error: "Ошибка обновления проекта" }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await requireEditorAuth();
-  if (authError) return authError;
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  }
+  if (currentUser.role !== "admin") {
+    return NextResponse.json({ error: "Только администратор может удалять SMM проекты" }, { status: 403 });
+  }
 
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "ID обязателен" }, { status: 400 });
     }
 
-    await prisma.smmProject.update({
-      where: { id },
-      data: { isActive: false },
-    });
+    await prisma.smmProjectMetrics.deleteMany({ where: { projectId: id } });
+    await prisma.smmProject.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting SMM project:", error);
-    return NextResponse.json({ error: "Failed to delete project" }, { status: 500 });
+    return NextResponse.json({ error: "Ошибка удаления проекта" }, { status: 500 });
   }
 }

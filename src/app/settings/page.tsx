@@ -43,6 +43,22 @@ interface Priemka {
   isActive: boolean;
 }
 
+interface SmmProject {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  isActive: boolean;
+  postsPlanMonthly: number;
+  storiesPlanMonthly: number;
+  miniReviewsPlanMonthly: number;
+  bigReviewsPlanMonthly: number;
+  postsPlanDaily: number;
+  storiesPlanDaily: number;
+  miniReviewsPlanDaily: number;
+  bigReviewsPlanDaily: number;
+}
+
 const ALL_SECTIONS = [
   { id: "dashboard", name: "Дашборд" },
   { id: "countries", name: "Страны" },
@@ -150,6 +166,14 @@ export default function SettingsPage() {
   const [newPriemka, setNewPriemka] = useState({ name: "", code: "", commissionRate: "15", description: "" });
   const [showAddPriemka, setShowAddPriemka] = useState(false);
   const [editingPriemka, setEditingPriemka] = useState<Priemka | null>(null);
+  const [smmProjects, setSmmProjects] = useState<SmmProject[]>([]);
+  const [newSmmProject, setNewSmmProject] = useState({
+    name: "", code: "", description: "",
+    postsPlanMonthly: "0", storiesPlanMonthly: "0", miniReviewsPlanMonthly: "0", bigReviewsPlanMonthly: "0",
+    postsPlanDaily: "0", storiesPlanDaily: "0", miniReviewsPlanDaily: "0", bigReviewsPlanDaily: "0"
+  });
+  const [showAddSmmProject, setShowAddSmmProject] = useState(false);
+  const [editingSmmProject, setEditingSmmProject] = useState<SmmProject | null>(null);
   const { isAdmin } = useAuth();
 
   // Load settings from API
@@ -218,9 +242,22 @@ export default function SettingsPage() {
     }
   }, []);
 
+  // Load SMM projects from API
+  const loadSmmProjects = useCallback(async () => {
+    try {
+      const res = await fetch("/api/smm/projects?includeInactive=true");
+      if (res.ok) {
+        const data = await res.json();
+        setSmmProjects(data);
+      }
+    } catch (error) {
+      console.error("Error loading SMM projects:", error);
+    }
+  }, []);
+
   useEffect(() => {
-    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas()]).finally(() => setLoading(false));
-  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers, loadPriemkas]);
+    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas(), loadSmmProjects()]).finally(() => setLoading(false));
+  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers, loadPriemkas, loadSmmProjects]);
 
   const handleSettingChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -410,6 +447,82 @@ export default function SettingsPage() {
     await handleUpdatePriemka({ ...priemka, isActive: !priemka.isActive });
   };
 
+  // SMM Projects CRUD functions
+  const handleAddSmmProject = async () => {
+    if (!newSmmProject.name || !newSmmProject.code) {
+      alert("Название и код обязательны");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/smm/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSmmProject),
+      });
+
+      if (res.ok) {
+        await loadSmmProjects();
+        setNewSmmProject({
+          name: "", code: "", description: "",
+          postsPlanMonthly: "0", storiesPlanMonthly: "0", miniReviewsPlanMonthly: "0", bigReviewsPlanMonthly: "0",
+          postsPlanDaily: "0", storiesPlanDaily: "0", miniReviewsPlanDaily: "0", bigReviewsPlanDaily: "0"
+        });
+        setShowAddSmmProject(false);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка добавления SMM проекта");
+      }
+    } catch (error) {
+      console.error("Error adding SMM project:", error);
+    }
+  };
+
+  const handleUpdateSmmProject = async (project: SmmProject) => {
+    try {
+      const res = await fetch("/api/smm/projects", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(project),
+      });
+
+      if (res.ok) {
+        await loadSmmProjects();
+        setEditingSmmProject(null);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка обновления SMM проекта");
+      }
+    } catch (error) {
+      console.error("Error updating SMM project:", error);
+    }
+  };
+
+  const handleDeleteSmmProject = async (id: string) => {
+    if (!confirm("Вы уверены, что хотите удалить этот SMM проект? Все связанные метрики также будут удалены.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/smm/projects?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        await loadSmmProjects();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка удаления SMM проекта");
+      }
+    } catch (error) {
+      console.error("Error deleting SMM project:", error);
+    }
+  };
+
+  const handleToggleSmmProjectActive = async (project: SmmProject) => {
+    await handleUpdateSmmProject({ ...project, isActive: !project.isActive });
+  };
+
   const handleAddUser = async () => {
     if (!newUser.username || !newUser.password) {
       alert("Имя пользователя и пароль обязательны");
@@ -592,7 +705,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="rates">
-        <TabsList className="grid grid-cols-5 lg:grid-cols-10 w-full">
+        <TabsList className="grid grid-cols-5 lg:grid-cols-11 w-full">
           <TabsTrigger value="rates">Комиссии</TabsTrigger>
           <TabsTrigger value="currency">Валюты</TabsTrigger>
           <TabsTrigger value="payments">Выплаты</TabsTrigger>
@@ -603,6 +716,7 @@ export default function SettingsPage() {
           {isAdmin && <TabsTrigger value="users">Пользователи</TabsTrigger>}
           <TabsTrigger value="system">Система</TabsTrigger>
           <TabsTrigger value="priemkas">Приёмки</TabsTrigger>
+          <TabsTrigger value="smm-projects">SMM Проекты</TabsTrigger>
         </TabsList>
 
         {/* Commission Rates */}
@@ -1753,6 +1867,323 @@ export default function SettingsPage() {
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* SMM Projects Management */}
+        <TabsContent value="smm-projects" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Управление SMM проектами</CardTitle>
+                  <CardDescription>
+                    Настройка SMM проектов с планами контента (посты, сторис, отзывы)
+                  </CardDescription>
+                </div>
+                <Button onClick={() => setShowAddSmmProject(!showAddSmmProject)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить проект
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showAddSmmProject && (
+                <div className="border rounded-lg p-4 space-y-4 bg-slate-50">
+                  <h4 className="font-medium">Новый SMM проект</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="smmProjectName">Название</Label>
+                      <Input
+                        id="smmProjectName"
+                        value={newSmmProject.name}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Например: Instagram D7"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smmProjectCode">Код</Label>
+                      <Input
+                        id="smmProjectCode"
+                        value={newSmmProject.code}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                        placeholder="IG_D7"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smmProjectDescription">Описание</Label>
+                      <Input
+                        id="smmProjectDescription"
+                        value={newSmmProject.description}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Описание (опционально)"
+                      />
+                    </div>
+                  </div>
+                  <Separator />
+                  <h5 className="font-medium text-sm text-slate-600">Месячные планы</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="postsPlanMonthly">Посты/мес</Label>
+                      <Input
+                        id="postsPlanMonthly"
+                        type="number"
+                        value={newSmmProject.postsPlanMonthly}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, postsPlanMonthly: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="storiesPlanMonthly">Сторис/мес</Label>
+                      <Input
+                        id="storiesPlanMonthly"
+                        type="number"
+                        value={newSmmProject.storiesPlanMonthly}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, storiesPlanMonthly: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="miniReviewsPlanMonthly">Мини отзывы/мес</Label>
+                      <Input
+                        id="miniReviewsPlanMonthly"
+                        type="number"
+                        value={newSmmProject.miniReviewsPlanMonthly}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, miniReviewsPlanMonthly: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bigReviewsPlanMonthly">Большие отзывы/мес</Label>
+                      <Input
+                        id="bigReviewsPlanMonthly"
+                        type="number"
+                        value={newSmmProject.bigReviewsPlanMonthly}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, bigReviewsPlanMonthly: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <h5 className="font-medium text-sm text-slate-600">Дневные планы</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="postsPlanDaily">Посты/день</Label>
+                      <Input
+                        id="postsPlanDaily"
+                        type="number"
+                        value={newSmmProject.postsPlanDaily}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, postsPlanDaily: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="storiesPlanDaily">Сторис/день</Label>
+                      <Input
+                        id="storiesPlanDaily"
+                        type="number"
+                        value={newSmmProject.storiesPlanDaily}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, storiesPlanDaily: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="miniReviewsPlanDaily">Мини отзывы/день</Label>
+                      <Input
+                        id="miniReviewsPlanDaily"
+                        type="number"
+                        value={newSmmProject.miniReviewsPlanDaily}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, miniReviewsPlanDaily: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bigReviewsPlanDaily">Большие отзывы/день</Label>
+                      <Input
+                        id="bigReviewsPlanDaily"
+                        type="number"
+                        value={newSmmProject.bigReviewsPlanDaily}
+                        onChange={(e) => setNewSmmProject(prev => ({ ...prev, bigReviewsPlanDaily: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleAddSmmProject}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Добавить
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowAddSmmProject(false)}>
+                      Отмена
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {smmProjects.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">SMM проекты не найдены. Добавьте первый проект.</p>
+              ) : (
+                <div className="space-y-4">
+                  {smmProjects.map((project) => (
+                    <div
+                      key={project.id}
+                      className={`border rounded-lg p-4 ${
+                        project.isActive ? "bg-white" : "bg-slate-100 opacity-75"
+                      }`}
+                    >
+                      {editingSmmProject?.id === project.id ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Input
+                              value={editingSmmProject.name}
+                              onChange={(e) => setEditingSmmProject({ ...editingSmmProject, name: e.target.value })}
+                              placeholder="Название"
+                            />
+                            <Input
+                              value={editingSmmProject.code}
+                              onChange={(e) => setEditingSmmProject({ ...editingSmmProject, code: e.target.value.toUpperCase() })}
+                              placeholder="Код"
+                            />
+                            <Input
+                              value={editingSmmProject.description || ""}
+                              onChange={(e) => setEditingSmmProject({ ...editingSmmProject, description: e.target.value })}
+                              placeholder="Описание"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Посты/мес</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.postsPlanMonthly}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, postsPlanMonthly: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Сторис/мес</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.storiesPlanMonthly}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, storiesPlanMonthly: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Мини отзывы/мес</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.miniReviewsPlanMonthly}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, miniReviewsPlanMonthly: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Большие отзывы/мес</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.bigReviewsPlanMonthly}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, bigReviewsPlanMonthly: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Посты/день</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.postsPlanDaily}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, postsPlanDaily: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Сторис/день</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.storiesPlanDaily}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, storiesPlanDaily: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Мини отзывы/день</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.miniReviewsPlanDaily}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, miniReviewsPlanDaily: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Большие отзывы/день</Label>
+                              <Input
+                                type="number"
+                                value={editingSmmProject.bigReviewsPlanDaily}
+                                onChange={(e) => setEditingSmmProject({ ...editingSmmProject, bigReviewsPlanDaily: parseInt(e.target.value) || 0 })}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleUpdateSmmProject(editingSmmProject)}>
+                              <Check className="h-4 w-4 mr-1" />
+                              Сохранить
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingSmmProject(null)}>
+                              <Ban className="h-4 w-4 mr-1" />
+                              Отмена
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <p className="font-medium text-lg">{project.name}</p>
+                              <p className="text-sm text-slate-500">
+                                Код: {project.code}
+                                {project.description && ` | ${project.description}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!project.isActive && (
+                                <span className="text-xs bg-slate-200 px-2 py-1 rounded">Неактивен</span>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleToggleSmmProjectActive(project)}
+                              >
+                                {project.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingSmmProject(project)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteSmmProject(project.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div className="p-2 bg-blue-50 rounded">
+                              <p className="text-slate-600 font-medium">Посты</p>
+                              <p className="text-blue-700">{project.postsPlanMonthly}/мес • {project.postsPlanDaily}/день</p>
+                            </div>
+                            <div className="p-2 bg-purple-50 rounded">
+                              <p className="text-slate-600 font-medium">Сторис</p>
+                              <p className="text-purple-700">{project.storiesPlanMonthly}/мес • {project.storiesPlanDaily}/день</p>
+                            </div>
+                            <div className="p-2 bg-green-50 rounded">
+                              <p className="text-slate-600 font-medium">Мини отзывы</p>
+                              <p className="text-green-700">{project.miniReviewsPlanMonthly}/мес • {project.miniReviewsPlanDaily}/день</p>
+                            </div>
+                            <div className="p-2 bg-orange-50 rounded">
+                              <p className="text-slate-600 font-medium">Большие отзывы</p>
+                              <p className="text-orange-700">{project.bigReviewsPlanMonthly}/мес • {project.bigReviewsPlanDaily}/день</p>
+                            </div>
                           </div>
                         </>
                       )}
