@@ -64,8 +64,9 @@ export async function GET(request: NextRequest) {
       select: { id: true, name: true },
     });
 
+    const employeeIds = byBuyer.map(b => b.employeeId).filter((id): id is string => id !== null);
     const employees = await prisma.employee.findMany({
-      where: { id: { in: byBuyer.map(b => b.employeeId) } },
+      where: { id: { in: employeeIds } },
       select: { id: true, name: true },
     });
 
