@@ -6,6 +6,130 @@ export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 export const revalidate = 0;
 
+function mapPlatformToBalanceCode(platform: string | null | undefined): string | null {
+  if (!platform) return null;
+  
+  const normalized = platform.toUpperCase().trim();
+  
+  if (normalized === "CROSSGIF" || normalized === "КРОССГИФ") {
+    return "CROSSGIF";
+  }
+  if (normalized === "FBM") {
+    return "FBM";
+  }
+  if (normalized === "TRUST" || normalized === "ТРАСТ") {
+    return "TRUST";
+  }
+  
+  return normalized;
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('ru-RU', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric' 
+  });
+}
+
+async function createSpendTransaction(
+  metricId: string,
+  spend: number,
+  date: Date,
+  cabinetId: string | null | undefined,
+  deskName: string | null | undefined
+): Promise<void> {
+  if (spend <= 0 || !cabinetId) {
+    return;
+  }
+
+  try {
+    const cabinet = await prisma.cabinet.findUnique({
+      where: { id: cabinetId },
+      select: { name: true, platform: true },
+    });
+
+    if (!cabinet) {
+      console.log('[Buying API] Cabinet not found for spend transaction:', cabinetId);
+      return;
+    }
+
+    const balanceCode = mapPlatformToBalanceCode(cabinet.platform);
+    if (!balanceCode) {
+      console.log('[Buying API] Could not map platform to balance code:', cabinet.platform);
+      return;
+    }
+
+    const balance = await prisma.balance.findFirst({
+      where: { code: balanceCode, type: "agency" },
+    });
+
+    if (!balance) {
+      console.log('[Buying API] Balance not found for code:', balanceCode);
+      return;
+    }
+
+    const description = `Спенд баера ${formatDate(date)} - ${deskName || cabinet.name} (metric:${metricId})`;
+
+    await prisma.balanceTransaction.create({
+      data: {
+        balanceId: balance.id,
+        type: "spend",
+        amount: spend,
+        description,
+        date,
+      },
+    });
+
+    await prisma.balance.update({
+      where: { id: balance.id },
+      data: {
+        currentAmount: {
+          decrement: spend,
+        },
+      },
+    });
+
+    console.log('[Buying API] Created spend transaction:', { metricId, spend, balanceCode });
+  } catch (error) {
+    console.error('[Buying API] Error creating spend transaction:', error);
+  }
+}
+
+async function reverseSpendTransaction(metricId: string): Promise<number> {
+  try {
+    const transaction = await prisma.balanceTransaction.findFirst({
+      where: {
+        description: { contains: `(metric:${metricId})` },
+        type: "spend",
+      },
+    });
+
+    if (!transaction) {
+      return 0;
+    }
+
+    await prisma.balance.update({
+      where: { id: transaction.balanceId },
+      data: {
+        currentAmount: {
+          increment: transaction.amount,
+        },
+      },
+    });
+
+    await prisma.balanceTransaction.delete({
+      where: { id: transaction.id },
+    });
+
+    console.log('[Buying API] Reversed spend transaction:', { metricId, amount: transaction.amount });
+    return transaction.amount;
+  } catch (error) {
+    console.error('[Buying API] Error reversing spend transaction:', error);
+    return 0;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const authError = await requireAuth();
   if (authError) return authError;
@@ -32,7 +156,6 @@ export async function GET(request: NextRequest) {
 
     console.log('[Buying API] Where clause:', JSON.stringify(where));
 
-    // Debug: Check total records in database
     const totalRecords = await prisma.buyerMetrics.count();
     const countryStats = await prisma.buyerMetrics.groupBy({
       by: ['countryId'],
@@ -105,11 +228,15 @@ export async function POST(request: NextRequest) {
     const conversionRate = subscriptions > 0 ? (dialogs / subscriptions) * 100 : 0;
     const payrollAmount = spend * 0.10;
 
+    const metricDate = new Date(data.date);
+
     const metric = await prisma.buyerMetrics.create({
       data: {
-        date: new Date(data.date),
+        date: metricDate,
         employeeId: data.employeeId,
         countryId: data.countryId,
+        cabinetId: data.cabinetId,
+        deskId: data.deskId,
         spendManual: data.spendManual,
         spend,
         subscriptions,
@@ -126,8 +253,20 @@ export async function POST(request: NextRequest) {
       include: {
         employee: { select: { id: true, name: true } },
         country: { select: { id: true, name: true } },
+        cabinet: { select: { id: true, name: true, platform: true } },
+        desk: { select: { id: true, name: true } },
       },
     });
+
+    if (spend > 0 && data.cabinetId) {
+      await createSpendTransaction(
+        metric.id,
+        spend,
+        metricDate,
+        data.cabinetId,
+        data.deskName || metric.desk?.name
+      );
+    }
 
     return NextResponse.json(metric, { status: 201 });
   } catch (error) {
@@ -148,6 +287,18 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
 
+    const existingMetric = await prisma.buyerMetrics.findUnique({
+      where: { id },
+      include: {
+        cabinet: { select: { id: true, name: true, platform: true } },
+        desk: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!existingMetric) {
+      return NextResponse.json({ error: "Metric not found" }, { status: 404 });
+    }
+
     const spend = updateData.spendManual || updateData.spend || 0;
     const subscriptions = updateData.subscriptions || 0;
     const fdCount = updateData.fdCount || 0;
@@ -158,11 +309,27 @@ export async function PUT(request: NextRequest) {
     const conversionRate = subscriptions > 0 ? (dialogs / subscriptions) * 100 : 0;
     const payrollAmount = spend * 0.10;
 
+    const metricDate = updateData.date ? new Date(updateData.date) : existingMetric.date;
+    const newCabinetId = updateData.cabinetId !== undefined ? updateData.cabinetId : existingMetric.cabinetId;
+
+    const oldSpend = existingMetric.spend || 0;
+    const spendChanged = Math.abs(spend - oldSpend) > 0.001;
+    const cabinetChanged = newCabinetId !== existingMetric.cabinetId;
+
+    if (spendChanged || cabinetChanged) {
+      await reverseSpendTransaction(id);
+      
+      if (spend > 0 && newCabinetId) {
+        const deskName = updateData.deskName !== undefined ? updateData.deskName : existingMetric.deskName;
+        await createSpendTransaction(id, spend, metricDate, newCabinetId, deskName || existingMetric.desk?.name);
+      }
+    }
+
     const metric = await prisma.buyerMetrics.update({
       where: { id },
       data: {
         ...updateData,
-        date: updateData.date ? new Date(updateData.date) : undefined,
+        date: metricDate,
         spend,
         costPerSubscription,
         costPerFd,
@@ -172,6 +339,8 @@ export async function PUT(request: NextRequest) {
       include: {
         employee: { select: { id: true, name: true } },
         country: { select: { id: true, name: true } },
+        cabinet: { select: { id: true, name: true, platform: true } },
+        desk: { select: { id: true, name: true } },
       },
     });
 
@@ -193,6 +362,8 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
+
+    await reverseSpendTransaction(id);
 
     await prisma.buyerMetrics.delete({ where: { id } });
 

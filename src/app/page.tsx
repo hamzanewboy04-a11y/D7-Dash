@@ -103,6 +103,16 @@ interface GoalSettings {
   monthOfStabilityDays: number;
 }
 
+interface Balance {
+  id: string;
+  type: string;
+  name: string;
+  code: string;
+  currentAmount: number;
+  currency: string;
+  isActive: boolean;
+}
+
 // Fallback demo data
 const mockChartData = [
   { date: "1 дек", revenue: 2364.89, expenses: 1138.09, profit: 1226.80 },
@@ -168,6 +178,7 @@ export default function DashboardPage() {
   const [savingExpense, setSavingExpense] = useState(false);
   const [goalSettings, setGoalSettings] = useState<GoalSettings | null>(null);
   const [agencies, setAgencies] = useState<Array<{ code: string; name: string }>>([]);
+  const [balances, setBalances] = useState<Balance[]>([]);
 
   const fetchGoalSettings = async () => {
     try {
@@ -340,18 +351,19 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchAgencies = async () => {
+  const fetchBalances = async () => {
     try {
       const response = await fetch("/api/balances");
       if (response.ok) {
-        const balances = await response.json();
-        const agencyBalances = balances
+        const balancesData = await response.json();
+        setBalances(balancesData);
+        const agencyBalances = balancesData
           .filter((b: { type: string }) => b.type === "agency")
           .map((b: { code: string; name: string }) => ({ code: b.code, name: b.name }));
         setAgencies(agencyBalances);
       }
     } catch (error) {
-      console.error("Error fetching agencies:", error);
+      console.error("Error fetching balances:", error);
     }
   };
 
@@ -360,7 +372,7 @@ export default function DashboardPage() {
     fetchDashboardData();
     fetchYesterdayData();
     fetchGoalSettings();
-    fetchAgencies();
+    fetchBalances();
   }, []);
 
   if (loading) {
@@ -457,6 +469,58 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Balance Summary Section */}
+      {balances.length > 0 && (
+        <Card className="border-2 border-slate-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-slate-500" />
+              Балансы
+            </CardTitle>
+            <CardDescription>Текущие балансы на биржах и агентствах</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {(() => {
+                const exchangeBalance = balances.find(b => b.type === "exchange");
+                const agencyBalances = balances.filter(b => b.type === "agency");
+                const totalBalance = balances.reduce((sum, b) => sum + b.currentAmount, 0);
+
+                return (
+                  <>
+                    {exchangeBalance && (
+                      <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border-2 border-slate-200">
+                        <p className="text-sm font-medium text-slate-600">{exchangeBalance.name}</p>
+                        <p className={`text-2xl font-bold mt-1 ${exchangeBalance.currentAmount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                          {exchangeBalance.currentAmount >= 0 ? "" : "-"}${Math.abs(exchangeBalance.currentAmount).toLocaleString()} 
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">{exchangeBalance.currency}</p>
+                      </div>
+                    )}
+                    {agencyBalances.map((balance) => (
+                      <div key={balance.id} className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border-2 border-blue-200">
+                        <p className="text-sm font-medium text-blue-700">{balance.name}</p>
+                        <p className={`text-2xl font-bold mt-1 ${balance.currentAmount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                          {balance.currentAmount >= 0 ? "" : "-"}${Math.abs(balance.currentAmount).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-blue-400 mt-1">{balance.currency}</p>
+                      </div>
+                    ))}
+                    <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border-2 border-purple-200">
+                      <p className="text-sm font-medium text-purple-700">Общий баланс</p>
+                      <p className={`text-2xl font-bold mt-1 ${totalBalance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        {totalBalance >= 0 ? "" : "-"}${Math.abs(totalBalance).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-purple-400 mt-1">USDT</p>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Yesterday Summary */}
