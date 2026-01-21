@@ -28,6 +28,7 @@ model Country {
   smmMetrics   SmmMetrics[]
   smmSettings  SmmProjectSettings?
   cabinets     Cabinet[]
+  priemkas     Priemka[]
 }
 
 // Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
@@ -410,6 +411,8 @@ model Priemka {
   code                String   @unique
   commissionRate      Float    @default(15) // Комиссия в %
   description         String?
+  countryId           String?
+  country             Country? @relation(fields: [countryId], references: [id])
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

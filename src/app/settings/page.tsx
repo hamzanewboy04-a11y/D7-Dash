@@ -40,6 +40,8 @@ interface Priemka {
   code: string;
   commissionRate: number;
   description: string | null;
+  countryId: string | null;
+  country?: { id: string; name: string; code: string } | null;
   isActive: boolean;
 }
 
@@ -163,7 +165,7 @@ export default function SettingsPage() {
   const [editPassword, setEditPassword] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editAllowedSections, setEditAllowedSections] = useState<string[]>([]);
-  const [newPriemka, setNewPriemka] = useState({ name: "", code: "", commissionRate: "15", description: "" });
+  const [newPriemka, setNewPriemka] = useState({ name: "", code: "", commissionRate: "15", description: "", countryId: "" });
   const [showAddPriemka, setShowAddPriemka] = useState(false);
   const [editingPriemka, setEditingPriemka] = useState<Priemka | null>(null);
   const [smmProjects, setSmmProjects] = useState<SmmProject[]>([]);
@@ -1733,7 +1735,7 @@ export default function SettingsPage() {
               {showAddPriemka && (
                 <div className="border rounded-lg p-4 space-y-4 bg-slate-50">
                   <h4 className="font-medium">Новая приёмка</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="priemkaName">Название</Label>
                       <Input
@@ -1751,6 +1753,23 @@ export default function SettingsPage() {
                         onChange={(e) => setNewPriemka(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
                         placeholder="TRUST"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Страна (Гео)</Label>
+                      <Select
+                        value={newPriemka.countryId || "none"}
+                        onValueChange={(value) => setNewPriemka(prev => ({ ...prev, countryId: value === "none" ? "" : value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите страну" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Все страны</SelectItem>
+                          {countries.filter(c => c.isActive).map((country) => (
+                            <SelectItem key={country.id} value={country.id}>{country.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="priemkaCommission">Комиссия (%)</Label>
