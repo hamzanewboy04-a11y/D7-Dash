@@ -15,120 +15,97 @@ async function syncData() {
   console.log("[Sync] Checking production database...");
   
   try {
-    // Load correct data from JSON
     const buyingSmmPath = "data/buying-smm-data.json";
     if (!fs.existsSync(buyingSmmPath)) {
       console.log("[Sync] No buying-smm-data.json found, skipping sync");
       return;
     }
 
-    const buyingSmmData = JSON.parse(fs.readFileSync(buyingSmmPath, "utf-8"));
-    console.log(`[Sync] Loaded ${buyingSmmData.employees?.length || 0} employees, ${buyingSmmData.buyerMetrics?.length || 0} buyer metrics`);
+    const data = JSON.parse(fs.readFileSync(buyingSmmPath, "utf-8"));
+    console.log(`[Sync] Loaded ${data.cabinets?.length || 0} cabinets, ${data.desks?.length || 0} desks, ${data.buyerMetrics?.length || 0} buyer metrics`);
 
-    // Summary of correct data
-    const correctByCountry: Record<string, { count: number; spend: number }> = {};
-    for (const m of buyingSmmData.buyerMetrics || []) {
-      if (!correctByCountry[m.countryId]) correctByCountry[m.countryId] = { count: 0, spend: 0 };
-      correctByCountry[m.countryId].count++;
-      correctByCountry[m.countryId].spend += m.spend || 0;
-    }
-    
-    console.log("[Sync] Correct data summary:");
-    for (const [k, v] of Object.entries(correctByCountry)) {
-      console.log(`  ${k}: ${v.count} records, $${v.spend.toFixed(2)}`);
-    }
+    const currentCabinets = await prisma.cabinet.count();
+    const currentDesks = await prisma.desk.count();
+    const currentMetrics = await prisma.buyerMetrics.count();
 
-    // Check current database state
-    const currentMetrics = await prisma.buyerMetrics.groupBy({
-      by: ["countryId"],
-      _count: { id: true },
-      _sum: { spend: true },
-    });
+    console.log(`[Sync] Current: ${currentCabinets} cabinets, ${currentDesks} desks, ${currentMetrics} metrics`);
 
-    console.log("\n[Sync] Current database state:");
-    for (const row of currentMetrics) {
-      console.log(`  ${row.countryId}: ${row._count.id} records, $${row._sum.spend?.toFixed(2)}`);
-    }
+    const needsSync = currentCabinets !== (data.cabinets?.length || 0) ||
+                      currentDesks !== (data.desks?.length || 0) ||
+                      currentMetrics !== (data.buyerMetrics?.length || 0);
 
-    // Check if data needs fixing
-    const currentTotal = currentMetrics.reduce((sum, r) => sum + r._count.id, 0);
-    const correctTotal = buyingSmmData.buyerMetrics?.length || 0;
+    if (needsSync) {
+      console.log("[Sync] Data needs syncing, clearing and reimporting...");
 
-    // Check for wrong data (e.g., Chile data that shouldn't exist)
-    const invalidCountries = ["cmkl84b070004u6gkag39jtlk"]; // Chile shouldn't have buyer data
-    const hasInvalidData = currentMetrics.some(r => invalidCountries.includes(r.countryId));
-    
-    // Check for incorrect counts per country
-    let hasIncorrectCounts = false;
-    for (const row of currentMetrics) {
-      const correct = correctByCountry[row.countryId];
-      if (!correct && row._count.id > 0) {
-        console.log(`[Sync] Found ${row._count.id} records for country ${row.countryId} that shouldn't exist`);
-        hasIncorrectCounts = true;
-      } else if (correct && Math.abs(row._count.id - correct.count) > 0) {
-        console.log(`[Sync] Country ${row.countryId}: has ${row._count.id}, should have ${correct.count}`);
-        hasIncorrectCounts = true;
-      }
-    }
-
-    if (hasInvalidData || hasIncorrectCounts || currentTotal !== correctTotal) {
-      console.log("\n[Sync] Data needs fixing, clearing and re-importing...");
-      
-      // Clear all buyer metrics
       await prisma.buyerMetrics.deleteMany({});
-      console.log("[Sync] Cleared all BuyerMetrics");
+      await prisma.desk.deleteMany({});
+      await prisma.cabinet.deleteMany({});
 
-      // Ensure employees exist
-      for (const emp of buyingSmmData.employees || []) {
-        await prisma.employee.upsert({
-          where: { id: emp.id },
-          update: { name: emp.name, role: emp.role, countryId: emp.countryId, percentRate: emp.percentRate, percentageBase: emp.percentageBase },
-          create: emp,
+      for (const cab of data.cabinets || []) {
+        await prisma.cabinet.create({
+          data: {
+            id: cab.id,
+            name: cab.name,
+            platform: cab.platform,
+            platformId: cab.platformId,
+            countryId: cab.countryId,
+            description: cab.description,
+            isActive: cab.isActive ?? true,
+          },
         });
       }
-      console.log(`[Sync] Upserted ${buyingSmmData.employees?.length || 0} employees`);
+      console.log(`[Sync] Created ${data.cabinets?.length || 0} cabinets`);
 
-      // Insert correct buyer metrics
-      let inserted = 0;
-      for (const metric of buyingSmmData.buyerMetrics || []) {
-        try {
-          await prisma.buyerMetrics.create({
-            data: {
-              id: metric.id,
-              date: new Date(metric.date),
-              employeeId: metric.employeeId,
-              countryId: metric.countryId,
-              spend: metric.spend || 0,
-              subscriptions: metric.subscriptions || 0,
-              dialogs: metric.dialogs || 0,
-              fdCount: metric.fdCount || 0,
-              costPerSubscription: metric.costPerSubscription || 0,
-              costPerFd: metric.costPerFd || 0,
-              conversionRate: metric.conversionRate || 0,
-              payrollAmount: metric.payrollAmount || 0,
-              deskName: metric.deskName,
-            },
-          });
-          inserted++;
-        } catch (e) {
-          // Record might already exist with same unique constraint
-        }
+      for (const desk of data.desks || []) {
+        await prisma.desk.create({
+          data: {
+            id: desk.id,
+            name: desk.name,
+            cabinetId: desk.cabinetId,
+            employeeId: desk.employeeId,
+            description: desk.description,
+            isActive: desk.isActive ?? true,
+          },
+        });
       }
-      console.log(`[Sync] Inserted ${inserted} BuyerMetrics`);
+      console.log(`[Sync] Created ${data.desks?.length || 0} desks`);
+
+      for (const m of data.buyerMetrics || []) {
+        await prisma.buyerMetrics.create({
+          data: {
+            id: m.id,
+            date: new Date(m.date),
+            employeeId: m.employeeId,
+            countryId: m.countryId,
+            cabinetId: m.cabinetId,
+            deskId: m.deskId,
+            spendManual: m.spendManual,
+            spend: m.spend || 0,
+            subscriptions: m.subscriptions || 0,
+            dialogs: m.dialogs || 0,
+            fdCount: m.fdCount || 0,
+            costPerSubscription: m.costPerSubscription || 0,
+            costPerFd: m.costPerFd || 0,
+            conversionRate: m.conversionRate || 0,
+            payrollAmount: m.payrollAmount || 0,
+            deskName: m.deskName,
+            platformName: m.platformName,
+          },
+        });
+      }
+      console.log(`[Sync] Created ${data.buyerMetrics?.length || 0} buyer metrics`);
     } else {
-      console.log("\n[Sync] Data is correct, no changes needed");
+      console.log("[Sync] Data is already in sync");
     }
 
-    const finalCount = await prisma.buyerMetrics.count();
-    console.log(`\n[Sync] Final buyer metrics count: ${finalCount}`);
-
-    const finalSummary = await prisma.buyerMetrics.groupBy({
+    const summary = await prisma.buyerMetrics.groupBy({
       by: ["countryId"],
       _count: { id: true },
       _sum: { spend: true },
     });
-    console.log("[Sync] Final summary:");
-    for (const row of finalSummary) {
+
+    console.log("\n[Sync] Final summary:");
+    for (const row of summary) {
       console.log(`  ${row.countryId}: ${row._count.id} records, $${row._sum.spend?.toFixed(2)}`);
     }
 
