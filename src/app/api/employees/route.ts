@@ -72,6 +72,8 @@ export async function POST(request: Request) {
       role,
       countryId,
       fixedRate,
+      fixedRatePeriod,
+      fixedRatePerProject,
       percentRate,
       percentageBase,
       paymentType,
@@ -99,6 +101,8 @@ export async function POST(request: Request) {
         role,
         countryId: countryId || null,
         fixedRate: fixedRate ? parseFloat(fixedRate) : null,
+        fixedRatePeriod: fixedRatePeriod || "day",
+        fixedRatePerProject: fixedRatePerProject === true || fixedRatePerProject === "true",
         percentRate: percentRate ? parseFloat(percentRate) : null,
         percentageBase: percentageBase || null,
         paymentType: paymentType || "buffer",
@@ -151,6 +155,8 @@ export async function PUT(request: Request) {
       role,
       countryId,
       fixedRate,
+      fixedRatePeriod,
+      fixedRatePerProject,
       percentRate,
       percentageBase,
       isActive,
@@ -179,6 +185,8 @@ export async function PUT(request: Request) {
     if (role !== undefined) updateData.role = role;
     if (countryId !== undefined) updateData.countryId = countryId || null;
     if (fixedRate !== undefined) updateData.fixedRate = fixedRate ? parseFloat(fixedRate) : null;
+    if (fixedRatePeriod !== undefined) updateData.fixedRatePeriod = fixedRatePeriod || "day";
+    if (fixedRatePerProject !== undefined) updateData.fixedRatePerProject = fixedRatePerProject === true || fixedRatePerProject === "true";
     if (percentRate !== undefined) updateData.percentRate = percentRate ? parseFloat(percentRate) : null;
     if (percentageBase !== undefined) updateData.percentageBase = percentageBase || null;
     if (isActive !== undefined) updateData.isActive = isActive;
