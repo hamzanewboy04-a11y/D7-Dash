@@ -34,6 +34,15 @@ interface User {
   createdAt: string;
 }
 
+interface Priemka {
+  id: string;
+  name: string;
+  code: string;
+  commissionRate: number;
+  description: string | null;
+  isActive: boolean;
+}
+
 const ALL_SECTIONS = [
   { id: "dashboard", name: "Дашборд" },
   { id: "countries", name: "Страны" },
@@ -124,6 +133,7 @@ export default function SettingsPage() {
 
   const [countries, setCountries] = useState<Country[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [priemkas, setPriemkas] = useState<Priemka[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -137,6 +147,9 @@ export default function SettingsPage() {
   const [editPassword, setEditPassword] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editAllowedSections, setEditAllowedSections] = useState<string[]>([]);
+  const [newPriemka, setNewPriemka] = useState({ name: "", code: "", commissionRate: "15", description: "" });
+  const [showAddPriemka, setShowAddPriemka] = useState(false);
+  const [editingPriemka, setEditingPriemka] = useState<Priemka | null>(null);
   const { isAdmin } = useAuth();
 
   // Load settings from API
@@ -192,9 +205,22 @@ export default function SettingsPage() {
     }
   }, [isAdmin]);
 
+  // Load priemkas from API
+  const loadPriemkas = useCallback(async () => {
+    try {
+      const res = await fetch("/api/priemka");
+      if (res.ok) {
+        const data = await res.json();
+        setPriemkas(data);
+      }
+    } catch (error) {
+      console.error("Error loading priemkas:", error);
+    }
+  }, []);
+
   useEffect(() => {
-    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers()]).finally(() => setLoading(false));
-  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers]);
+    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas()]).finally(() => setLoading(false));
+  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers, loadPriemkas]);
 
   const handleSettingChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -310,6 +336,78 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Error deleting country:", error);
     }
+  };
+
+  // Priemka CRUD functions
+  const handleAddPriemka = async () => {
+    if (!newPriemka.name || !newPriemka.code) {
+      alert("Название и код обязательны");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/priemka", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPriemka),
+      });
+
+      if (res.ok) {
+        await loadPriemkas();
+        setNewPriemka({ name: "", code: "", commissionRate: "15", description: "" });
+        setShowAddPriemka(false);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка добавления приёмки");
+      }
+    } catch (error) {
+      console.error("Error adding priemka:", error);
+    }
+  };
+
+  const handleUpdatePriemka = async (priemka: Priemka) => {
+    try {
+      const res = await fetch("/api/priemka", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(priemka),
+      });
+
+      if (res.ok) {
+        await loadPriemkas();
+        setEditingPriemka(null);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка обновления приёмки");
+      }
+    } catch (error) {
+      console.error("Error updating priemka:", error);
+    }
+  };
+
+  const handleDeletePriemka = async (id: string) => {
+    if (!confirm("Вы уверены, что хотите удалить эту приёмку? Все связанные записи также будут удалены.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/priemka?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        await loadPriemkas();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка удаления приёмки");
+      }
+    } catch (error) {
+      console.error("Error deleting priemka:", error);
+    }
+  };
+
+  const handleTogglePriemkaActive = async (priemka: Priemka) => {
+    await handleUpdatePriemka({ ...priemka, isActive: !priemka.isActive });
   };
 
   const handleAddUser = async () => {
@@ -494,7 +592,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="rates">
-        <TabsList className="grid grid-cols-5 lg:grid-cols-9 w-full">
+        <TabsList className="grid grid-cols-5 lg:grid-cols-10 w-full">
           <TabsTrigger value="rates">Комиссии</TabsTrigger>
           <TabsTrigger value="currency">Валюты</TabsTrigger>
           <TabsTrigger value="payments">Выплаты</TabsTrigger>
@@ -504,6 +602,7 @@ export default function SettingsPage() {
           <TabsTrigger value="goals">Цели</TabsTrigger>
           {isAdmin && <TabsTrigger value="users">Пользователи</TabsTrigger>}
           <TabsTrigger value="system">Система</TabsTrigger>
+          <TabsTrigger value="priemkas">Приёмки</TabsTrigger>
         </TabsList>
 
         {/* Commission Rates */}
@@ -1495,6 +1594,172 @@ export default function SettingsPage() {
                   {settings.filterZeroSpend === "true" ? "Включено" : "Выключено"}
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Priemkas Management */}
+        <TabsContent value="priemkas" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Управление приёмками</CardTitle>
+                  <CardDescription>
+                    Настройка приёмок (платёжных процессоров) с комиссиями
+                  </CardDescription>
+                </div>
+                <Button onClick={() => setShowAddPriemka(!showAddPriemka)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить приёмку
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showAddPriemka && (
+                <div className="border rounded-lg p-4 space-y-4 bg-slate-50">
+                  <h4 className="font-medium">Новая приёмка</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="priemkaName">Название</Label>
+                      <Input
+                        id="priemkaName"
+                        value={newPriemka.name}
+                        onChange={(e) => setNewPriemka(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Например: Trust"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priemkaCode">Код</Label>
+                      <Input
+                        id="priemkaCode"
+                        value={newPriemka.code}
+                        onChange={(e) => setNewPriemka(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                        placeholder="TRUST"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priemkaCommission">Комиссия (%)</Label>
+                      <Input
+                        id="priemkaCommission"
+                        type="number"
+                        step="0.1"
+                        value={newPriemka.commissionRate}
+                        onChange={(e) => setNewPriemka(prev => ({ ...prev, commissionRate: e.target.value }))}
+                        placeholder="15"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priemkaDescription">Описание</Label>
+                      <Input
+                        id="priemkaDescription"
+                        value={newPriemka.description}
+                        onChange={(e) => setNewPriemka(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Описание (опционально)"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleAddPriemka}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Добавить
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowAddPriemka(false)}>
+                      Отмена
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {priemkas.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">Приёмки не найдены. Добавьте первую приёмку.</p>
+              ) : (
+                <div className="space-y-2">
+                  {priemkas.map((priemka) => (
+                    <div
+                      key={priemka.id}
+                      className={`flex items-center justify-between p-4 border rounded-lg ${
+                        priemka.isActive ? "bg-white" : "bg-slate-100 opacity-75"
+                      }`}
+                    >
+                      {editingPriemka?.id === priemka.id ? (
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                          <Input
+                            value={editingPriemka.name}
+                            onChange={(e) => setEditingPriemka({ ...editingPriemka, name: e.target.value })}
+                            placeholder="Название"
+                          />
+                          <Input
+                            value={editingPriemka.code}
+                            onChange={(e) => setEditingPriemka({ ...editingPriemka, code: e.target.value.toUpperCase() })}
+                            placeholder="Код"
+                          />
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={editingPriemka.commissionRate}
+                            onChange={(e) => setEditingPriemka({ ...editingPriemka, commissionRate: parseFloat(e.target.value) || 0 })}
+                            placeholder="Комиссия %"
+                          />
+                          <Input
+                            value={editingPriemka.description || ""}
+                            onChange={(e) => setEditingPriemka({ ...editingPriemka, description: e.target.value })}
+                            placeholder="Описание"
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleUpdatePriemka(editingPriemka)}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingPriemka(null)}>
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-4">
+                            <div>
+                              <p className="font-medium">{priemka.name}</p>
+                              <p className="text-sm text-slate-500">
+                                Код: {priemka.code} | Комиссия: {priemka.commissionRate}%
+                                {priemka.description && ` | ${priemka.description}`}
+                              </p>
+                            </div>
+                            {!priemka.isActive && (
+                              <span className="text-xs bg-slate-200 px-2 py-1 rounded">Неактивна</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleTogglePriemkaActive(priemka)}
+                            >
+                              {priemka.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingPriemka(priemka)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeletePriemka(priemka.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

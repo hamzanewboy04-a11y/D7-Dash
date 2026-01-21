@@ -940,14 +940,14 @@ export default function SmmPage() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               {editingMetric ? "Редактировать запись" : "Добавить SMM метрики"}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="date">Дата *</Label>
                 <Input
@@ -975,15 +975,23 @@ export default function SmmPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label htmlFor="notes">Заметки</Label>
+                <Input
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Доп. информация..."
+                />
+              </div>
             </div>
 
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-2 text-[#1e40af] font-medium mb-3">
-                <FileText className="h-4 w-4" />
-                Посты
-              </div>
-              <div>
-                <Label htmlFor="postsTotal">Факт (за день)</Label>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2 text-[#1e40af] font-medium mb-2 text-sm">
+                  <FileText className="h-4 w-4" />
+                  Посты
+                </div>
                 <Input
                   id="postsTotal"
                   type="number"
@@ -992,15 +1000,12 @@ export default function SmmPage() {
                   placeholder="0"
                 />
               </div>
-            </div>
 
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <div className="flex items-center gap-2 text-purple-700 font-medium mb-3">
-                <Image className="h-4 w-4" />
-                Сторис
-              </div>
-              <div>
-                <Label htmlFor="storiesTotal">Факт (за день)</Label>
+              <div className="p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center gap-2 text-purple-700 font-medium mb-2 text-sm">
+                  <Image className="h-4 w-4" />
+                  Сторис
+                </div>
                 <Input
                   id="storiesTotal"
                   type="number"
@@ -1009,15 +1014,12 @@ export default function SmmPage() {
                   placeholder="0"
                 />
               </div>
-            </div>
 
-            <div className="p-4 bg-amber-50 rounded-lg">
-              <div className="flex items-center gap-2 text-amber-700 font-medium mb-3">
-                <MessageSquare className="h-4 w-4" />
-                Мини-отзывы
-              </div>
-              <div>
-                <Label htmlFor="miniReviewsTotal">Факт (за день)</Label>
+              <div className="p-3 bg-amber-50 rounded-lg">
+                <div className="flex items-center gap-2 text-amber-700 font-medium mb-2 text-sm">
+                  <MessageSquare className="h-4 w-4" />
+                  Мини-отзывы
+                </div>
                 <Input
                   id="miniReviewsTotal"
                   type="number"
@@ -1026,15 +1028,12 @@ export default function SmmPage() {
                   placeholder="0"
                 />
               </div>
-            </div>
 
-            <div className="p-4 bg-emerald-50 rounded-lg">
-              <div className="flex items-center gap-2 text-emerald-700 font-medium mb-3">
-                <Star className="h-4 w-4" />
-                Большие отзывы
-              </div>
-              <div>
-                <Label htmlFor="bigReviewsTotal">Факт (за день)</Label>
+              <div className="p-3 bg-emerald-50 rounded-lg">
+                <div className="flex items-center gap-2 text-emerald-700 font-medium mb-2 text-sm">
+                  <Star className="h-4 w-4" />
+                  Большие отзывы
+                </div>
                 <Input
                   id="bigReviewsTotal"
                   type="number"
@@ -1043,16 +1042,6 @@ export default function SmmPage() {
                   placeholder="0"
                 />
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Заметки</Label>
-              <Input
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Дополнительная информация..."
-              />
             </div>
           </div>
           <DialogFooter>
