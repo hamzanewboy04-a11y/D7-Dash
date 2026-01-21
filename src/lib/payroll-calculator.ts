@@ -121,6 +121,28 @@ export async function calculateEmployeePayroll(
   const activeCountries = new Set(metrics.filter(m => m.totalSpend > 0).map(m => m.countryId));
   const activeProjects = activeCountries.size || 1;
   const daysWithActivity = new Set(metrics.filter(m => m.totalSpend > 0).map(m => m.date.toISOString().split("T")[0])).size;
+  
+  // Calculate period multiplier for fixed rates
+  const getPeriodMultiplier = (period: string | null, days: number): number => {
+    switch (period) {
+      case "week":
+        return Math.ceil(days / 7); // Number of weeks
+      case "month":
+        return Math.ceil(days / 30); // Number of months
+      case "day":
+      default:
+        return days; // Number of days
+    }
+  };
+  
+  const calculateFixedRatePayroll = (rate: number, days: number, projects: number, period: string | null, perProject: boolean): { amount: number; multiplier: number } => {
+    const periodMultiplier = getPeriodMultiplier(period, days);
+    const projectMultiplier = perProject ? projects : 1;
+    return {
+      amount: rate * periodMultiplier * projectMultiplier,
+      multiplier: periodMultiplier * projectMultiplier,
+    };
+  };
 
   switch (employee.role) {
     case "buyer": {
@@ -184,10 +206,14 @@ export async function calculateEmployeePayroll(
 
     case "content": {
       const rate = employee.fixedRate || settings.contentFixedRate;
-      calculatedAmount = daysWithActivity * rate * activeProjects;
+      const period = employee.fixedRatePeriod;
+      const perProject = employee.fixedRatePerProject ?? true; // Default true for content
+      const { amount, multiplier } = calculateFixedRatePayroll(rate, daysWithActivity, activeProjects, period, perProject);
+      calculatedAmount = amount;
+      const periodLabel = period === "week" ? "недель" : period === "month" ? "месяцев" : "дней";
       details.push({
-        metric: "Дней активности × Проекты",
-        value: daysWithActivity * activeProjects,
+        metric: perProject ? `${periodLabel} × проекты` : periodLabel,
+        value: multiplier,
         rate: rate,
         amount: calculatedAmount,
       });
@@ -196,10 +222,14 @@ export async function calculateEmployeePayroll(
 
     case "designer": {
       const rate = employee.fixedRate || settings.designerFixedRate;
-      calculatedAmount = daysWithActivity * rate * activeProjects;
+      const period = employee.fixedRatePeriod;
+      const perProject = employee.fixedRatePerProject ?? true; // Default true for designer
+      const { amount, multiplier } = calculateFixedRatePayroll(rate, daysWithActivity, activeProjects, period, perProject);
+      calculatedAmount = amount;
+      const periodLabel = period === "week" ? "недель" : period === "month" ? "месяцев" : "дней";
       details.push({
-        metric: "Дней активности × Проекты",
-        value: daysWithActivity * activeProjects,
+        metric: perProject ? `${periodLabel} × проекты` : periodLabel,
+        value: multiplier,
         rate: rate,
         amount: calculatedAmount,
       });
@@ -208,10 +238,14 @@ export async function calculateEmployeePayroll(
 
     case "head_designer": {
       const rate = employee.fixedRate || settings.headDesignerFixed;
-      calculatedAmount = daysWithActivity * rate;
+      const period = employee.fixedRatePeriod;
+      const perProject = employee.fixedRatePerProject ?? false; // Default false for head designer
+      const { amount, multiplier } = calculateFixedRatePayroll(rate, daysWithActivity, activeProjects, period, perProject);
+      calculatedAmount = amount;
+      const periodLabel = period === "week" ? "недель" : period === "month" ? "месяцев" : "дней";
       details.push({
-        metric: "Дней активности",
-        value: daysWithActivity,
+        metric: perProject ? `${periodLabel} × проекты` : periodLabel,
+        value: multiplier,
         rate: rate,
         amount: calculatedAmount,
       });
@@ -220,10 +254,14 @@ export async function calculateEmployeePayroll(
 
     case "reviewer": {
       const rate = employee.fixedRate || settings.reviewerFixedRate;
-      calculatedAmount = daysWithActivity * rate * activeProjects;
+      const period = employee.fixedRatePeriod;
+      const perProject = employee.fixedRatePerProject ?? true; // Default true for reviewer
+      const { amount, multiplier } = calculateFixedRatePayroll(rate, daysWithActivity, activeProjects, period, perProject);
+      calculatedAmount = amount;
+      const periodLabel = period === "week" ? "недель" : period === "month" ? "месяцев" : "дней";
       details.push({
-        metric: "Дней активности × Проекты",
-        value: daysWithActivity * activeProjects,
+        metric: perProject ? `${periodLabel} × проекты` : periodLabel,
+        value: multiplier,
         rate: rate,
         amount: calculatedAmount,
       });
@@ -232,10 +270,14 @@ export async function calculateEmployeePayroll(
 
     default: {
       if (employee.fixedRate) {
-        calculatedAmount = daysWithActivity * employee.fixedRate;
+        const period = employee.fixedRatePeriod;
+        const perProject = employee.fixedRatePerProject ?? false;
+        const { amount, multiplier } = calculateFixedRatePayroll(employee.fixedRate, daysWithActivity, activeProjects, period, perProject);
+        calculatedAmount = amount;
+        const periodLabel = period === "week" ? "недель" : period === "month" ? "месяцев" : "дней";
         details.push({
-          metric: "Дней активности (фикс)",
-          value: daysWithActivity,
+          metric: perProject ? `${periodLabel} × проекты (фикс)` : `${periodLabel} (фикс)`,
+          value: multiplier,
           rate: employee.fixedRate,
           amount: calculatedAmount,
         });
