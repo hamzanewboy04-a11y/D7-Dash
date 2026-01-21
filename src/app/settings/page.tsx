@@ -705,18 +705,18 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="rates">
-        <TabsList className="grid grid-cols-5 lg:grid-cols-11 w-full">
-          <TabsTrigger value="rates">Комиссии</TabsTrigger>
-          <TabsTrigger value="currency">Валюты</TabsTrigger>
-          <TabsTrigger value="payments">Выплаты</TabsTrigger>
-          <TabsTrigger value="limits">Лимиты</TabsTrigger>
-          <TabsTrigger value="notifications">Уведомления</TabsTrigger>
-          <TabsTrigger value="countries">Проекты</TabsTrigger>
-          <TabsTrigger value="goals">Цели</TabsTrigger>
-          {isAdmin && <TabsTrigger value="users">Пользователи</TabsTrigger>}
-          <TabsTrigger value="system">Система</TabsTrigger>
-          <TabsTrigger value="priemkas">Приёмки</TabsTrigger>
-          <TabsTrigger value="smm-projects">SMM Проекты</TabsTrigger>
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1 w-full">
+          <TabsTrigger value="rates" className="px-3 py-1.5">Комиссии</TabsTrigger>
+          <TabsTrigger value="currency" className="px-3 py-1.5">Валюты</TabsTrigger>
+          <TabsTrigger value="payments" className="px-3 py-1.5">Выплаты</TabsTrigger>
+          <TabsTrigger value="limits" className="px-3 py-1.5">Лимиты</TabsTrigger>
+          <TabsTrigger value="notifications" className="px-3 py-1.5">Уведомления</TabsTrigger>
+          <TabsTrigger value="countries" className="px-3 py-1.5">Проекты</TabsTrigger>
+          <TabsTrigger value="goals" className="px-3 py-1.5">Цели</TabsTrigger>
+          {isAdmin && <TabsTrigger value="users" className="px-3 py-1.5">Пользователи</TabsTrigger>}
+          <TabsTrigger value="system" className="px-3 py-1.5">Система</TabsTrigger>
+          <TabsTrigger value="priemkas" className="px-3 py-1.5">Приёмки</TabsTrigger>
+          <TabsTrigger value="smm-projects" className="px-3 py-1.5">SMM Проекты</TabsTrigger>
         </TabsList>
 
         {/* Commission Rates */}
