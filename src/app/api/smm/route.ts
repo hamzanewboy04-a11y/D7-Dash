@@ -27,11 +27,17 @@ export async function GET(request: NextRequest) {
     today.setHours(23, 59, 59, 999);
     
     where.date = {};
-    if (startDate) (where.date as Record<string, Date>).gte = new Date(startDate);
+    const startDateParsed = startDate ? new Date(startDate) : null;
+    if (startDateParsed) (where.date as Record<string, Date>).gte = startDateParsed;
     
     // Use the earlier of endDate or today - never show future dates
     const requestedEnd = endDate ? new Date(endDate) : today;
-    (where.date as Record<string, Date>).lte = requestedEnd > today ? today : requestedEnd;
+    const effectiveEnd = requestedEnd > today ? today : requestedEnd;
+    (where.date as Record<string, Date>).lte = effectiveEnd;
+
+    // Calculate number of days in the period
+    const effectiveStart = startDateParsed || new Date(0);
+    const daysDiff = Math.max(1, Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
     const metrics = await prisma.smmMetrics.findMany({
       where,
@@ -42,21 +48,52 @@ export async function GET(request: NextRequest) {
       orderBy: [{ date: "desc" }, { countryId: "asc" }],
     });
 
-    const totals = await prisma.smmMetrics.aggregate({
+    // Get actual facts from records
+    const factTotals = await prisma.smmMetrics.aggregate({
       where,
       _sum: {
-        postsPlan: true,
         postsTotal: true,
-        storiesPlan: true,
         storiesTotal: true,
-        miniReviewsPlan: true,
         miniReviewsTotal: true,
-        bigReviewsPlan: true,
         bigReviewsTotal: true,
       },
     });
 
-    return NextResponse.json({ metrics, totals }, {
+    // Get settings for plan calculation
+    const settingsWhere = countryId ? { countryId } : {};
+    const settings = await prisma.smmProjectSettings.findMany({
+      where: settingsWhere,
+    });
+
+    // Calculate plan based on period days × daily settings
+    let postsPlan = 0;
+    let storiesPlan = 0;
+    let miniReviewsPlan = 0;
+    let bigReviewsPlan = 0;
+
+    if (settings.length > 0) {
+      for (const s of settings) {
+        postsPlan += (s.postsPlanDaily || 0) * daysDiff;
+        storiesPlan += (s.storiesPlanDaily || 0) * daysDiff;
+        miniReviewsPlan += (s.miniReviewsPlanDaily || 0) * daysDiff;
+        bigReviewsPlan += (s.bigReviewsPlanDaily || 0) * daysDiff;
+      }
+    }
+
+    const totals = {
+      _sum: {
+        postsPlan,
+        postsTotal: factTotals._sum?.postsTotal || 0,
+        storiesPlan,
+        storiesTotal: factTotals._sum?.storiesTotal || 0,
+        miniReviewsPlan,
+        miniReviewsTotal: factTotals._sum?.miniReviewsTotal || 0,
+        bigReviewsPlan,
+        bigReviewsTotal: factTotals._sum?.bigReviewsTotal || 0,
+      },
+    };
+
+    return NextResponse.json({ metrics, totals, periodDays: daysDiff }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',
