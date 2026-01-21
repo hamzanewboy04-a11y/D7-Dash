@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, requireEditorAuth } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   const authError = await requireAuth();
@@ -29,6 +31,15 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[Buying API] Where clause:', JSON.stringify(where));
+
+    // Debug: Check total records in database
+    const totalRecords = await prisma.buyerMetrics.count();
+    const countryStats = await prisma.buyerMetrics.groupBy({
+      by: ['countryId'],
+      _count: { id: true }
+    });
+    console.log('[Buying API] Total records in DB:', totalRecords);
+    console.log('[Buying API] Records by countryId:', JSON.stringify(countryStats));
 
     const metrics = await prisma.buyerMetrics.findMany({
       where,
@@ -61,7 +72,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ metrics, totals });
+    return NextResponse.json({ metrics, totals }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   } catch (error) {
     console.error("Error fetching buyer metrics:", error);
     return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });

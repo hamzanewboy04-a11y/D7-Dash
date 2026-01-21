@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, requireEditorAuth } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   const authError = await requireAuth();
@@ -54,7 +56,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ metrics, totals });
+    return NextResponse.json({ metrics, totals }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
   } catch (error) {
     console.error("Error fetching SMM metrics:", error);
     return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
