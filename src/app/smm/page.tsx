@@ -829,22 +829,22 @@ export default function SmmPage() {
                   <TableRow className="bg-slate-50">
                     <TableHead>Дата</TableHead>
                     <TableHead>Страна</TableHead>
-                    <TableHead className="text-center" colSpan={3}>
+                    <TableHead className="text-center" colSpan={2}>
                       <div className="flex items-center justify-center gap-1">
                         <FileText className="h-3 w-3" /> Посты
                       </div>
                     </TableHead>
-                    <TableHead className="text-center" colSpan={3}>
+                    <TableHead className="text-center" colSpan={2}>
                       <div className="flex items-center justify-center gap-1">
                         <Image className="h-3 w-3" /> Сторис
                       </div>
                     </TableHead>
-                    <TableHead className="text-center" colSpan={3}>
+                    <TableHead className="text-center" colSpan={2}>
                       <div className="flex items-center justify-center gap-1">
                         <MessageSquare className="h-3 w-3" /> Мини-отзывы
                       </div>
                     </TableHead>
-                    <TableHead className="text-center" colSpan={3}>
+                    <TableHead className="text-center" colSpan={2}>
                       <div className="flex items-center justify-center gap-1">
                         <Star className="h-3 w-3" /> Большие отзывы
                       </div>
@@ -855,18 +855,14 @@ export default function SmmPage() {
                   <TableRow className="bg-slate-50/50">
                     <TableHead></TableHead>
                     <TableHead></TableHead>
-                    <TableHead className="text-center text-xs">План/День</TableHead>
-                    <TableHead className="text-center text-xs">Факт/День</TableHead>
-                    <TableHead className="text-center text-xs">Остаток</TableHead>
-                    <TableHead className="text-center text-xs">План/День</TableHead>
-                    <TableHead className="text-center text-xs">Факт/День</TableHead>
-                    <TableHead className="text-center text-xs">Остаток</TableHead>
-                    <TableHead className="text-center text-xs">План/День</TableHead>
-                    <TableHead className="text-center text-xs">Факт/День</TableHead>
-                    <TableHead className="text-center text-xs">Остаток</TableHead>
-                    <TableHead className="text-center text-xs">План/День</TableHead>
-                    <TableHead className="text-center text-xs">Факт/День</TableHead>
-                    <TableHead className="text-center text-xs">Остаток</TableHead>
+                    <TableHead className="text-center text-xs">План</TableHead>
+                    <TableHead className="text-center text-xs">Факт</TableHead>
+                    <TableHead className="text-center text-xs">План</TableHead>
+                    <TableHead className="text-center text-xs">Факт</TableHead>
+                    <TableHead className="text-center text-xs">План</TableHead>
+                    <TableHead className="text-center text-xs">Факт</TableHead>
+                    <TableHead className="text-center text-xs">План</TableHead>
+                    <TableHead className="text-center text-xs">Факт</TableHead>
                     <TableHead></TableHead>
                     {canEdit && <TableHead></TableHead>}
                   </TableRow>
@@ -882,16 +878,12 @@ export default function SmmPage() {
                       </TableCell>
                       <TableCell className="text-center text-slate-600">{m.postsPlanDaily || m.postsPlan}</TableCell>
                       <TableCell className="text-center font-medium">{m.postsFactDaily || m.postsTotal}</TableCell>
-                      <TableCell className="text-center text-amber-600">{m.postsRemaining}</TableCell>
                       <TableCell className="text-center text-slate-600">{m.storiesPlanDaily || m.storiesPlan}</TableCell>
                       <TableCell className="text-center font-medium">{m.storiesFactDaily || m.storiesTotal}</TableCell>
-                      <TableCell className="text-center text-amber-600">{m.storiesRemaining}</TableCell>
                       <TableCell className="text-center text-slate-600">{m.miniReviewsPlanDaily || m.miniReviewsPlan}</TableCell>
                       <TableCell className="text-center font-medium">{m.miniReviewsFactDaily || m.miniReviewsTotal}</TableCell>
-                      <TableCell className="text-center text-amber-600">{m.miniReviewsRemaining}</TableCell>
                       <TableCell className="text-center text-slate-600">{m.bigReviewsPlanDaily || m.bigReviewsPlan}</TableCell>
                       <TableCell className="text-center font-medium">{m.bigReviewsFactDaily || m.bigReviewsTotal}</TableCell>
-                      <TableCell className="text-center text-amber-600">{m.bigReviewsRemaining}</TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-col items-center gap-1">
                           <span className={`text-sm font-medium ${
