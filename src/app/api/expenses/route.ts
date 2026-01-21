@@ -1,6 +1,43 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+async function updateBalanceAmount(balanceId: string, amount: number, type: string) {
+  let amountChange = amount;
+  
+  if (type === "spend" || type === "expense" || type === "transfer") {
+    amountChange = -Math.abs(amount);
+  } else if (type === "top_up") {
+    amountChange = Math.abs(amount);
+  }
+
+  await prisma.balance.update({
+    where: { id: balanceId },
+    data: {
+      currentAmount: {
+        increment: amountChange,
+      },
+    },
+  });
+}
+
+async function reverseBalanceAmount(balanceId: string, amount: number, type: string) {
+  let reverseAmount = amount;
+  if (type === "top_up") {
+    reverseAmount = -amount;
+  } else {
+    reverseAmount = amount;
+  }
+
+  await prisma.balance.update({
+    where: { id: balanceId },
+    data: {
+      currentAmount: {
+        increment: reverseAmount,
+      },
+    },
+  });
+}
+
 // GET - Получить список расходов
 export async function GET(request: Request) {
   try {
@@ -13,7 +50,6 @@ export async function GET(request: Request) {
     const where: Record<string, unknown> = {};
 
     if (date) {
-      // Конкретная дата
       const d = new Date(date);
       const nextDay = new Date(d);
       nextDay.setDate(nextDay.getDate() + 1);
@@ -63,7 +99,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { date, amount, description, category, countryId } = body;
+    const { date, amount, description, category, countryId, targetBalanceCode } = body;
 
     if (!date || amount === undefined || !description) {
       return NextResponse.json(
@@ -72,13 +108,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const parsedAmount = parseFloat(amount);
+    const expenseDate = new Date(date);
+    const expenseCategory = category || "other";
+
     const expense = await prisma.expense.create({
       data: {
-        date: new Date(date),
-        amount: parseFloat(amount),
+        date: expenseDate,
+        amount: parsedAmount,
         description,
-        category: category || "other",
+        category: expenseCategory,
         countryId: countryId || null,
+        targetBalanceCode: expenseCategory === "agency_topup" ? targetBalanceCode : null,
       },
       include: {
         country: {
@@ -90,6 +131,41 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    if (expenseCategory === "agency_topup" && targetBalanceCode) {
+      const exchangeBalance = await prisma.balance.findUnique({
+        where: { code: "EXCHANGE" },
+      });
+      const targetBalance = await prisma.balance.findUnique({
+        where: { code: targetBalanceCode },
+      });
+
+      if (exchangeBalance && targetBalance) {
+        await prisma.balanceTransaction.create({
+          data: {
+            balanceId: exchangeBalance.id,
+            type: "expense",
+            amount: parsedAmount,
+            description: `Пополнение агентства ${targetBalanceCode}: ${description}`,
+            expenseId: expense.id,
+            date: expenseDate,
+          },
+        });
+        await updateBalanceAmount(exchangeBalance.id, parsedAmount, "expense");
+
+        await prisma.balanceTransaction.create({
+          data: {
+            balanceId: targetBalance.id,
+            type: "top_up",
+            amount: parsedAmount,
+            description: `Пополнение с биржи: ${description}`,
+            expenseId: expense.id,
+            date: expenseDate,
+          },
+        });
+        await updateBalanceAmount(targetBalance.id, parsedAmount, "top_up");
+      }
+    }
 
     return NextResponse.json(expense);
   } catch (error) {
@@ -105,7 +181,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, date, amount, description, category, countryId } = body;
+    const { id, date, amount, description, category, countryId, targetBalanceCode } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -114,12 +190,40 @@ export async function PUT(request: Request) {
       );
     }
 
+    const existingExpense = await prisma.expense.findUnique({
+      where: { id },
+    });
+
+    if (!existingExpense) {
+      return NextResponse.json(
+        { error: "Расход не найден" },
+        { status: 404 }
+      );
+    }
+
+    if (existingExpense.category === "agency_topup" && existingExpense.targetBalanceCode) {
+      const relatedTransactions = await prisma.balanceTransaction.findMany({
+        where: { expenseId: id },
+      });
+
+      for (const transaction of relatedTransactions) {
+        await reverseBalanceAmount(transaction.balanceId, transaction.amount, transaction.type);
+      }
+
+      await prisma.balanceTransaction.deleteMany({
+        where: { expenseId: id },
+      });
+    }
+
     const updateData: Record<string, unknown> = {};
     if (date !== undefined) updateData.date = new Date(date);
     if (amount !== undefined) updateData.amount = parseFloat(amount);
     if (description !== undefined) updateData.description = description;
     if (category !== undefined) updateData.category = category;
     if (countryId !== undefined) updateData.countryId = countryId || null;
+    if (targetBalanceCode !== undefined) {
+      updateData.targetBalanceCode = (category || existingExpense.category) === "agency_topup" ? targetBalanceCode : null;
+    }
 
     const expense = await prisma.expense.update({
       where: { id },
@@ -134,6 +238,48 @@ export async function PUT(request: Request) {
         },
       },
     });
+
+    const newCategory = category !== undefined ? category : existingExpense.category;
+    const newTargetBalanceCode = targetBalanceCode !== undefined ? targetBalanceCode : existingExpense.targetBalanceCode;
+    
+    if (newCategory === "agency_topup" && newTargetBalanceCode) {
+      const parsedAmount = amount !== undefined ? parseFloat(amount) : existingExpense.amount;
+      const expenseDate = date !== undefined ? new Date(date) : existingExpense.date;
+      const expenseDescription = description !== undefined ? description : existingExpense.description;
+
+      const exchangeBalance = await prisma.balance.findUnique({
+        where: { code: "EXCHANGE" },
+      });
+      const targetBalance = await prisma.balance.findUnique({
+        where: { code: newTargetBalanceCode },
+      });
+
+      if (exchangeBalance && targetBalance) {
+        await prisma.balanceTransaction.create({
+          data: {
+            balanceId: exchangeBalance.id,
+            type: "expense",
+            amount: parsedAmount,
+            description: `Пополнение агентства ${newTargetBalanceCode}: ${expenseDescription}`,
+            expenseId: expense.id,
+            date: expenseDate,
+          },
+        });
+        await updateBalanceAmount(exchangeBalance.id, parsedAmount, "expense");
+
+        await prisma.balanceTransaction.create({
+          data: {
+            balanceId: targetBalance.id,
+            type: "top_up",
+            amount: parsedAmount,
+            description: `Пополнение с биржи: ${expenseDescription}`,
+            expenseId: expense.id,
+            date: expenseDate,
+          },
+        });
+        await updateBalanceAmount(targetBalance.id, parsedAmount, "top_up");
+      }
+    }
 
     return NextResponse.json(expense);
   } catch (error) {
@@ -156,6 +302,31 @@ export async function DELETE(request: Request) {
         { error: "ID расхода обязателен" },
         { status: 400 }
       );
+    }
+
+    const expense = await prisma.expense.findUnique({
+      where: { id },
+    });
+
+    if (!expense) {
+      return NextResponse.json(
+        { error: "Расход не найден" },
+        { status: 404 }
+      );
+    }
+
+    if (expense.category === "agency_topup" && expense.targetBalanceCode) {
+      const relatedTransactions = await prisma.balanceTransaction.findMany({
+        where: { expenseId: id },
+      });
+
+      for (const transaction of relatedTransactions) {
+        await reverseBalanceAmount(transaction.balanceId, transaction.amount, transaction.type);
+      }
+
+      await prisma.balanceTransaction.deleteMany({
+        where: { expenseId: id },
+      });
     }
 
     await prisma.expense.delete({

@@ -135,6 +135,7 @@ const expenseCategories = [
   { value: "banking", label: "Банковское" },
   { value: "communications", label: "Связь" },
   { value: "office", label: "Офис" },
+  { value: "agency_topup", label: "Пополнение агентства" },
   { value: "other", label: "Другое" },
 ];
 
@@ -162,9 +163,11 @@ export default function DashboardPage() {
     description: "",
     category: "other",
     countryId: "",
+    targetBalanceCode: "",
   });
   const [savingExpense, setSavingExpense] = useState(false);
   const [goalSettings, setGoalSettings] = useState<GoalSettings | null>(null);
+  const [agencies, setAgencies] = useState<Array<{ code: string; name: string }>>([]);
 
   const fetchGoalSettings = async () => {
     try {
@@ -312,6 +315,7 @@ export default function DashboardPage() {
           description: expenseForm.description,
           category: expenseForm.category,
           countryId: expenseForm.countryId || null,
+          targetBalanceCode: expenseForm.category === "agency_topup" ? expenseForm.targetBalanceCode : null,
         }),
       });
 
@@ -323,6 +327,7 @@ export default function DashboardPage() {
           description: "",
           category: "other",
           countryId: "",
+          targetBalanceCode: "",
         });
         // Refresh data
         fetchDashboardData();
@@ -335,11 +340,27 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchAgencies = async () => {
+    try {
+      const response = await fetch("/api/balances");
+      if (response.ok) {
+        const balances = await response.json();
+        const agencyBalances = balances
+          .filter((b: { type: string }) => b.type === "agency")
+          .map((b: { code: string; name: string }) => ({ code: b.code, name: b.name }));
+        setAgencies(agencyBalances);
+      }
+    } catch (error) {
+      console.error("Error fetching agencies:", error);
+    }
+  };
+
   useEffect(() => {
     checkSeeded();
     fetchDashboardData();
     fetchYesterdayData();
     fetchGoalSettings();
+    fetchAgencies();
   }, []);
 
   if (loading) {
@@ -633,7 +654,7 @@ export default function DashboardPage() {
               <Label htmlFor="expense-category">Категория</Label>
               <Select
                 value={expenseForm.category}
-                onValueChange={(v) => setExpenseForm({ ...expenseForm, category: v })}
+                onValueChange={(v) => setExpenseForm({ ...expenseForm, category: v, targetBalanceCode: v !== "agency_topup" ? "" : expenseForm.targetBalanceCode })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Выберите категорию" />
@@ -647,6 +668,27 @@ export default function DashboardPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {expenseForm.category === "agency_topup" && (
+              <div className="space-y-2">
+                <Label htmlFor="expense-target-balance">Целевое агентство</Label>
+                <Select
+                  value={expenseForm.targetBalanceCode}
+                  onValueChange={(v) => setExpenseForm({ ...expenseForm, targetBalanceCode: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите агентство" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agencies.map((agency) => (
+                      <SelectItem key={agency.code} value={agency.code}>
+                        {agency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="expense-country">Страна (опционально)</Label>
@@ -671,7 +713,7 @@ export default function DashboardPage() {
             <Button variant="outline" onClick={() => setExpenseDialogOpen(false)}>
               Отмена
             </Button>
-            <Button onClick={handleSaveExpense} disabled={savingExpense || !expenseForm.amount || !expenseForm.description}>
+            <Button onClick={handleSaveExpense} disabled={savingExpense || !expenseForm.amount || !expenseForm.description || (expenseForm.category === "agency_topup" && !expenseForm.targetBalanceCode)}>
               {savingExpense ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -78,6 +78,7 @@ interface AdditionalExpense {
   amount: number;
   description: string;
   category: string;
+  targetBalanceCode: string | null;
   country: {
     id: string;
     name: string;
@@ -629,21 +630,29 @@ export default function FinancePage() {
                         </TableCell>
                         <TableCell>{expense.description}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">
-                            {expense.category === "payroll" && "ФОТ"}
-                            {expense.category === "commission" && "Комиссия"}
-                            {expense.category === "chatterfy" && "Chatterfy"}
-                            {expense.category === "tools" && "Инструменты"}
-                            {expense.category === "accounts" && "Аккаунты"}
-                            {expense.category === "proxies" && "Прокси"}
-                            {expense.category === "hosting" && "Хостинг"}
-                            {expense.category === "software" && "Софт/Подписки"}
-                            {expense.category === "advertising" && "Реклама"}
-                            {expense.category === "banking" && "Банковское"}
-                            {expense.category === "communications" && "Связь"}
-                            {expense.category === "office" && "Офис"}
-                            {expense.category === "other" && "Другое"}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                              {expense.category === "payroll" && "ФОТ"}
+                              {expense.category === "commission" && "Комиссия"}
+                              {expense.category === "chatterfy" && "Chatterfy"}
+                              {expense.category === "tools" && "Инструменты"}
+                              {expense.category === "accounts" && "Аккаунты"}
+                              {expense.category === "proxies" && "Прокси"}
+                              {expense.category === "hosting" && "Хостинг"}
+                              {expense.category === "software" && "Софт/Подписки"}
+                              {expense.category === "advertising" && "Реклама"}
+                              {expense.category === "banking" && "Банковское"}
+                              {expense.category === "communications" && "Связь"}
+                              {expense.category === "office" && "Офис"}
+                              {expense.category === "agency_topup" && "Пополнение агентства"}
+                              {expense.category === "other" && "Другое"}
+                            </Badge>
+                            {expense.category === "agency_topup" && expense.targetBalanceCode && (
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                {expense.targetBalanceCode}
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {expense.country ? expense.country.name : "Все страны"}
@@ -666,7 +675,7 @@ export default function FinancePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {["payroll", "commission", "chatterfy", "tools", "accounts", "proxies", "hosting", "software", "advertising", "banking", "communications", "office", "other"].map((cat) => {
+                {["payroll", "commission", "chatterfy", "tools", "accounts", "proxies", "hosting", "software", "advertising", "banking", "communications", "office", "agency_topup", "other"].map((cat) => {
                   const categoryExpenses = additionalExpenses.filter(e => e.category === cat);
                   const total = categoryExpenses.reduce((s, e) => s + e.amount, 0);
                   const categoryName = {
@@ -682,6 +691,7 @@ export default function FinancePage() {
                     banking: "Банковское",
                     communications: "Связь",
                     office: "Офис",
+                    agency_topup: "Пополнение агентства",
                     other: "Другое",
                   }[cat];
 
