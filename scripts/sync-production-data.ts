@@ -182,11 +182,15 @@ async function syncData() {
     const finalCount = await prisma.buyerMetrics.count();
     console.log(`[Sync] Final buyer metrics count: ${finalCount}`);
 
-    // Clean SMM data
-    console.log("[Sync] Cleaning SMM data...");
-    const deletedSmmMetrics = await prisma.smmMetrics.deleteMany({});
-    const deletedSmmProjectMetrics = await prisma.smmProjectMetrics.deleteMany({});
-    console.log(`[Sync] Deleted ${deletedSmmMetrics.count} SMM metrics and ${deletedSmmProjectMetrics.count} SMM project metrics`);
+    // ONE-TIME SMM cleanup - remove this after first deploy
+    const smmCount = await prisma.smmMetrics.count();
+    const smmProjectCount = await prisma.smmProjectMetrics.count();
+    if (smmCount > 0 || smmProjectCount > 0) {
+      console.log(`[Sync] One-time SMM cleanup: found ${smmCount} SMM metrics and ${smmProjectCount} project metrics`);
+      await prisma.smmMetrics.deleteMany({});
+      await prisma.smmProjectMetrics.deleteMany({});
+      console.log("[Sync] SMM data cleaned");
+    }
 
   } catch (error) {
     console.error("[Sync] Error:", error);
