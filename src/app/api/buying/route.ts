@@ -46,8 +46,10 @@ export async function GET(request: NextRequest) {
       include: {
         employee: { select: { id: true, name: true, role: true } },
         country: { select: { id: true, name: true, code: true } },
+        cabinet: { select: { id: true, name: true, platform: true } },
+        desk: { select: { id: true, name: true } },
       },
-      orderBy: [{ date: "desc" }, { employeeId: "asc" }],
+      orderBy: [{ date: "desc" }, { deskId: "asc" }],
     });
 
     const countryCounts: Record<string, number> = {};
