@@ -30,8 +30,24 @@ interface User {
   role: string;
   email: string | null;
   mustChangePassword: boolean;
+  allowedSections: string[];
   createdAt: string;
 }
+
+const ALL_SECTIONS = [
+  { id: "dashboard", name: "Дашборд" },
+  { id: "countries", name: "Страны" },
+  { id: "buying", name: "Баинг" },
+  { id: "cabinets", name: "Кабинеты" },
+  { id: "smm", name: "SMM" },
+  { id: "finance", name: "Финансы" },
+  { id: "payroll", name: "ФОТ" },
+  { id: "import", name: "Импорт" },
+  { id: "data-entry", name: "Ввод данных" },
+  { id: "analytics", name: "Аналитика" },
+  { id: "settings", name: "Настройки" },
+  { id: "help", name: "Справка" },
+];
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -115,11 +131,12 @@ export default function SettingsPage() {
   const [savedGoals, setSavedGoals] = useState(false);
   const [newCountry, setNewCountry] = useState({ name: "", code: "", currency: "USDT" });
   const [showAddCountry, setShowAddCountry] = useState(false);
-  const [newUser, setNewUser] = useState({ username: "", password: "", role: "viewer", email: "" });
+  const [newUser, setNewUser] = useState({ username: "", password: "", role: "viewer", email: "", allowedSections: [] as string[] });
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editPassword, setEditPassword] = useState("");
   const [editRole, setEditRole] = useState("");
+  const [editAllowedSections, setEditAllowedSections] = useState<string[]>([]);
   const { isAdmin } = useAuth();
 
   // Load settings from API
@@ -310,7 +327,7 @@ export default function SettingsPage() {
 
       if (res.ok) {
         await loadUsers();
-        setNewUser({ username: "", password: "", role: "viewer", email: "" });
+        setNewUser({ username: "", password: "", role: "viewer", email: "", allowedSections: [] });
         setShowAddUser(false);
       } else {
         const error = await res.json();
@@ -321,11 +338,29 @@ export default function SettingsPage() {
     }
   };
 
+  const toggleNewUserSection = (sectionId: string) => {
+    setNewUser(prev => ({
+      ...prev,
+      allowedSections: prev.allowedSections.includes(sectionId)
+        ? prev.allowedSections.filter(s => s !== sectionId)
+        : [...prev.allowedSections, sectionId]
+    }));
+  };
+
+  const toggleEditSection = (sectionId: string) => {
+    setEditAllowedSections(prev =>
+      prev.includes(sectionId)
+        ? prev.filter(s => s !== sectionId)
+        : [...prev, sectionId]
+    );
+  };
+
   const handleUpdateUser = async (userId: string) => {
     try {
       const updateData: Record<string, unknown> = {};
       if (editRole) updateData.role = editRole;
       if (editPassword) updateData.password = editPassword;
+      updateData.allowedSections = editAllowedSections;
 
       const res = await fetch("/api/users", {
         method: "PATCH",
@@ -338,6 +373,7 @@ export default function SettingsPage() {
         setEditingUser(null);
         setEditPassword("");
         setEditRole("");
+        setEditAllowedSections([]);
       } else {
         const error = await res.json();
         alert(error.error || "Ошибка обновления пользователя");
@@ -1255,6 +1291,32 @@ export default function SettingsPage() {
                         />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Доступные разделы</Label>
+                      <p className="text-xs text-slate-500 mb-2">
+                        Если не выбрано ничего — доступны все разделы. Для ограничения доступа выберите нужные разделы.
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {ALL_SECTIONS.map((section) => (
+                          <label
+                            key={section.id}
+                            className={`flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                              newUser.allowedSections.includes(section.id)
+                                ? "bg-blue-50 border-blue-300"
+                                : "bg-white border-slate-200 hover:border-slate-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={newUser.allowedSections.includes(section.id)}
+                              onChange={() => toggleNewUserSection(section.id)}
+                              className="rounded"
+                            />
+                            <span className="text-sm">{section.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <Button onClick={handleAddUser}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -1289,70 +1351,112 @@ export default function SettingsPage() {
                           <p className="text-sm text-slate-500">
                             {user.email || "Нет email"} • Создан: {new Date(user.createdAt).toLocaleDateString("ru")}
                           </p>
+                          {user.allowedSections && user.allowedSections.length > 0 && (
+                            <p className="text-xs text-blue-600 mt-1">
+                              Доступ: {user.allowedSections.map(s => ALL_SECTIONS.find(sec => sec.id === s)?.name || s).join(", ")}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded text-sm font-medium ${getRoleBadgeColor(user.role)}`}>
                           {getRoleLabel(user.role)}
                         </span>
-                        {editingUser?.id === user.id ? (
-                          <div className="flex items-center gap-2 ml-4">
-                            <Select
-                              value={editRole || user.role}
-                              onValueChange={setEditRole}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="admin">Админ</SelectItem>
-                                <SelectItem value="editor">Редактор</SelectItem>
-                                <SelectItem value="viewer">Просмотр</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              type="password"
-                              placeholder="Новый пароль"
-                              value={editPassword}
-                              onChange={(e) => setEditPassword(e.target.value)}
-                              className="w-32"
-                            />
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setEditRole(user.role);
+                              setEditAllowedSections(user.allowedSections || []);
+                            }}
+                            title="Редактировать"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => handleDeleteUser(user.id)}
+                            title="Удалить"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {editingUser?.id === user.id && (
+                        <div className="mt-4 pt-4 border-t space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label>Роль</Label>
+                              <Select
+                                value={editRole || user.role}
+                                onValueChange={setEditRole}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="admin">Администратор</SelectItem>
+                                  <SelectItem value="editor">Редактор</SelectItem>
+                                  <SelectItem value="viewer">Просмотр</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Новый пароль</Label>
+                              <Input
+                                type="password"
+                                placeholder="Оставьте пустым, чтобы не менять"
+                                value={editPassword}
+                                onChange={(e) => setEditPassword(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Доступные разделы</Label>
+                            <p className="text-xs text-slate-500 mb-2">
+                              Если не выбрано ничего — доступны все разделы. Для ограничения доступа выберите нужные.
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              {ALL_SECTIONS.map((section) => (
+                                <label
+                                  key={section.id}
+                                  className={`flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors ${
+                                    editAllowedSections.includes(section.id)
+                                      ? "bg-blue-50 border-blue-300"
+                                      : "bg-white border-slate-200 hover:border-slate-300"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={editAllowedSections.includes(section.id)}
+                                    onChange={() => toggleEditSection(section.id)}
+                                    className="rounded"
+                                  />
+                                  <span className="text-sm">{section.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
                             <Button size="sm" onClick={() => handleUpdateUser(user.id)}>
-                              <Check className="h-4 w-4" />
+                              <Check className="h-4 w-4 mr-2" />
+                              Сохранить
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => {
                               setEditingUser(null);
                               setEditPassword("");
                               setEditRole("");
+                              setEditAllowedSections([]);
                             }}>
                               Отмена
                             </Button>
                           </div>
-                        ) : (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditingUser(user);
-                                setEditRole(user.role);
-                              }}
-                              title="Редактировать"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-red-500 hover:text-red-700"
-                              onClick={() => handleDeleteUser(user.id)}
-                              title="Удалить"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -21,6 +21,7 @@ export async function GET() {
         role: true,
         email: true,
         mustChangePassword: true,
+        allowedSections: true,
         createdAt: true,
       },
       orderBy: { createdAt: "asc" },
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, password, role, email } = body;
+    const { username, password, role, email, allowedSections } = body;
 
     if (!username || !password) {
       return NextResponse.json(
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
         passwordHash,
         role,
         email: email || null,
+        allowedSections: Array.isArray(allowedSections) ? allowedSections : [],
         mustChangePassword: false,
       },
       select: {
@@ -88,6 +90,7 @@ export async function POST(request: NextRequest) {
         username: true,
         role: true,
         email: true,
+        allowedSections: true,
         createdAt: true,
       },
     });
@@ -112,7 +115,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, role, password, mustChangePassword } = body;
+    const { id, role, password, mustChangePassword, allowedSections } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID пользователя обязателен" }, { status: 400 });
@@ -133,6 +136,10 @@ export async function PATCH(request: NextRequest) {
       updateData.mustChangePassword = mustChangePassword;
     }
 
+    if (Array.isArray(allowedSections)) {
+      updateData.allowedSections = allowedSections;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -142,6 +149,7 @@ export async function PATCH(request: NextRequest) {
         role: true,
         email: true,
         mustChangePassword: true,
+        allowedSections: true,
         createdAt: true,
       },
     });
