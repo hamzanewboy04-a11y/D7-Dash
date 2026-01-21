@@ -132,6 +132,11 @@
 A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Recent Changes (January 2026)
+- **Priemka (Payment Processor) Management**: New feature to create/manage priemkas with name, code, commission rate in Settings > Приёмки tab
+- **Multiple Priemkas per Day**: Data entry page now supports entering revenue from multiple priemkas per country per day with auto-calculated exchange rates
+- **PriemkaEntry Model**: Tracks daily priemka revenue (local/USDT) and exchange rates per country
+
+## Previous Changes (January 2026)
 - **Cabinet & Desk Management**: New feature to create/manage ad cabinets (Camila 3, Corie, Cabrera) and desks (Desk1, Desk3), with employee assignment
 - **Comprehensive Excel Import**: Imports ALL tables from ALL sheets including secondary tables (e.g., Перу январь has 2 tables, декабрь has 5 tables)
 - **Role-Based Permissions**: Viewers can only view, editors/admins can edit (403 for unauthorized edits)
