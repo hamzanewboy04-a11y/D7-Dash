@@ -18,6 +18,7 @@
 
 ### Главная страница (Dashboard)
 Показывает общую статистику за выбранный период:
+- **Балансы** — Биржа, агентства (TRUST, CROSSGIF, FBM), общий баланс
 - **Общий спенд** — сумма расходов на рекламу
 - **Общий доход** — сумма заработка
 - **ROI** — рентабельность (доход - расходы) / расходы × 100%
@@ -134,6 +135,11 @@
 A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Recent Changes (January 2026)
+- **Balance Tracking System**: Track exchange (Биржа) and agency (TRUST, CROSSGIF, FBM) balances on dashboard
+  - Agency top-up expenses decrease exchange and increase agency balance
+  - Regular expenses decrease exchange balance
+  - Buyer spend auto-deducts from agency balance based on cabinet platform
+- **SMM Plan Periods**: Date-range based planning for SMM projects (e.g., Jan 1-5 has one plan, Jan 5-10 another)
 - **SMM Project Management**: New Settings > SMM Проекты tab for managing custom SMM projects with monthly/daily content plans (posts, stories, mini reviews, big reviews)
 - **Priemka (Payment Processor) Management**: New feature to create/manage priemkas with name, code, commission rate in Settings > Приёмки tab
 - **Multiple Priemkas per Day**: Data entry page now supports entering revenue from multiple priemkas per country per day with auto-calculated exchange rates

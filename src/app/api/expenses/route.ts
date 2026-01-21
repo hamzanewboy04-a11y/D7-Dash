@@ -132,10 +132,13 @@ export async function POST(request: Request) {
       },
     });
 
+    // Handle balance transactions
+    const exchangeBalance = await prisma.balance.findUnique({
+      where: { code: "EXCHANGE" },
+    });
+
     if (expenseCategory === "agency_topup" && targetBalanceCode) {
-      const exchangeBalance = await prisma.balance.findUnique({
-        where: { code: "EXCHANGE" },
-      });
+      // Agency top-up: decrease exchange, increase agency
       const targetBalance = await prisma.balance.findUnique({
         where: { code: targetBalanceCode },
       });
@@ -165,6 +168,19 @@ export async function POST(request: Request) {
         });
         await updateBalanceAmount(targetBalance.id, parsedAmount, "top_up");
       }
+    } else if (exchangeBalance) {
+      // Regular expense: decrease exchange balance only
+      await prisma.balanceTransaction.create({
+        data: {
+          balanceId: exchangeBalance.id,
+          type: "expense",
+          amount: parsedAmount,
+          description: `Расход (${expenseCategory}): ${description}`,
+          expenseId: expense.id,
+          date: expenseDate,
+        },
+      });
+      await updateBalanceAmount(exchangeBalance.id, parsedAmount, "expense");
     }
 
     return NextResponse.json(expense);
@@ -201,19 +217,18 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (existingExpense.category === "agency_topup" && existingExpense.targetBalanceCode) {
-      const relatedTransactions = await prisma.balanceTransaction.findMany({
-        where: { expenseId: id },
-      });
+    // Reverse existing transactions for this expense
+    const relatedTransactions = await prisma.balanceTransaction.findMany({
+      where: { expenseId: id },
+    });
 
-      for (const transaction of relatedTransactions) {
-        await reverseBalanceAmount(transaction.balanceId, transaction.amount, transaction.type);
-      }
-
-      await prisma.balanceTransaction.deleteMany({
-        where: { expenseId: id },
-      });
+    for (const transaction of relatedTransactions) {
+      await reverseBalanceAmount(transaction.balanceId, transaction.amount, transaction.type);
     }
+
+    await prisma.balanceTransaction.deleteMany({
+      where: { expenseId: id },
+    });
 
     const updateData: Record<string, unknown> = {};
     if (date !== undefined) updateData.date = new Date(date);
@@ -241,15 +256,17 @@ export async function PUT(request: Request) {
 
     const newCategory = category !== undefined ? category : existingExpense.category;
     const newTargetBalanceCode = targetBalanceCode !== undefined ? targetBalanceCode : existingExpense.targetBalanceCode;
-    
-    if (newCategory === "agency_topup" && newTargetBalanceCode) {
-      const parsedAmount = amount !== undefined ? parseFloat(amount) : existingExpense.amount;
-      const expenseDate = date !== undefined ? new Date(date) : existingExpense.date;
-      const expenseDescription = description !== undefined ? description : existingExpense.description;
+    const parsedAmount = amount !== undefined ? parseFloat(amount) : existingExpense.amount;
+    const expenseDate = date !== undefined ? new Date(date) : existingExpense.date;
+    const expenseDescription = description !== undefined ? description : existingExpense.description;
 
-      const exchangeBalance = await prisma.balance.findUnique({
-        where: { code: "EXCHANGE" },
-      });
+    // Create new balance transactions
+    const exchangeBalance = await prisma.balance.findUnique({
+      where: { code: "EXCHANGE" },
+    });
+
+    if (newCategory === "agency_topup" && newTargetBalanceCode) {
+      // Agency top-up: decrease exchange, increase agency
       const targetBalance = await prisma.balance.findUnique({
         where: { code: newTargetBalanceCode },
       });
@@ -279,6 +296,19 @@ export async function PUT(request: Request) {
         });
         await updateBalanceAmount(targetBalance.id, parsedAmount, "top_up");
       }
+    } else if (exchangeBalance) {
+      // Regular expense: decrease exchange balance only
+      await prisma.balanceTransaction.create({
+        data: {
+          balanceId: exchangeBalance.id,
+          type: "expense",
+          amount: parsedAmount,
+          description: `Расход (${newCategory}): ${expenseDescription}`,
+          expenseId: expense.id,
+          date: expenseDate,
+        },
+      });
+      await updateBalanceAmount(exchangeBalance.id, parsedAmount, "expense");
     }
 
     return NextResponse.json(expense);
@@ -315,19 +345,18 @@ export async function DELETE(request: Request) {
       );
     }
 
-    if (expense.category === "agency_topup" && expense.targetBalanceCode) {
-      const relatedTransactions = await prisma.balanceTransaction.findMany({
-        where: { expenseId: id },
-      });
+    // Reverse all related transactions before deleting
+    const relatedTransactions = await prisma.balanceTransaction.findMany({
+      where: { expenseId: id },
+    });
 
-      for (const transaction of relatedTransactions) {
-        await reverseBalanceAmount(transaction.balanceId, transaction.amount, transaction.type);
-      }
-
-      await prisma.balanceTransaction.deleteMany({
-        where: { expenseId: id },
-      });
+    for (const transaction of relatedTransactions) {
+      await reverseBalanceAmount(transaction.balanceId, transaction.amount, transaction.type);
     }
+
+    await prisma.balanceTransaction.deleteMany({
+      where: { expenseId: id },
+    });
 
     await prisma.expense.delete({
       where: { id },
