@@ -1,0 +1,164 @@
+2026-01-21 10:32:04.73
+e77be380
+User
+! unknown or unexpected option: --skip-generate
+2026-01-21 10:32:04.73
+e77be380
+User
+$ prisma db push --accept-data-loss
+2026-01-21 10:32:04.73
+e77be380
+User
+$ prisma db push [options]
+2026-01-21 10:32:04.73
+e77be380
+User
+Usage
+2026-01-21 10:32:04.73
+e77be380
+User
+$ prisma db push
+2026-01-21 10:32:04.73
+e77be380
+User
+--schema Custom path to your Prisma schema
+2026-01-21 10:32:04.73
+e77be380
+User
+-h, --help Display this help message
+2026-01-21 10:32:04.76
+e77be380
+User
+npm notice New major version of npm available! 10.8.2 -> 11.7.0
+2026-01-21 10:32:04.76
+e77be380
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.7.0
+2026-01-21 10:32:04.76
+e77be380
+User
+npm notice
+2026-01-21 10:32:04.76
+e77be380
+User
+npm notice
+2026-01-21 10:32:04.76
+e77be380
+User
+npm notice To update run: npm install -g npm@11.7.0
+2026-01-21 10:32:04.77
+e77be380
+User
+Starting Next.js server...
+2026-01-21 10:32:05.01
+e77be380
+User
+> d7-dash-app@0.1.0 start
+2026-01-21 10:32:05.01
+e77be380
+User
+> next start -p 5000 -H 0.0.0.0
+2026-01-21 10:32:05.56
+e77be380
+User
+- Local: http://localhost:5000
+2026-01-21 10:32:05.56
+e77be380
+User
+▲ Next.js 16.1.3
+2026-01-21 10:32:05.56
+e77be380
+User
+- Network: http://0.0.0.0:5000
+2026-01-21 10:32:05.56
+e77be380
+User
+✓ Starting...
+2026-01-21 10:32:06.95
+e77be380
+User
+✓ Ready in 1686ms
+2026-01-21 10:32:07.35
+e77be380
+User
+[Prisma] Data will persist across deployments
+2026-01-21 10:32:07.35
+e77be380
+User
+[Prisma] Using PostgreSQL database (CLOUD)
+2026-01-21 10:32:07.35
+e77be380
+User
+[Prisma] DATABASE_URL available: true
+2026-01-21 10:32:07.35
+e77be380
+User
+[Prisma] Environment: PRODUCTION
+2026-01-21 10:32:09.27
+e77be380
+User
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-01-21 10:32:09.27
+e77be380
+User
+(node:84) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-01-21 10:32:09.27
+e77be380
+User
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-01-21 10:32:09.27
+e77be380
+User
+To prepare for this change:
+2026-01-21 10:32:09.27
+e77be380
+User
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-01-21 10:32:09.27
+e77be380
+User
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-01-21 10:32:09.27
+e77be380
+User
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-01-21 10:32:10.85
+e77be380
+User
+startDate: '2025-12-22',
+2026-01-21 10:32:10.85
+e77be380
+User
+[Buying API] Where clause: {"date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 10:32:10.85
+e77be380
+User
+}
+2026-01-21 10:32:10.85
+e77be380
+User
+countryId: null,
+2026-01-21 10:32:10.85
+e77be380
+User
+endDate: '2026-01-21'
+2026-01-21 10:32:10.85
+e77be380
+User
+[Buying API] Query params: {
+2026-01-21 10:32:10.85
+e77be380
+User
+employeeId: null,
+2026-01-21 10:32:10.96
+e77be380
+User
+[Buying API] Total records in DB: 64
+2026-01-21 10:32:10.96
+e77be380
+User
+[Buying API] Records by countryId: [{"_count":{"id":64},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"}]
+2026-01-21 10:32:11.12
+e77be380
+User
+[Buying API] Results by country: { Peru: 30 } Total: 30
