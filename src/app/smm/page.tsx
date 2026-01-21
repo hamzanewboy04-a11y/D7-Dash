@@ -126,13 +126,9 @@ interface Totals {
 interface FormData {
   date: string;
   countryId: string;
-  postsPlan: string;
   postsTotal: string;
-  storiesPlan: string;
   storiesTotal: string;
-  miniReviewsPlan: string;
   miniReviewsTotal: string;
-  bigReviewsPlan: string;
   bigReviewsTotal: string;
   notes: string;
 }
@@ -170,13 +166,9 @@ interface SmmProject {
 const emptyForm: FormData = {
   date: new Date().toISOString().split("T")[0],
   countryId: "",
-  postsPlan: "",
   postsTotal: "",
-  storiesPlan: "",
   storiesTotal: "",
-  miniReviewsPlan: "",
   miniReviewsTotal: "",
-  bigReviewsPlan: "",
   bigReviewsTotal: "",
   notes: "",
 };
@@ -300,18 +292,16 @@ export default function SmmPage() {
   }, [user, dateRange, customStartDate, customEndDate, selectedCountry, selectedProjectTab, countries]);
 
   const handleOpenDialog = (metric?: SmmMetric) => {
+    // Загружаем настройки при открытии диалога для корректного получения планов
+    fetchSettings();
     if (metric) {
       setEditingMetric(metric);
       setFormData({
         date: metric.date.split("T")[0],
         countryId: metric.country.id,
-        postsPlan: metric.postsPlan.toString(),
         postsTotal: metric.postsTotal.toString(),
-        storiesPlan: metric.storiesPlan.toString(),
         storiesTotal: metric.storiesTotal.toString(),
-        miniReviewsPlan: metric.miniReviewsPlan.toString(),
         miniReviewsTotal: metric.miniReviewsTotal.toString(),
-        bigReviewsPlan: metric.bigReviewsPlan.toString(),
         bigReviewsTotal: metric.bigReviewsTotal.toString(),
         notes: metric.notes || "",
       });
@@ -336,31 +326,40 @@ export default function SmmPage() {
 
     setSaving(true);
     try {
-      const postsPlan = parseInt(formData.postsPlan) || 0;
+      // Получаем план из настроек для выбранной страны
+      const countrySettings = getSettingsForCountry(formData.countryId);
+      
+      const postsPlanDaily = countrySettings?.postsPlanDaily || 0;
+      const storiesPlanDaily = countrySettings?.storiesPlanDaily || 0;
+      const miniReviewsPlanDaily = countrySettings?.miniReviewsPlanDaily || 0;
+      const bigReviewsPlanDaily = countrySettings?.bigReviewsPlanDaily || 0;
+      
       const postsTotal = parseInt(formData.postsTotal) || 0;
-      const storiesPlan = parseInt(formData.storiesPlan) || 0;
       const storiesTotal = parseInt(formData.storiesTotal) || 0;
-      const miniReviewsPlan = parseInt(formData.miniReviewsPlan) || 0;
       const miniReviewsTotal = parseInt(formData.miniReviewsTotal) || 0;
-      const bigReviewsPlan = parseInt(formData.bigReviewsPlan) || 0;
       const bigReviewsTotal = parseInt(formData.bigReviewsTotal) || 0;
 
       const payload = {
         ...(editingMetric && { id: editingMetric.id }),
         date: formData.date,
         countryId: formData.countryId,
-        postsPlan,
+        // План берётся из настроек (дневной план)
+        postsPlan: postsPlanDaily,
+        postsPlanDaily,
+        postsFactDaily: postsTotal,
         postsTotal,
-        postsRemaining: Math.max(0, postsPlan - postsTotal),
-        storiesPlan,
+        storiesPlan: storiesPlanDaily,
+        storiesPlanDaily,
+        storiesFactDaily: storiesTotal,
         storiesTotal,
-        storiesRemaining: Math.max(0, storiesPlan - storiesTotal),
-        miniReviewsPlan,
+        miniReviewsPlan: miniReviewsPlanDaily,
+        miniReviewsPlanDaily,
+        miniReviewsFactDaily: miniReviewsTotal,
         miniReviewsTotal,
-        miniReviewsRemaining: Math.max(0, miniReviewsPlan - miniReviewsTotal),
-        bigReviewsPlan,
+        bigReviewsPlan: bigReviewsPlanDaily,
+        bigReviewsPlanDaily,
+        bigReviewsFactDaily: bigReviewsTotal,
         bigReviewsTotal,
-        bigReviewsRemaining: Math.max(0, bigReviewsPlan - bigReviewsTotal),
         notes: formData.notes || null,
       };
 
@@ -979,23 +978,13 @@ export default function SmmPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
-              <div className="col-span-2 flex items-center gap-2 text-[#1e40af] font-medium">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center gap-2 text-[#1e40af] font-medium mb-3">
                 <FileText className="h-4 w-4" />
                 Посты
               </div>
               <div>
-                <Label htmlFor="postsPlan">План</Label>
-                <Input
-                  id="postsPlan"
-                  type="number"
-                  value={formData.postsPlan}
-                  onChange={(e) => setFormData({ ...formData, postsPlan: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="postsTotal">Факт</Label>
+                <Label htmlFor="postsTotal">Факт (за день)</Label>
                 <Input
                   id="postsTotal"
                   type="number"
@@ -1006,23 +995,13 @@ export default function SmmPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-purple-50 rounded-lg">
-              <div className="col-span-2 flex items-center gap-2 text-purple-700 font-medium">
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <div className="flex items-center gap-2 text-purple-700 font-medium mb-3">
                 <Image className="h-4 w-4" />
                 Сторис
               </div>
               <div>
-                <Label htmlFor="storiesPlan">План</Label>
-                <Input
-                  id="storiesPlan"
-                  type="number"
-                  value={formData.storiesPlan}
-                  onChange={(e) => setFormData({ ...formData, storiesPlan: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="storiesTotal">Факт</Label>
+                <Label htmlFor="storiesTotal">Факт (за день)</Label>
                 <Input
                   id="storiesTotal"
                   type="number"
@@ -1033,23 +1012,13 @@ export default function SmmPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 rounded-lg">
-              <div className="col-span-2 flex items-center gap-2 text-amber-700 font-medium">
+            <div className="p-4 bg-amber-50 rounded-lg">
+              <div className="flex items-center gap-2 text-amber-700 font-medium mb-3">
                 <MessageSquare className="h-4 w-4" />
                 Мини-отзывы
               </div>
               <div>
-                <Label htmlFor="miniReviewsPlan">План</Label>
-                <Input
-                  id="miniReviewsPlan"
-                  type="number"
-                  value={formData.miniReviewsPlan}
-                  onChange={(e) => setFormData({ ...formData, miniReviewsPlan: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="miniReviewsTotal">Факт</Label>
+                <Label htmlFor="miniReviewsTotal">Факт (за день)</Label>
                 <Input
                   id="miniReviewsTotal"
                   type="number"
@@ -1060,23 +1029,13 @@ export default function SmmPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-emerald-50 rounded-lg">
-              <div className="col-span-2 flex items-center gap-2 text-emerald-700 font-medium">
+            <div className="p-4 bg-emerald-50 rounded-lg">
+              <div className="flex items-center gap-2 text-emerald-700 font-medium mb-3">
                 <Star className="h-4 w-4" />
                 Большие отзывы
               </div>
               <div>
-                <Label htmlFor="bigReviewsPlan">План</Label>
-                <Input
-                  id="bigReviewsPlan"
-                  type="number"
-                  value={formData.bigReviewsPlan}
-                  onChange={(e) => setFormData({ ...formData, bigReviewsPlan: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label htmlFor="bigReviewsTotal">Факт</Label>
+                <Label htmlFor="bigReviewsTotal">Факт (за день)</Label>
                 <Input
                   id="bigReviewsTotal"
                   type="number"

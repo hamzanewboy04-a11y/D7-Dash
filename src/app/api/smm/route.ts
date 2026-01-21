@@ -65,38 +65,88 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json();
+    const recordDate = new Date(data.date);
+    
+    // Получаем настройки плана для страны
+    const settings = await prisma.smmProjectSettings.findUnique({
+      where: { countryId: data.countryId }
+    });
+    
+    // Месячный план из настроек
+    const postsPlanMonthly = settings?.postsPlanMonthly || 0;
+    const storiesPlanMonthly = settings?.storiesPlanMonthly || 0;
+    const miniReviewsPlanMonthly = settings?.miniReviewsPlanMonthly || 0;
+    const bigReviewsPlanMonthly = settings?.bigReviewsPlanMonthly || 0;
+    
+    // Дневной план из настроек
+    const postsPlanDaily = settings?.postsPlanDaily || data.postsPlanDaily || 0;
+    const storiesPlanDaily = settings?.storiesPlanDaily || data.storiesPlanDaily || 0;
+    const miniReviewsPlanDaily = settings?.miniReviewsPlanDaily || data.miniReviewsPlanDaily || 0;
+    const bigReviewsPlanDaily = settings?.bigReviewsPlanDaily || data.bigReviewsPlanDaily || 0;
+    
+    // Считаем сумму фактов за текущий месяц для этой страны
+    const monthStart = new Date(recordDate.getFullYear(), recordDate.getMonth(), 1);
+    const monthEnd = new Date(recordDate.getFullYear(), recordDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    const monthlyTotals = await prisma.smmMetrics.aggregate({
+      where: {
+        countryId: data.countryId,
+        date: { gte: monthStart, lte: monthEnd }
+      },
+      _sum: {
+        postsTotal: true,
+        storiesTotal: true,
+        miniReviewsTotal: true,
+        bigReviewsTotal: true,
+      }
+    });
+    
+    // Текущие факты за месяц + новые данные
+    const existingPostsFact = monthlyTotals._sum?.postsTotal || 0;
+    const existingStoriesFact = monthlyTotals._sum?.storiesTotal || 0;
+    const existingMiniReviewsFact = monthlyTotals._sum?.miniReviewsTotal || 0;
+    const existingBigReviewsFact = monthlyTotals._sum?.bigReviewsTotal || 0;
+    
+    const newPostsFact = data.postsTotal || 0;
+    const newStoriesFact = data.storiesTotal || 0;
+    const newMiniReviewsFact = data.miniReviewsTotal || 0;
+    const newBigReviewsFact = data.bigReviewsTotal || 0;
+    
+    // Остаток = месячный план - (существующий факт за месяц + новый факт)
+    const postsRemaining = Math.max(0, postsPlanMonthly - (existingPostsFact + newPostsFact));
+    const storiesRemaining = Math.max(0, storiesPlanMonthly - (existingStoriesFact + newStoriesFact));
+    const miniReviewsRemaining = Math.max(0, miniReviewsPlanMonthly - (existingMiniReviewsFact + newMiniReviewsFact));
+    const bigReviewsRemaining = Math.max(0, bigReviewsPlanMonthly - (existingBigReviewsFact + newBigReviewsFact));
 
-    const totalPlan = (data.postsPlan || 0) + (data.storiesPlan || 0) + 
-                      (data.miniReviewsPlan || 0) + (data.bigReviewsPlan || 0);
-    const totalFact = (data.postsTotal || 0) + (data.storiesTotal || 0) + 
-                      (data.miniReviewsTotal || 0) + (data.bigReviewsTotal || 0);
+    const totalPlan = postsPlanDaily + storiesPlanDaily + miniReviewsPlanDaily + bigReviewsPlanDaily;
+    const totalFact = newPostsFact + newStoriesFact + newMiniReviewsFact + newBigReviewsFact;
     const completionRate = totalPlan > 0 ? (totalFact / totalPlan) * 100 : 0;
 
     const metric = await prisma.smmMetrics.create({
       data: {
-        date: new Date(data.date),
+        date: recordDate,
         countryId: data.countryId,
         employeeId: data.employeeId || null,
-        postsPlan: data.postsPlan || 0,
-        postsPlanDaily: data.postsPlanDaily || 0,
-        postsFactDaily: data.postsFactDaily || 0,
-        postsTotal: data.postsTotal || 0,
-        postsRemaining: data.postsRemaining || 0,
-        storiesPlan: data.storiesPlan || 0,
-        storiesPlanDaily: data.storiesPlanDaily || 0,
-        storiesFactDaily: data.storiesFactDaily || 0,
-        storiesTotal: data.storiesTotal || 0,
-        storiesRemaining: data.storiesRemaining || 0,
-        miniReviewsPlan: data.miniReviewsPlan || 0,
-        miniReviewsPlanDaily: data.miniReviewsPlanDaily || 0,
-        miniReviewsFactDaily: data.miniReviewsFactDaily || 0,
-        miniReviewsTotal: data.miniReviewsTotal || 0,
-        miniReviewsRemaining: data.miniReviewsRemaining || 0,
-        bigReviewsPlan: data.bigReviewsPlan || 0,
-        bigReviewsPlanDaily: data.bigReviewsPlanDaily || 0,
-        bigReviewsFactDaily: data.bigReviewsFactDaily || 0,
-        bigReviewsTotal: data.bigReviewsTotal || 0,
-        bigReviewsRemaining: data.bigReviewsRemaining || 0,
+        postsPlan: postsPlanDaily,
+        postsPlanDaily,
+        postsFactDaily: newPostsFact,
+        postsTotal: newPostsFact,
+        postsRemaining,
+        storiesPlan: storiesPlanDaily,
+        storiesPlanDaily,
+        storiesFactDaily: newStoriesFact,
+        storiesTotal: newStoriesFact,
+        storiesRemaining,
+        miniReviewsPlan: miniReviewsPlanDaily,
+        miniReviewsPlanDaily,
+        miniReviewsFactDaily: newMiniReviewsFact,
+        miniReviewsTotal: newMiniReviewsFact,
+        miniReviewsRemaining,
+        bigReviewsPlan: bigReviewsPlanDaily,
+        bigReviewsPlanDaily,
+        bigReviewsFactDaily: newBigReviewsFact,
+        bigReviewsTotal: newBigReviewsFact,
+        bigReviewsRemaining,
         completionRate,
         notes: data.notes,
       },
@@ -124,19 +174,98 @@ export async function PUT(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: "ID is required" }, { status: 400 });
     }
+    
+    // Получаем текущую запись, чтобы узнать дату и страну
+    const existingRecord = await prisma.smmMetrics.findUnique({
+      where: { id }
+    });
+    
+    if (!existingRecord) {
+      return NextResponse.json({ error: "Record not found" }, { status: 404 });
+    }
+    
+    const recordDate = updateData.date ? new Date(updateData.date) : existingRecord.date;
+    const countryId = updateData.countryId || existingRecord.countryId;
+    
+    // Получаем настройки плана для страны
+    const settings = await prisma.smmProjectSettings.findUnique({
+      where: { countryId }
+    });
+    
+    const postsPlanMonthly = settings?.postsPlanMonthly || 0;
+    const storiesPlanMonthly = settings?.storiesPlanMonthly || 0;
+    const miniReviewsPlanMonthly = settings?.miniReviewsPlanMonthly || 0;
+    const bigReviewsPlanMonthly = settings?.bigReviewsPlanMonthly || 0;
+    
+    const postsPlanDaily = settings?.postsPlanDaily || 0;
+    const storiesPlanDaily = settings?.storiesPlanDaily || 0;
+    const miniReviewsPlanDaily = settings?.miniReviewsPlanDaily || 0;
+    const bigReviewsPlanDaily = settings?.bigReviewsPlanDaily || 0;
+    
+    // Считаем сумму фактов за месяц (исключая текущую запись)
+    const monthStart = new Date(recordDate.getFullYear(), recordDate.getMonth(), 1);
+    const monthEnd = new Date(recordDate.getFullYear(), recordDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    const monthlyTotals = await prisma.smmMetrics.aggregate({
+      where: {
+        countryId,
+        date: { gte: monthStart, lte: monthEnd },
+        id: { not: id }
+      },
+      _sum: {
+        postsTotal: true,
+        storiesTotal: true,
+        miniReviewsTotal: true,
+        bigReviewsTotal: true,
+      }
+    });
+    
+    const existingPostsFact = monthlyTotals._sum?.postsTotal || 0;
+    const existingStoriesFact = monthlyTotals._sum?.storiesTotal || 0;
+    const existingMiniReviewsFact = monthlyTotals._sum?.miniReviewsTotal || 0;
+    const existingBigReviewsFact = monthlyTotals._sum?.bigReviewsTotal || 0;
+    
+    const newPostsFact = updateData.postsTotal ?? existingRecord.postsTotal;
+    const newStoriesFact = updateData.storiesTotal ?? existingRecord.storiesTotal;
+    const newMiniReviewsFact = updateData.miniReviewsTotal ?? existingRecord.miniReviewsTotal;
+    const newBigReviewsFact = updateData.bigReviewsTotal ?? existingRecord.bigReviewsTotal;
+    
+    const postsRemaining = Math.max(0, postsPlanMonthly - (existingPostsFact + newPostsFact));
+    const storiesRemaining = Math.max(0, storiesPlanMonthly - (existingStoriesFact + newStoriesFact));
+    const miniReviewsRemaining = Math.max(0, miniReviewsPlanMonthly - (existingMiniReviewsFact + newMiniReviewsFact));
+    const bigReviewsRemaining = Math.max(0, bigReviewsPlanMonthly - (existingBigReviewsFact + newBigReviewsFact));
 
-    const totalPlan = (updateData.postsPlan || 0) + (updateData.storiesPlan || 0) + 
-                      (updateData.miniReviewsPlan || 0) + (updateData.bigReviewsPlan || 0);
-    const totalFact = (updateData.postsTotal || 0) + (updateData.storiesTotal || 0) + 
-                      (updateData.miniReviewsTotal || 0) + (updateData.bigReviewsTotal || 0);
+    const totalPlan = postsPlanDaily + storiesPlanDaily + miniReviewsPlanDaily + bigReviewsPlanDaily;
+    const totalFact = newPostsFact + newStoriesFact + newMiniReviewsFact + newBigReviewsFact;
     const completionRate = totalPlan > 0 ? (totalFact / totalPlan) * 100 : 0;
 
     const metric = await prisma.smmMetrics.update({
       where: { id },
       data: {
-        ...updateData,
-        date: updateData.date ? new Date(updateData.date) : undefined,
+        date: recordDate,
+        countryId,
+        postsPlan: postsPlanDaily,
+        postsPlanDaily,
+        postsFactDaily: newPostsFact,
+        postsTotal: newPostsFact,
+        postsRemaining,
+        storiesPlan: storiesPlanDaily,
+        storiesPlanDaily,
+        storiesFactDaily: newStoriesFact,
+        storiesTotal: newStoriesFact,
+        storiesRemaining,
+        miniReviewsPlan: miniReviewsPlanDaily,
+        miniReviewsPlanDaily,
+        miniReviewsFactDaily: newMiniReviewsFact,
+        miniReviewsTotal: newMiniReviewsFact,
+        miniReviewsRemaining,
+        bigReviewsPlan: bigReviewsPlanDaily,
+        bigReviewsPlanDaily,
+        bigReviewsFactDaily: newBigReviewsFact,
+        bigReviewsTotal: newBigReviewsFact,
+        bigReviewsRemaining,
         completionRate,
+        notes: updateData.notes !== undefined ? updateData.notes : existingRecord.notes,
       },
       include: {
         employee: { select: { id: true, name: true } },
