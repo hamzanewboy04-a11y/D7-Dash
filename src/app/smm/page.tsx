@@ -224,7 +224,9 @@ export default function SmmPage() {
     if (!isNaN(days)) {
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
+      // For "1" day (today): startDate = today, endDate = today
+      // For "7" days: startDate = 6 days ago, endDate = today (7 days total)
+      startDate.setDate(startDate.getDate() - (days - 1));
       return {
         startDate: startDate.toISOString().split("T")[0],
         endDate: endDate.toISOString().split("T")[0],
