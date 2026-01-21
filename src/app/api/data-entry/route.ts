@@ -75,12 +75,6 @@ export async function POST(request: Request) {
       const {
         countryId,
         totalSpend,
-        revenueLocalPriemka,
-        revenueUsdtPriemka,
-        revenueLocalOwn,
-        revenueUsdtOwn,
-        exchangeRatePriemka,
-        exchangeRateOwn,
         fdCount,
         fdSumLocal,
         fdSumUsdt,
@@ -98,19 +92,8 @@ export async function POST(request: Request) {
         },
       });
 
-      const totalRevenueUsdt = (revenueUsdtPriemka || 0) + (revenueUsdtOwn || 0);
-      const commissionPriemka = (revenueUsdtPriemka || 0) * 0.15;
-
       const data = {
         totalSpend: totalSpend || 0,
-        revenueLocalPriemka: revenueLocalPriemka || 0,
-        revenueUsdtPriemka: revenueUsdtPriemka || 0,
-        revenueLocalOwn: revenueLocalOwn || 0,
-        revenueUsdtOwn: revenueUsdtOwn || 0,
-        exchangeRatePriemka: exchangeRatePriemka || 0,
-        exchangeRateOwn: exchangeRateOwn || 0,
-        totalRevenueUsdt,
-        commissionPriemka,
         fdCount: fdCount || 0,
         fdSumLocal: fdSumLocal || 0,
         fdSumUsdt: fdSumUsdt || 0,
