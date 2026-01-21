@@ -483,6 +483,7 @@ model SmmProject {
   updatedAt              DateTime @updatedAt
   
   metrics                SmmProjectMetrics[]
+  planPeriods            SmmPlanPeriod[]
 }
 
 // === Метрики для сторонних SMM проектов ===
@@ -623,4 +624,54 @@ model SmmMetrics {
   @@index([date])
   @@index([countryId])
   @@index([employeeId])
+}
+
+// === SMM План с периодами дат ===
+model SmmPlanPeriod {
+  id                     String     @id @default(cuid())
+  projectId              String
+  project                SmmProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  startDate              DateTime
+  endDate                DateTime
+  postsPlan              Int        @default(0)
+  storiesPlan            Int        @default(0)
+  miniReviewsPlan        Int        @default(0)
+  bigReviewsPlan         Int        @default(0)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  
+  @@index([projectId])
+  @@index([startDate, endDate])
+}
+
+// === Балансы (Биржа, Агентства) ===
+model Balance {
+  id           String   @id @default(cuid())
+  type         String   // "exchange" | "agency"
+  name         String   // "Биржа" | "TRUST" | "CROSSGIF" | "FBM"
+  code         String   @unique // "EXCHANGE" | "TRUST" | "CROSSGIF" | "FBM"
+  currentAmount Float   @default(0)
+  currency     String   @default("USDT")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  transactions BalanceTransaction[]
+}
+
+// === Транзакции по балансам ===
+model BalanceTransaction {
+  id           String   @id @default(cuid())
+  balanceId    String
+  balance      Balance  @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  type         String   // "top_up" | "spend" | "expense" | "transfer"
+  amount       Float
+  description  String?
+  expenseId    String?  // Связь с расходом если это пополнение агентства
+  date         DateTime
+  createdAt    DateTime @default(now())
+  
+  @@index([balanceId])
+  @@index([date])
+  @@index([type])
 }

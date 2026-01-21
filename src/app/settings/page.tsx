@@ -61,6 +61,19 @@ interface SmmProject {
   bigReviewsPlanDaily: number;
 }
 
+interface SmmPlanPeriod {
+  id: string;
+  projectId: string;
+  startDate: string;
+  endDate: string;
+  postsPlan: number;
+  storiesPlan: number;
+  miniReviewsPlan: number;
+  bigReviewsPlan: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const ALL_SECTIONS = [
   { id: "dashboard", name: "Дашборд" },
   { id: "countries", name: "Страны" },
@@ -176,6 +189,11 @@ export default function SettingsPage() {
   });
   const [showAddSmmProject, setShowAddSmmProject] = useState(false);
   const [editingSmmProject, setEditingSmmProject] = useState<SmmProject | null>(null);
+  const [planPeriods, setPlanPeriods] = useState<Record<string, SmmPlanPeriod[]>>({});
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [showAddPeriodFor, setShowAddPeriodFor] = useState<string | null>(null);
+  const [newPeriod, setNewPeriod] = useState({ startDate: "", endDate: "", postsPlan: "0", storiesPlan: "0", miniReviewsPlan: "0", bigReviewsPlan: "0" });
+  const [editingPeriod, setEditingPeriod] = useState<SmmPlanPeriod | null>(null);
   const { isAdmin } = useAuth();
 
   // Load settings from API
@@ -256,6 +274,114 @@ export default function SettingsPage() {
       console.error("Error loading SMM projects:", error);
     }
   }, []);
+
+  const loadPlanPeriods = useCallback(async (projectId: string) => {
+    try {
+      const res = await fetch(`/api/smm/plan-periods?projectId=${projectId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlanPeriods(prev => ({ ...prev, [projectId]: data }));
+      }
+    } catch (error) {
+      console.error("Error loading plan periods:", error);
+    }
+  }, []);
+
+  const handleAddPlanPeriod = async (projectId: string) => {
+    if (!newPeriod.startDate || !newPeriod.endDate) {
+      alert("Даты начала и окончания обязательны");
+      return;
+    }
+
+    if (new Date(newPeriod.endDate) < new Date(newPeriod.startDate)) {
+      alert("Дата окончания должна быть >= дата начала");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/smm/plan-periods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, ...newPeriod }),
+      });
+
+      if (res.ok) {
+        await loadPlanPeriods(projectId);
+        setNewPeriod({ startDate: "", endDate: "", postsPlan: "0", storiesPlan: "0", miniReviewsPlan: "0", bigReviewsPlan: "0" });
+        setShowAddPeriodFor(null);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка добавления периода");
+      }
+    } catch (error) {
+      console.error("Error adding plan period:", error);
+    }
+  };
+
+  const handleUpdatePlanPeriod = async (period: SmmPlanPeriod) => {
+    if (new Date(period.endDate) < new Date(period.startDate)) {
+      alert("Дата окончания должна быть >= дата начала");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/smm/plan-periods", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(period),
+      });
+
+      if (res.ok) {
+        await loadPlanPeriods(period.projectId);
+        setEditingPeriod(null);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка обновления периода");
+      }
+    } catch (error) {
+      console.error("Error updating plan period:", error);
+    }
+  };
+
+  const handleDeletePlanPeriod = async (period: SmmPlanPeriod) => {
+    if (!confirm("Вы уверены, что хотите удалить этот период?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/smm/plan-periods?id=${period.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        await loadPlanPeriods(period.projectId);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка удаления периода");
+      }
+    } catch (error) {
+      console.error("Error deleting plan period:", error);
+    }
+  };
+
+  const toggleProjectExpanded = async (projectId: string) => {
+    setExpandedProjects(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(projectId)) {
+        newSet.delete(projectId);
+      } else {
+        newSet.add(projectId);
+        if (!planPeriods[projectId]) {
+          loadPlanPeriods(projectId);
+        }
+      }
+      return newSet;
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("ru-RU");
+  };
 
   useEffect(() => {
     Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas(), loadSmmProjects()]).finally(() => setLoading(false));
@@ -2197,6 +2323,213 @@ export default function SettingsPage() {
                               <p className="text-slate-600 font-medium">Большие отзывы</p>
                               <p className="text-orange-700">{project.bigReviewsPlanMonthly}/мес • {project.bigReviewsPlanDaily}/день</p>
                             </div>
+                          </div>
+
+                          <Separator className="my-4" />
+
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleProjectExpanded(project.id)}
+                                className="text-slate-600 p-0 h-auto hover:bg-transparent"
+                              >
+                                <span className="font-medium">Периоды планов</span>
+                                <span className="ml-2 text-xs">
+                                  {expandedProjects.has(project.id) ? "▼" : "▶"}
+                                </span>
+                              </Button>
+                              {expandedProjects.has(project.id) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setShowAddPeriodFor(project.id);
+                                    setNewPeriod({ startDate: "", endDate: "", postsPlan: "0", storiesPlan: "0", miniReviewsPlan: "0", bigReviewsPlan: "0" });
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Добавить период
+                                </Button>
+                              )}
+                            </div>
+
+                            {expandedProjects.has(project.id) && (
+                              <div className="space-y-3 pl-2 border-l-2 border-slate-200">
+                                {showAddPeriodFor === project.id && (
+                                  <div className="p-3 bg-slate-50 rounded-lg space-y-3">
+                                    <h5 className="font-medium text-sm">Новый период</h5>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Дата начала</Label>
+                                        <Input
+                                          type="date"
+                                          value={newPeriod.startDate}
+                                          onChange={(e) => setNewPeriod(prev => ({ ...prev, startDate: e.target.value }))}
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Дата конца</Label>
+                                        <Input
+                                          type="date"
+                                          value={newPeriod.endDate}
+                                          onChange={(e) => setNewPeriod(prev => ({ ...prev, endDate: e.target.value }))}
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Посты</Label>
+                                        <Input
+                                          type="number"
+                                          value={newPeriod.postsPlan}
+                                          onChange={(e) => setNewPeriod(prev => ({ ...prev, postsPlan: e.target.value }))}
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Сторис</Label>
+                                        <Input
+                                          type="number"
+                                          value={newPeriod.storiesPlan}
+                                          onChange={(e) => setNewPeriod(prev => ({ ...prev, storiesPlan: e.target.value }))}
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Мини-обзоры</Label>
+                                        <Input
+                                          type="number"
+                                          value={newPeriod.miniReviewsPlan}
+                                          onChange={(e) => setNewPeriod(prev => ({ ...prev, miniReviewsPlan: e.target.value }))}
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Большие обзоры</Label>
+                                        <Input
+                                          type="number"
+                                          value={newPeriod.bigReviewsPlan}
+                                          onChange={(e) => setNewPeriod(prev => ({ ...prev, bigReviewsPlan: e.target.value }))}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button size="sm" onClick={() => handleAddPlanPeriod(project.id)}>
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        Добавить
+                                      </Button>
+                                      <Button size="sm" variant="outline" onClick={() => setShowAddPeriodFor(null)}>
+                                        Отмена
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {planPeriods[project.id]?.length === 0 && (
+                                  <p className="text-sm text-slate-500 italic py-2">Нет периодов планов</p>
+                                )}
+
+                                {planPeriods[project.id]?.map((period) => (
+                                  <div key={period.id} className="p-3 bg-white border rounded-lg">
+                                    {editingPeriod?.id === period.id ? (
+                                      <div className="space-y-3">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Дата начала</Label>
+                                            <Input
+                                              type="date"
+                                              value={editingPeriod.startDate.split('T')[0]}
+                                              onChange={(e) => setEditingPeriod({ ...editingPeriod, startDate: e.target.value })}
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Дата конца</Label>
+                                            <Input
+                                              type="date"
+                                              value={editingPeriod.endDate.split('T')[0]}
+                                              onChange={(e) => setEditingPeriod({ ...editingPeriod, endDate: e.target.value })}
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Посты</Label>
+                                            <Input
+                                              type="number"
+                                              value={editingPeriod.postsPlan}
+                                              onChange={(e) => setEditingPeriod({ ...editingPeriod, postsPlan: parseInt(e.target.value) || 0 })}
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Сторис</Label>
+                                            <Input
+                                              type="number"
+                                              value={editingPeriod.storiesPlan}
+                                              onChange={(e) => setEditingPeriod({ ...editingPeriod, storiesPlan: parseInt(e.target.value) || 0 })}
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Мини-обзоры</Label>
+                                            <Input
+                                              type="number"
+                                              value={editingPeriod.miniReviewsPlan}
+                                              onChange={(e) => setEditingPeriod({ ...editingPeriod, miniReviewsPlan: parseInt(e.target.value) || 0 })}
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Большие обзоры</Label>
+                                            <Input
+                                              type="number"
+                                              value={editingPeriod.bigReviewsPlan}
+                                              onChange={(e) => setEditingPeriod({ ...editingPeriod, bigReviewsPlan: parseInt(e.target.value) || 0 })}
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button size="sm" onClick={() => handleUpdatePlanPeriod(editingPeriod)}>
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Сохранить
+                                          </Button>
+                                          <Button size="sm" variant="outline" onClick={() => setEditingPeriod(null)}>
+                                            Отмена
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-4 text-sm">
+                                            <span className="font-medium text-slate-700">
+                                              {formatDate(period.startDate)} — {formatDate(period.endDate)}
+                                            </span>
+                                          </div>
+                                          <div className="flex gap-4 mt-1 text-xs text-slate-600">
+                                            <span>Посты: <strong>{period.postsPlan}</strong></span>
+                                            <span>Сторис: <strong>{period.storiesPlan}</strong></span>
+                                            <span>Мини-обзоры: <strong>{period.miniReviewsPlan}</strong></span>
+                                            <span>Большие обзоры: <strong>{period.bigReviewsPlan}</strong></span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => setEditingPeriod(period)}
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                          {isAdmin && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="text-red-500 hover:text-red-700"
+                                              onClick={() => handleDeletePlanPeriod(period)}
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </>
                       )}
