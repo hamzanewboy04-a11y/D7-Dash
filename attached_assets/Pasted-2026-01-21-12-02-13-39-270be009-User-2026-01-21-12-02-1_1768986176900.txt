@@ -1,0 +1,164 @@
+2026-01-21 12:02:13.39
+270be009
+User
+}
+2026-01-21 12:02:13.39
+270be009
+User
+startDate: '2025-12-22',
+2026-01-21 12:02:13.39
+270be009
+User
+employeeId: null,
+2026-01-21 12:02:13.39
+270be009
+User
+[Buying API] Where clause: {"date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 12:02:13.48
+270be009
+User
+[Buying API] Records by countryId: [{"_count":{"id":64},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":15},"countryId":"cmkl84b070004u6gkag39jtlk"},{"_count":{"id":36},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":20},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:02:13.48
+270be009
+User
+[Buying API] Total records in DB: 135
+2026-01-21 12:02:13.65
+270be009
+User
+[Buying API] Results by country: { 'Italy (Men)': 21, Argentina: 20, Peru: 30, Chile: 15 } Total: 86
+2026-01-21 12:02:17.51
+270be009
+User
+[Buying API] Query params: {
+2026-01-21 12:02:17.51
+270be009
+User
+}
+2026-01-21 12:02:17.51
+270be009
+User
+startDate: '2025-12-22',
+2026-01-21 12:02:17.51
+270be009
+User
+countryId: 'cmkl84ayx0001u6gkb1mvgri2',
+2026-01-21 12:02:17.51
+270be009
+User
+employeeId: null,
+2026-01-21 12:02:17.51
+270be009
+User
+[Buying API] Where clause: {"countryId":"cmkl84ayx0001u6gkb1mvgri2","date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 12:02:17.51
+270be009
+User
+endDate: '2026-01-21'
+2026-01-21 12:02:17.60
+270be009
+User
+[Buying API] Total records in DB: 135
+2026-01-21 12:02:17.60
+270be009
+User
+[Buying API] Records by countryId: [{"_count":{"id":64},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":15},"countryId":"cmkl84b070004u6gkag39jtlk"},{"_count":{"id":36},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":20},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:02:17.70
+270be009
+User
+[Buying API] Results by country: {} Total: 0
+2026-01-21 12:02:19.75
+270be009
+User
+[Buying API] Query params: {
+2026-01-21 12:02:19.75
+270be009
+User
+endDate: '2026-01-21'
+2026-01-21 12:02:19.75
+270be009
+User
+countryId: 'cmkl84ayx0001u6gkb1mvgri2',
+2026-01-21 12:02:19.75
+270be009
+User
+[Buying API] Where clause: {"countryId":"cmkl84ayx0001u6gkb1mvgri2","date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 12:02:19.75
+270be009
+User
+startDate: '2025-12-22',
+2026-01-21 12:02:19.75
+270be009
+User
+}
+2026-01-21 12:02:19.75
+270be009
+User
+employeeId: null,
+2026-01-21 12:02:19.84
+270be009
+User
+[Buying API] Records by countryId: [{"_count":{"id":64},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":15},"countryId":"cmkl84b070004u6gkag39jtlk"},{"_count":{"id":36},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":20},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:02:19.84
+270be009
+User
+[Buying API] Total records in DB: 135
+2026-01-21 12:02:19.93
+270be009
+User
+[Buying API] Results by country: {} Total: 0
+2026-01-21 12:02:19.93
+270be009
+User
+[Buying API] Results by country: {} Total: 0
+2026-01-21 12:02:19.93
+270be009
+User
+[Buying API] Results by country: {} Total: 0
+2026-01-21 12:02:19.93
+270be009
+User
+[Buying API] Results by country: {} Total: 0
+2026-01-21 12:02:38.84
+270be009
+User
+[Buying API] Where clause: {"countryId":"cmkl84azs0003u6gkwgsymoxq","date":{"gte":"2025-12-22T00:00:00.000Z","lte":"2026-01-21T00:00:00.000Z"}}
+2026-01-21 12:02:38.84
+270be009
+User
+employeeId: null,
+2026-01-21 12:02:38.84
+270be009
+User
+endDate: '2026-01-21'
+2026-01-21 12:02:38.84
+270be009
+User
+[Buying API] Query params: {
+2026-01-21 12:02:38.84
+270be009
+User
+startDate: '2025-12-22',
+2026-01-21 12:02:38.84
+270be009
+User
+countryId: 'cmkl84azs0003u6gkwgsymoxq',
+2026-01-21 12:02:38.84
+270be009
+User
+}
+2026-01-21 12:02:38.92
+270be009
+User
+[Buying API] Records by countryId: [{"_count":{"id":64},"countryId":"cmkl84ayd0000u6gkt1xxcvhl"},{"_count":{"id":15},"countryId":"cmkl84b070004u6gkag39jtlk"},{"_count":{"id":36},"countryId":"cmkl84azd0002u6gkoml9aboi"},{"_count":{"id":20},"countryId":"cmkl84azs0003u6gkwgsymoxq"}]
+2026-01-21 12:02:38.92
+270be009
+User
+[Buying API] Total records in DB: 135
+2026-01-21 12:02:41.31
+270be009
+User
+[Buying API] Results by country: { Argentina: 20 } Total: 20
+2026-01-21 12:02:41.31
+270be009
+User
+[Buying API] Results by country: { Argentina: 20 } Total: 20

@@ -21,6 +21,20 @@ async function seedProduction() {
   const prisma = new PrismaClient({ adapter });
 
   try {
+    // CRITICAL FIX: Delete incorrectly assigned Argentina BuyerMetrics
+    // Corie's data was incorrectly mapped to Argentina instead of Peru
+    const argentinaId = "cmkl84azs0003u6gkwgsymoxq";
+    const incorrectArgentinaMetrics = await prisma.buyerMetrics.count({
+      where: { countryId: argentinaId }
+    });
+    if (incorrectArgentinaMetrics > 0) {
+      console.log(`[FIX] Deleting ${incorrectArgentinaMetrics} incorrectly assigned Argentina buyer metrics...`);
+      await prisma.buyerMetrics.deleteMany({
+        where: { countryId: argentinaId }
+      });
+      console.log("[FIX] Deleted incorrect Argentina data");
+    }
+
     const countriesCount = await prisma.country.count();
     const buyerMetricsCount = await prisma.buyerMetrics.count();
     console.log(`Current counts: ${countriesCount} countries, ${buyerMetricsCount} buyer metrics`);

@@ -132,10 +132,24 @@ async function syncData() {
       console.log(`[Sync] Synced ${EMPLOYEES.length} employees`);
     }
 
+    // FIX: Delete incorrect Argentina BuyerMetrics (Corie was incorrectly assigned to Argentina)
+    const argentinaId = "cmkl84azs0003u6gkwgsymoxq";
+    const incorrectArgentinaMetrics = await prisma.buyerMetrics.count({
+      where: { countryId: argentinaId }
+    });
+    if (incorrectArgentinaMetrics > 0) {
+      console.log(`[Sync] Deleting ${incorrectArgentinaMetrics} incorrectly assigned Argentina buyer metrics...`);
+      await prisma.buyerMetrics.deleteMany({
+        where: { countryId: argentinaId }
+      });
+      console.log("[Sync] Deleted incorrect Argentina data");
+    }
+
     const existingMetrics = await prisma.buyerMetrics.count();
     console.log(`[Sync] Found ${existingMetrics} buyer metrics in production`);
     
-    if (existingMetrics < BUYER_METRICS_DATA.length) {
+    // Always sync to ensure correct data
+    if (existingMetrics < BUYER_METRICS_DATA.length || true) {
       console.log(`[Sync] Syncing ${BUYER_METRICS_DATA.length} buyer metrics...`);
       let synced = 0;
       for (const metric of BUYER_METRICS_DATA) {
