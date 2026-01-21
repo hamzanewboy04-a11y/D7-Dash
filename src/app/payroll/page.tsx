@@ -99,6 +99,8 @@ interface Employee {
   countryId: string | null;
   country: Country | null;
   fixedRate: number | null;
+  fixedRatePeriod: string | null;
+  fixedRatePerProject: boolean;
   percentRate: number | null;
   percentageBase: string | null;
   fdBonusThreshold: number | null;
@@ -179,6 +181,12 @@ const percentageBaseLabels: Record<string, string> = {
   all_payments: "От всех платежей",
 };
 
+const fixedRatePeriodLabels: Record<string, string> = {
+  day: "За день",
+  week: "За неделю",
+  month: "За месяц",
+};
+
 const defaultRoles = ["buyer", "fd_handler", "rd_handler", "content", "designer", "head_designer", "reviewer"];
 
 const getRoleLabel = (role: string): string => {
@@ -203,6 +211,8 @@ export default function PayrollPage() {
     role: "",
     countryId: "",
     fixedRate: "",
+    fixedRatePeriod: "day",
+    fixedRatePerProject: false,
     percentRate: "",
     percentageBase: "",
     fdBonusThreshold: "",
@@ -290,6 +300,8 @@ export default function PayrollPage() {
       role: employee.role,
       countryId: employee.countryId || "",
       fixedRate: employee.fixedRate?.toString() || "",
+      fixedRatePeriod: employee.fixedRatePeriod || "day",
+      fixedRatePerProject: employee.fixedRatePerProject || false,
       percentRate: employee.percentRate?.toString() || "",
       percentageBase: employee.percentageBase || "",
       fdBonusThreshold: employee.fdBonusThreshold?.toString() || "",
@@ -313,6 +325,8 @@ export default function PayrollPage() {
       role: "",
       countryId: "",
       fixedRate: "",
+      fixedRatePeriod: "day",
+      fixedRatePerProject: false,
       percentRate: "",
       percentageBase: "",
       fdBonusThreshold: "",
@@ -704,6 +718,49 @@ export default function PayrollPage() {
                         placeholder="0.00"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fixedRatePeriod">Период ставки</Label>
+                      <Select
+                        value={formData.fixedRatePeriod}
+                        onValueChange={(v) => setFormData({ ...formData, fixedRatePeriod: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите период" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(fixedRatePeriodLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 mt-3">
+                    <input
+                      type="checkbox"
+                      id="fixedRatePerProject"
+                      checked={formData.fixedRatePerProject}
+                      onChange={(e) => setFormData({ ...formData, fixedRatePerProject: e.target.checked })}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <Label htmlFor="fixedRatePerProject" className="text-sm font-normal cursor-pointer">
+                      За каждый проект (страну)
+                    </Label>
+                  </div>
+                  
+                  {formData.fixedRate && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      {formData.fixedRatePerProject 
+                        ? `Ставка $${formData.fixedRate} ${fixedRatePeriodLabels[formData.fixedRatePeriod]} за каждый активный проект`
+                        : `Ставка $${formData.fixedRate} ${fixedRatePeriodLabels[formData.fixedRatePeriod]}`
+                      }
+                    </p>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="space-y-2">
                       <Label htmlFor="percentRate">% ставка</Label>
                       <Input
