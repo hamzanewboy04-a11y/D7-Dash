@@ -21,18 +21,17 @@ async function seedProduction() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    // CRITICAL FIX: Delete incorrectly assigned Argentina BuyerMetrics
-    // Corie's data was incorrectly mapped to Argentina instead of Peru
-    const argentinaId = "cmkl84azs0003u6gkwgsymoxq";
-    const incorrectArgentinaMetrics = await prisma.buyerMetrics.count({
-      where: { countryId: argentinaId }
+    // CRITICAL FIX: Check for invalid Chile buyer data (shouldn't exist)
+    const chileId = "cmkl84b070004u6gkag39jtlk";
+    const invalidChileMetrics = await prisma.buyerMetrics.count({
+      where: { countryId: chileId }
     });
-    if (incorrectArgentinaMetrics > 0) {
-      console.log(`[FIX] Deleting ${incorrectArgentinaMetrics} incorrectly assigned Argentina buyer metrics...`);
+    if (invalidChileMetrics > 0) {
+      console.log(`[FIX] Deleting ${invalidChileMetrics} invalid Chile buyer metrics (not in Excel)...`);
       await prisma.buyerMetrics.deleteMany({
-        where: { countryId: argentinaId }
+        where: { countryId: chileId }
       });
-      console.log("[FIX] Deleted incorrect Argentina data");
+      console.log("[FIX] Deleted invalid Chile data");
     }
 
     const countriesCount = await prisma.country.count();
