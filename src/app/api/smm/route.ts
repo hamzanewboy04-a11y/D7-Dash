@@ -17,9 +17,32 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    // Get active countries (exclude disabled)
+    const activeCountries = await prisma.country.findMany({
+      where: { status: { not: "disabled" } },
+      select: { id: true, code: true, name: true },
+    });
+    const activeCountryIds = activeCountries.map(c => c.id);
+
     const where: Record<string, unknown> = {};
     
-    if (countryId) where.countryId = countryId;
+    // Filter by active countries
+    if (countryId) {
+      // Check if requested country is active
+      if (activeCountryIds.includes(countryId)) {
+        where.countryId = countryId;
+      } else {
+        // Country is disabled, return empty results
+        return NextResponse.json({ 
+          metrics: [], 
+          totals: { _sum: { postsPlan: 0, postsTotal: 0, storiesPlan: 0, storiesTotal: 0, miniReviewsPlan: 0, miniReviewsTotal: 0, bigReviewsPlan: 0, bigReviewsTotal: 0 } },
+          periodDays: 1,
+          activeCountries 
+        });
+      }
+    } else {
+      where.countryId = { in: activeCountryIds };
+    }
     if (employeeId) where.employeeId = employeeId;
     
     // Always filter to today or earlier to avoid showing future dates
@@ -59,8 +82,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get settings for plan calculation
-    const settingsWhere = countryId ? { countryId } : {};
+    // Get settings for plan calculation (only for active countries)
+    const settingsWhere = countryId 
+      ? { countryId } 
+      : { countryId: { in: activeCountryIds } };
     const settings = await prisma.smmProjectSettings.findMany({
       where: settingsWhere,
     });
@@ -93,7 +118,7 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    return NextResponse.json({ metrics, totals, periodDays: daysDiff }, {
+    return NextResponse.json({ metrics, totals, periodDays: daysDiff, activeCountries }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',

@@ -58,14 +58,6 @@ const DATE_RANGE_OPTIONS = [
   { value: "custom", label: "Свой диапазон" },
 ];
 
-const PROJECT_TABS = [
-  { code: "all", name: "Все" },
-  { code: "PE", name: "Перу" },
-  { code: "IT_F", name: "Италия (Ж)" },
-  { code: "IT_M", name: "Италия (М)" },
-  { code: "AR", name: "Аргентина" },
-  { code: "CL", name: "Чили" },
-];
 
 interface Country {
   id: string;
@@ -192,6 +184,7 @@ export default function SmmPage() {
   const [metrics, setMetrics] = useState<SmmMetric[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [countries, setCountries] = useState<Country[]>([]);
+  const [activeCountries, setActiveCountries] = useState<{id: string, code: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -249,7 +242,7 @@ export default function SmmPage() {
       if (dateParams.endDate) params.set("endDate", dateParams.endDate);
       
       const effectiveCountryId = selectedProjectTab !== "all" 
-        ? countries.find(c => c.code === selectedProjectTab)?.id 
+        ? activeCountries.find(c => c.code === selectedProjectTab)?.id 
         : (selectedCountry !== "all" ? selectedCountry : undefined);
       
       if (effectiveCountryId) params.set("countryId", effectiveCountryId);
@@ -259,6 +252,9 @@ export default function SmmPage() {
         const data = await response.json();
         setMetrics(data.metrics || []);
         setTotals(data.totals || null);
+        if (data.activeCountries) {
+          setActiveCountries(data.activeCountries);
+        }
       }
     } catch (error) {
       console.error("Error fetching SMM metrics:", error);
@@ -286,10 +282,10 @@ export default function SmmPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user && countries.length > 0) {
+    if (user) {
       fetchData();
     }
-  }, [user, dateRange, customStartDate, customEndDate, selectedCountry, selectedProjectTab, countries]);
+  }, [user, dateRange, customStartDate, customEndDate, selectedCountry, selectedProjectTab]);
 
   const handleOpenDialog = (metric?: SmmMetric) => {
     // Загружаем настройки при открытии диалога для корректного получения планов
@@ -625,23 +621,32 @@ export default function SmmPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 bg-slate-100 p-2 rounded-lg">
-        {PROJECT_TABS.map((tab) => (
+        <Button
+          variant={selectedProjectTab === "all" ? "default" : "ghost"}
+          className={
+            selectedProjectTab === "all"
+              ? "bg-[#1e40af] hover:bg-[#3b82f6] text-white"
+              : "hover:bg-slate-200 text-slate-700"
+          }
+          onClick={() => setSelectedProjectTab("all")}
+        >
+          Все
+        </Button>
+        {activeCountries.map((country) => (
           <Button
-            key={tab.code}
-            variant={selectedProjectTab === tab.code ? "default" : "ghost"}
+            key={country.code}
+            variant={selectedProjectTab === country.code ? "default" : "ghost"}
             className={
-              selectedProjectTab === tab.code
+              selectedProjectTab === country.code
                 ? "bg-[#1e40af] hover:bg-[#3b82f6] text-white"
                 : "hover:bg-slate-200 text-slate-700"
             }
             onClick={() => {
-              setSelectedProjectTab(tab.code);
-              if (tab.code !== "all") {
-                setSelectedCountry("all");
-              }
+              setSelectedProjectTab(country.code);
+              setSelectedCountry("all");
             }}
           >
-            {tab.name}
+            {getCountryNameRu(country.name)}
           </Button>
         ))}
       </div>
