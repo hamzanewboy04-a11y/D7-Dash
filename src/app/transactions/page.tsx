@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Filter, RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Filter, RefreshCw, ExternalLink, AlertCircle, MessageSquare, X, Check, Building2 } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -14,12 +14,32 @@ interface Transaction {
   isIncoming: boolean;
   isProcessed: boolean;
   processedAt: string | null;
+  comment: string | null;
+  source: string | null;
   country: {
     id: string;
     name: string;
     code: string;
   } | null;
   countryWalletName: string | null;
+}
+
+interface HTXTransaction {
+  id: number;
+  type: "deposit" | "withdraw";
+  currency: string;
+  txHash: string;
+  chain: string;
+  amount: number;
+  address: string;
+  fee: number;
+  state: string;
+  createdAt: string;
+  country: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface Country {
@@ -50,10 +70,18 @@ interface SyncResult {
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [htxTransactions, setHtxTransactions] = useState<{
+    deposits: HTXTransaction[];
+    withdrawals: HTXTransaction[];
+  }>({ deposits: [], withdrawals: [] });
   const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(true);
+  const [htxLoading, setHtxLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [activeTab, setActiveTab] = useState<"blockchain" | "htx">("htx");
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 20,
@@ -65,7 +93,7 @@ export default function TransactionsPage() {
     countryId: "",
     startDate: "",
     endDate: "",
-    direction: "", // "incoming", "outgoing", ""
+    direction: "",
   });
 
   const fetchTransactions = useCallback(async () => {
@@ -100,6 +128,24 @@ export default function TransactionsPage() {
     }
   }, [pagination.page, pagination.limit, filters]);
 
+  const fetchHTXTransactions = async () => {
+    setHtxLoading(true);
+    try {
+      const response = await fetch("/api/htx/transactions");
+      if (response.ok) {
+        const data = await response.json();
+        setHtxTransactions({
+          deposits: data.deposits || [],
+          withdrawals: data.withdrawals || [],
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching HTX transactions:", error);
+    } finally {
+      setHtxLoading(false);
+    }
+  };
+
   const fetchCountries = async () => {
     try {
       const response = await fetch("/api/countries");
@@ -114,11 +160,14 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     fetchCountries();
+    fetchHTXTransactions();
   }, []);
 
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    if (activeTab === "blockchain") {
+      fetchTransactions();
+    }
+  }, [fetchTransactions, activeTab]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -174,12 +223,33 @@ export default function TransactionsPage() {
       
       if (data.success) {
         await fetchTransactions();
+        await fetchHTXTransactions();
       }
     } catch (error) {
       console.error("Error syncing:", error);
       setSyncResult({ success: false, moralisEnabled: false, moralisIncoming: 0, moralisOutgoing: 0, newTransactions: 0 });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const saveComment = async (txId: string) => {
+    try {
+      const response = await fetch(`/api/wallet/transactions/${txId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: commentText }),
+      });
+      
+      if (response.ok) {
+        setTransactions(prev => 
+          prev.map(tx => tx.id === txId ? { ...tx, comment: commentText } : tx)
+        );
+        setEditingComment(null);
+        setCommentText("");
+      }
+    } catch (error) {
+      console.error("Error saving comment:", error);
     }
   };
 
@@ -191,49 +261,231 @@ export default function TransactionsPage() {
     .filter((tx) => !tx.isIncoming)
     .reduce((sum, tx) => sum + tx.amount, 0);
 
+  const htxTotalDeposits = htxTransactions.deposits.reduce((sum, tx) => sum + tx.amount, 0);
+  const htxTotalWithdrawals = htxTransactions.withdrawals.reduce((sum, tx) => sum + tx.amount, 0);
+
+  const allHtxTransactions = [
+    ...htxTransactions.deposits.map(tx => ({ ...tx, direction: "deposit" as const })),
+    ...htxTransactions.withdrawals.map(tx => ({ ...tx, direction: "withdraw" as const })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
   return (
     <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-slate-900">
-              История транзакций
-            </h1>
-            <button
-              onClick={handleSync}
-              disabled={syncing || loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "Синхронизация..." : "Обновить"}
-            </button>
-          </div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">
+          История транзакций
+        </h1>
+        <button
+          onClick={handleSync}
+          disabled={syncing || loading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Синхронизация..." : "Обновить"}
+        </button>
+      </div>
 
-          {syncResult && (
-            <div className={`mb-4 p-4 rounded-lg border ${syncResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-              <div className="flex items-start gap-3">
-                <AlertCircle className={`w-5 h-5 mt-0.5 ${syncResult.success ? "text-green-600" : "text-red-600"}`} />
-                <div className="text-sm">
-                  <p className={`font-medium ${syncResult.success ? "text-green-800" : "text-red-800"}`}>
-                    {syncResult.success ? "Синхронизация завершена" : "Ошибка синхронизации"}
+      {syncResult && (
+        <div className={`mb-4 p-4 rounded-lg border ${syncResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+          <div className="flex items-start gap-3">
+            <AlertCircle className={`w-5 h-5 mt-0.5 ${syncResult.success ? "text-green-600" : "text-red-600"}`} />
+            <div className="text-sm">
+              <p className={`font-medium ${syncResult.success ? "text-green-800" : "text-red-800"}`}>
+                {syncResult.success ? "Синхронизация завершена" : "Ошибка синхронизации"}
+              </p>
+              <p className="text-slate-600 mt-1">
+                Moralis API: {syncResult.moralisEnabled ? "Включён" : "Отключён"} | 
+                Входящих: {syncResult.moralisIncoming} | 
+                Исходящих: {syncResult.moralisOutgoing} | 
+                Новых: {syncResult.newTransactions}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab("htx")}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === "htx"
+              ? "bg-blue-600 text-white"
+              : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            HTX Биржа
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab("blockchain")}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            activeTab === "blockchain"
+              ? "bg-blue-600 text-white"
+              : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
+          }`}
+        >
+          Блокчейн (Moralis)
+        </button>
+      </div>
+
+      {activeTab === "htx" ? (
+        <>
+          {/* HTX Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <ArrowDownCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Депозиты (HTX)</p>
+                  <p className="text-lg font-semibold text-green-600">
+                    +{formatAmount(htxTotalDeposits)} USDT
                   </p>
-                  <p className="text-slate-600 mt-1">
-                    Moralis API: {syncResult.moralisEnabled ? "Включён" : "Отключён"} | 
-                    Входящих: {syncResult.moralisIncoming} | 
-                    Исходящих: {syncResult.moralisOutgoing} | 
-                    Новых: {syncResult.newTransactions}
-                  </p>
-                  {syncResult.debug && (
-                    <p className="text-xs text-slate-500 mt-1">
-                      Адрес: {syncResult.debug.mainAddress?.slice(0, 10)}... | 
-                      Кошельков стран: {syncResult.debug.countryWallets}
-                      {syncResult.debug.moralisError && <span className="text-red-600"> | Ошибка: {syncResult.debug.moralisError}</span>}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
-          )}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <ArrowUpCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Выводы (HTX)</p>
+                  <p className="text-lg font-semibold text-red-600">
+                    -{formatAmount(htxTotalWithdrawals)} USDT
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Filter className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Всего операций (HTX)</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {allHtxTransactions.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          {/* Summary Cards */}
+          {/* HTX Transactions Table */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            {htxLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+              </div>
+            ) : allHtxTransactions.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">
+                <Building2 className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                <p>HTX транзакции не найдены</p>
+                <p className="text-sm mt-1">Нажмите "Обновить" для загрузки данных с биржи</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Дата
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Тип
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Страна
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Сеть
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Сумма
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Комиссия
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Адрес
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Статус
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {allHtxTransactions.map((tx) => (
+                      <tr key={`${tx.direction}-${tx.id}`} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900">
+                          {formatDate(tx.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {tx.direction === "deposit" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                              <ArrowDownCircle className="w-3 h-3" />
+                              Депозит
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                              <ArrowUpCircle className="w-3 h-3" />
+                              Вывод
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          {tx.country ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                              {tx.country.name}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <span className="inline-flex items-center px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs uppercase">
+                            {tx.chain}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-right ${
+                          tx.direction === "deposit" ? "text-green-600" : "text-red-600"
+                        }`}>
+                          {tx.direction === "deposit" ? "+" : "-"}{formatAmount(tx.amount)} {tx.currency.toUpperCase()}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 text-right">
+                          {tx.fee > 0 ? formatAmount(tx.fee) : "—"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 font-mono">
+                          {shortenAddress(tx.address)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                            tx.state === "safe" || tx.state === "confirmed" 
+                              ? "bg-green-100 text-green-700"
+                              : tx.state === "confirming"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-slate-100 text-slate-700"
+                          }`}>
+                            {tx.state === "safe" || tx.state === "confirmed" ? "Завершён" : 
+                             tx.state === "confirming" ? "Подтверждение" : tx.state}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Blockchain Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
               <div className="flex items-center gap-3">
@@ -341,7 +593,7 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          {/* Transactions Table */}
+          {/* Blockchain Transactions Table */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -370,10 +622,7 @@ export default function TransactionsPage() {
                           Сумма
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          От / Кому
-                        </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          Статус
+                          Комментарий
                         </th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                           TX
@@ -413,21 +662,43 @@ export default function TransactionsPage() {
                           }`}>
                             {tx.isIncoming ? "+" : "-"}{formatAmount(tx.amount)} {tx.tokenSymbol}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 font-mono">
-                            {tx.isIncoming 
-                              ? shortenAddress(tx.fromAddress)
-                              : shortenAddress(tx.toAddress)
-                            }
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-center">
-                            {tx.isProcessed ? (
-                              <span className="inline-flex px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                                Обработан
-                              </span>
+                          <td className="px-4 py-3 text-sm max-w-xs">
+                            {editingComment === tx.id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={commentText}
+                                  onChange={(e) => setCommentText(e.target.value)}
+                                  placeholder="Комментарий..."
+                                  className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => saveComment(tx.id)}
+                                  className="p-1 text-green-600 hover:bg-green-50 rounded"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => { setEditingComment(null); setCommentText(""); }}
+                                  className="p-1 text-slate-400 hover:bg-slate-100 rounded"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
                             ) : (
-                              <span className="inline-flex px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">
-                                Ожидает
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-600 truncate">
+                                  {tx.comment || <span className="text-slate-400 italic">—</span>}
+                                </span>
+                                <button
+                                  onClick={() => { setEditingComment(tx.id); setCommentText(tx.comment || ""); }}
+                                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                  title="Добавить комментарий"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                              </div>
                             )}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-center">
@@ -479,6 +750,8 @@ export default function TransactionsPage() {
               </>
             )}
           </div>
+        </>
+      )}
     </div>
   );
 }

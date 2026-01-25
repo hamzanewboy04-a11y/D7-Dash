@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
         isIncoming: tx.isIncoming,
         isProcessed: tx.isProcessed,
         processedAt: tx.processedAt,
+        comment: tx.comment,
+        source: tx.source,
         country: country,
         countryId: tx.countryId || country?.id || null,
         countryWalletName: tx.countryWallet?.name || null,

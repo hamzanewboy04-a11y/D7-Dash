@@ -742,6 +742,10 @@ model WalletTransaction {
   processedAt     DateTime?
   isIncoming      Boolean  @default(true) // true = входящий, false = исходящий
   
+  // Комментарий/назначение транзакции
+  comment         String?  // Комментарий пользователя для неизвестных транзакций
+  source          String?  @default("blockchain") // "blockchain" | "htx" - источник данных
+  
   // Связь с расходом (для исходящих транзакций)
   expenseId       String?  // ID созданного расхода
   

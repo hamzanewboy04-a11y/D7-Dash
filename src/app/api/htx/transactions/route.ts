@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getHTXUSDTTransactions, HTXDepositWithdraw } from "@/lib/htx-api";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -20,20 +21,38 @@ export async function GET() {
 
     const { deposits, withdrawals } = await getHTXUSDTTransactions(apiKey, secretKey);
 
-    // Format transactions for display
-    const formatTx = (tx: HTXDepositWithdraw) => ({
-      id: tx.id,
-      type: tx.type,
-      currency: tx.currency.toUpperCase(),
-      txHash: tx['tx-hash'],
-      chain: tx.chain,
-      amount: tx.amount,
-      address: tx.address,
-      fee: tx.fee,
-      state: tx.state,
-      createdAt: new Date(tx['created-at']).toISOString(),
-      updatedAt: new Date(tx['updated-at']).toISOString(),
+    // Fetch country wallets to match deposit addresses
+    const countryWallets = await prisma.countryWallet.findMany({
+      where: { isActive: true },
+      include: { country: { select: { id: true, name: true, code: true } } },
     });
+
+    // Create address to country map (lowercase for matching)
+    const addressToCountry = new Map<string, { id: string; name: string; code: string }>();
+    for (const wallet of countryWallets) {
+      addressToCountry.set(wallet.address.toLowerCase(), wallet.country);
+    }
+
+    // Format transactions for display with country matching
+    const formatTx = (tx: HTXDepositWithdraw) => {
+      const address = tx.address?.toLowerCase() || "";
+      const matchedCountry = addressToCountry.get(address) || null;
+      
+      return {
+        id: tx.id,
+        type: tx.type,
+        currency: tx.currency.toUpperCase(),
+        txHash: tx['tx-hash'],
+        chain: tx.chain,
+        amount: tx.amount,
+        address: tx.address,
+        fee: tx.fee,
+        state: tx.state,
+        createdAt: new Date(tx['created-at']).toISOString(),
+        updatedAt: new Date(tx['updated-at']).toISOString(),
+        country: matchedCountry,
+      };
+    };
 
     return NextResponse.json({
       deposits: deposits.map(formatTx),
