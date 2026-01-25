@@ -1,0 +1,164 @@
+2026-01-25 17:24:38.66
+d9891237
+User
+Starting production server...
+2026-01-25 17:24:44.72
+d9891237
+User
+Loaded Prisma config from prisma.config.ts.
+2026-01-25 17:24:45.07
+d9891237
+User
+Prisma schema loaded from prisma/schema.prisma.
+2026-01-25 17:24:45.08
+d9891237
+User
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-divine-butterfly-afqsybdx.c-2.us-west-2.aws.neon.tech"
+2026-01-25 17:24:47.97
+d9891237
+User
+The database is already in sync with the Prisma schema.
+2026-01-25 17:24:48.05
+d9891237
+User
+npm notice
+2026-01-25 17:24:48.05
+d9891237
+User
+npm notice To update run: npm install -g npm@11.8.0
+2026-01-25 17:24:48.05
+d9891237
+User
+npm notice
+2026-01-25 17:24:48.05
+d9891237
+User
+npm notice New major version of npm available! 10.8.2 -> 11.8.0
+2026-01-25 17:24:48.05
+d9891237
+User
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.8.0
+2026-01-25 17:24:48.06
+d9891237
+User
+Syncing data to production...
+2026-01-25 17:24:49.63
+d9891237
+User
+[Sync] Checking production database...
+2026-01-25 17:24:49.65
+d9891237
+User
+[Sync] Loaded 9 cabinets, 10 desks, 180 buyer metrics
+2026-01-25 17:24:49.80
+d9891237
+User
+(node:117) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-01-25 17:24:49.80
+d9891237
+User
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-01-25 17:24:49.80
+d9891237
+User
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-01-25 17:24:49.80
+d9891237
+User
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-01-25 17:24:49.80
+d9891237
+User
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-01-25 17:24:49.80
+d9891237
+User
+To prepare for this change:
+2026-01-25 17:24:49.80
+d9891237
+User
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-01-25 17:24:50.29
+d9891237
+User
+[Sync] Data is already in sync
+2026-01-25 17:24:50.29
+d9891237
+User
+[Sync] Current: 9 cabinets, 10 desks, 180 metrics
+2026-01-25 17:24:50.36
+d9891237
+User
+cmkl84ayd0000u6gkt1xxcvhl: 124 records, $28782.69
+2026-01-25 17:24:50.36
+d9891237
+User
+[Sync] Final summary:
+2026-01-25 17:24:50.36
+d9891237
+User
+cmkl84azd0002u6gkoml9aboi: 51 records, $10057.63
+2026-01-25 17:24:50.36
+d9891237
+User
+cmkl84azs0003u6gkwgsymoxq: 5 records, $568.85
+2026-01-25 17:24:50.44
+d9891237
+User
+Starting Next.js server...
+2026-01-25 17:24:50.66
+d9891237
+User
+> d7-dash-app@0.1.0 start
+2026-01-25 17:24:50.66
+d9891237
+User
+> next start -p 5000 -H 0.0.0.0
+2026-01-25 17:24:51.53
+d9891237
+User
+▲ Next.js 16.1.3
+2026-01-25 17:24:51.53
+d9891237
+User
+- Network: http://0.0.0.0:5000
+2026-01-25 17:24:51.53
+d9891237
+User
+- Local: http://localhost:5000
+2026-01-25 17:24:51.54
+d9891237
+User
+✓ Starting...
+2026-01-25 17:24:52.86
+d9891237
+User
+✓ Ready in 1880ms
+2026-01-25 17:24:53.30
+d9891237
+User
+[Prisma] Environment: PRODUCTION
+2026-01-25 17:24:53.30
+d9891237
+User
+[Prisma] DATABASE_URL available: true
+2026-01-25 17:24:53.30
+d9891237
+User
+[Prisma] Data will persist across deployments
+2026-01-25 17:24:53.30
+d9891237
+User
+[Prisma] Using PostgreSQL database (CLOUD)
+2026-01-25 17:24:53.30
+d9891237
+User
+[Prisma] DATABASE_URL available: true
+2026-01-25 17:24:53.30
+d9891237
+User
+[Prisma] Data will persist across deployments
+2026-01-25 17:24:53.30
+d9891237
+User
+[Prisma] Using PostgreSQL database (CLOUD)

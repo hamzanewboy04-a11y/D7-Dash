@@ -69,6 +69,7 @@ export interface CrossgifData {
   totalSpend: number;
   desks: { name: string; id: string; canUse: number }[];
   deskSpends: DeskDailySpend[];
+  debugRows?: { rowIdx: number; cols: string[] }[];
 }
 
 function parseNumber(value: string | undefined | null): number {
@@ -143,14 +144,18 @@ export async function getCrossgifData(
     console.log('CROSSGIF total rows:', rows.length);
 
     const deskSpends: DeskDailySpend[] = [];
+    const debugRows: { rowIdx: number; cols: string[] }[] = [];
 
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];
       if (!row) continue;
       
-      // Log first 6 columns to see structure
-      if (i < 10 || i === 14 || i === 20) {
-        console.log(`Row ${i} cols:`, row.slice(0, 8).map((c, idx) => `[${idx}]=${c}`));
+      // Store debug data for first 10 rows
+      if (i < 15) {
+        debugRows.push({
+          rowIdx: i,
+          cols: row.slice(0, 15).map((c: unknown) => String(c || ''))
+        });
       }
       
       // Column E (index 4) contains desk name like "Desk 1", "Desk 2", "Desk 3"
@@ -207,6 +212,7 @@ export async function getCrossgifData(
       totalSpend,
       desks,
       deskSpends,
+      debugRows,
     };
   } catch (error) {
     console.error('Error reading Crossgif sheet:', error);
