@@ -29,6 +29,7 @@ const sections = [
   { id: "login", title: "Вход в систему", icon: Key },
   { id: "dashboard", title: "Главная страница", icon: Home },
   { id: "countries", title: "Страны", icon: Globe },
+  { id: "transactions", title: "Транзакции", icon: Receipt },
   { id: "buying", title: "Баинг", icon: ShoppingCart },
   { id: "cabinets", title: "Кабинеты и Дески", icon: Building2 },
   { id: "employees", title: "Сотрудники", icon: Users },
@@ -327,6 +328,49 @@ export default function HelpPage() {
                   <li><strong>RD</strong> — количество редепозитов (повторных депозитов)</li>
                   <li><strong>Доход</strong> — заработок от этой страны</li>
                 </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section id="transactions" className="scroll-mt-4">
+          <Card className="border-l-4 border-l-[#3b82f6]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-[#3b82f6]" />
+                Транзакции
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-slate-700">
+                Раздел показывает историю всех криптовалютных транзакций (USDT) с привязкой к странам.
+              </p>
+
+              <div className="space-y-3">
+                <h4 className="font-semibold text-slate-800">Что отображается:</h4>
+                <ul className="list-disc list-inside space-y-2 text-slate-600 ml-4">
+                  <li><strong>Входящие</strong> — поступления USDT от стран (автоматически записываются как доход)</li>
+                  <li><strong>Исходящие</strong> — переводы на агентства или другие кошельки (записываются как расход)</li>
+                  <li><strong>Дата и время</strong> — когда произошла транзакция</li>
+                  <li><strong>Страна</strong> — откуда пришли деньги (определяется по адресу кошелька)</li>
+                  <li><strong>Сумма</strong> — количество USDT</li>
+                  <li><strong>Статус</strong> — обработана ли транзакция (записана в доход/расход)</li>
+                </ul>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <h4 className="font-semibold text-slate-800">Фильтры:</h4>
+                <ul className="list-disc list-inside space-y-2 text-slate-600 ml-4">
+                  <li><strong>По стране</strong> — показать транзакции только от выбранной страны</li>
+                  <li><strong>По направлению</strong> — входящие или исходящие</li>
+                  <li><strong>По дате</strong> — выбрать период</li>
+                </ul>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4 mt-4">
+                <p className="text-sm text-blue-800">
+                  <strong>BSCScan:</strong> Каждая транзакция имеет ссылку на BSCScan, где можно посмотреть детали в блокчейне BEP20.
+                </p>
               </div>
             </CardContent>
           </Card>

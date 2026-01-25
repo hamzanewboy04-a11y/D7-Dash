@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
 
     if (countryId) {
-      where.countryId = countryId;
+      where.OR = [
+        { countryId: countryId },
+        { countryWallet: { countryId: countryId } }
+      ];
     }
 
     if (startDate || endDate) {
@@ -61,20 +64,24 @@ export async function GET(request: NextRequest) {
       prisma.walletTransaction.count({ where }),
     ]);
 
-    const formattedTransactions = transactions.map((tx) => ({
-      id: tx.id,
-      txId: tx.txId,
-      fromAddress: tx.fromAddress,
-      toAddress: tx.toAddress,
-      amount: tx.amount,
-      tokenSymbol: tx.tokenSymbol,
-      timestamp: tx.timestamp,
-      isIncoming: tx.isIncoming,
-      isProcessed: tx.isProcessed,
-      processedAt: tx.processedAt,
-      country: tx.countryWallet?.country || null,
-      countryWalletName: tx.countryWallet?.name || null,
-    }));
+    const formattedTransactions = transactions.map((tx) => {
+      const country = tx.countryWallet?.country || null;
+      return {
+        id: tx.id,
+        txId: tx.txId,
+        fromAddress: tx.fromAddress,
+        toAddress: tx.toAddress,
+        amount: tx.amount,
+        tokenSymbol: tx.tokenSymbol,
+        timestamp: tx.timestamp,
+        isIncoming: tx.isIncoming,
+        isProcessed: tx.isProcessed,
+        processedAt: tx.processedAt,
+        country: country,
+        countryId: tx.countryId || country?.id || null,
+        countryWalletName: tx.countryWallet?.name || null,
+      };
+    });
 
     return NextResponse.json({
       transactions: formattedTransactions,

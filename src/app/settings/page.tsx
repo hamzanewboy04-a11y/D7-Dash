@@ -114,6 +114,7 @@ interface AgencyWallet {
 const ALL_SECTIONS = [
   { id: "dashboard", name: "Дашборд" },
   { id: "countries", name: "Страны" },
+  { id: "transactions", name: "Транзакции" },
   { id: "buying", name: "Баинг" },
   { id: "cabinets", name: "Кабинеты" },
   { id: "smm", name: "SMM" },
