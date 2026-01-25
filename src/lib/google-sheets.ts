@@ -225,27 +225,25 @@ export async function getFbmData(
     const dailySpends: { day: number; amount: number }[] = [];
     const accounts: { date: string; bayer: string; ads: string; status: string; deposit: number; balance: number }[] = [];
 
-    const headerRow = rows[0] || [];   // Row 1: headers with day numbers starting at col Y
-    const dataRow = rows[1] || [];     // Row 2: data with spend amounts and "Per Month"
+    const row1 = rows[0] || [];   // Row 1: spends from column H to AL
+    const row2 = rows[1] || [];   // Row 2: dates or day labels
     
-    // perMonth from column H (index 7) - "Per Month" value
-    perMonth = parseNumber(dataRow[7]);
+    // Daily spends are in Row 1, starting from column H (index 7) through AL
+    // Column H = index 7, Column AL = index 37
+    const spendStartCol = 7;
+    const spendEndCol = 38; // up to and including AL (index 37)
     
-    // Daily spends start from column Y (index 24)
-    // Row 1 has day numbers, Row 2 has spend amounts
-    const spendStartCol = 24;
-    for (let i = spendStartCol; i < Math.max(headerRow.length, dataRow.length); i++) {
-      const dayLabel = headerRow[i] || '';
-      const amount = parseNumber(dataRow[i]);
-      const dayNum = parseInt(String(dayLabel || '0')) || (i - spendStartCol + 1);
-      // Include days with amounts
-      if (amount > 0 || (dayLabel && String(dayLabel).match(/^\d+$/))) {
-        dailySpends.push({ 
-          day: dayNum, 
-          amount,
-        });
-      }
+    for (let i = spendStartCol; i < Math.min(row1.length, spendEndCol); i++) {
+      const amount = parseNumber(row1[i]);
+      const dayNum = i - spendStartCol + 1; // Day 1, 2, 3...
+      dailySpends.push({ 
+        day: dayNum, 
+        amount,
+      });
     }
+    
+    // Calculate perMonth as sum of all daily spends
+    perMonth = dailySpends.reduce((sum, d) => sum + d.amount, 0);
 
     // Sum balances from column F (index 5) for all accounts
     // Account data starts from row 3 (index 2) after header and summary rows
