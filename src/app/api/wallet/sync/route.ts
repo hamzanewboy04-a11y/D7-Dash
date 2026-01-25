@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireEditorAuth } from "@/lib/auth";
+import { getHTXUSDTBalance } from "@/lib/htx-api";
 
 // TronGrid API (free, no auth required)
 const TRONGRID_BASE_URL = "https://api.trongrid.io";
@@ -85,38 +86,55 @@ export async function POST() {
     const mainAddress = settings.mainAddress;
     let balanceUsdt = 0;
     let balanceTrx = 0;
+    let balanceSource = "none";
 
-    // Fetch balance using TronGrid API (free, no auth required)
-    try {
-      const balanceUrl = `${TRONGRID_BASE_URL}/v1/accounts/${mainAddress}`;
-      const balanceResponse = await fetchWithTimeout(balanceUrl);
-      
-      if (balanceResponse.ok) {
-        const balanceData: TronGridAccountResponse = await balanceResponse.json();
+    // Try to fetch balance from HTX API first (if API keys are configured)
+    const htxApiKey = process.env.HTX_API_KEY;
+    const htxSecretKey = process.env.HTX_SECRET_KEY;
+    
+    if (htxApiKey && htxSecretKey) {
+      try {
+        balanceUsdt = await getHTXUSDTBalance(htxApiKey, htxSecretKey);
+        balanceSource = "htx";
+        console.log("Fetched USDT balance from HTX:", balanceUsdt);
+      } catch (htxError) {
+        console.error("Error fetching balance from HTX API:", htxError);
+      }
+    }
+
+    // Fallback to TronGrid API for on-chain balance (if HTX failed or not configured)
+    if (balanceSource === "none") {
+      try {
+        const balanceUrl = `${TRONGRID_BASE_URL}/v1/accounts/${mainAddress}`;
+        const balanceResponse = await fetchWithTimeout(balanceUrl);
         
-        if (balanceData.data && balanceData.data.length > 0) {
-          const account = balanceData.data[0];
+        if (balanceResponse.ok) {
+          const balanceData: TronGridAccountResponse = await balanceResponse.json();
           
-          // TRX balance (in sun, 1 TRX = 1,000,000 sun)
-          if (account.balance) {
-            balanceTrx = account.balance / 1e6;
-          }
-          
-          // TRC20 tokens (including USDT)
-          if (account.trc20 && Array.isArray(account.trc20)) {
-            for (const tokenObj of account.trc20) {
-              // Check if this is USDT by contract address
-              const usdtBalance = tokenObj[USDT_CONTRACT];
-              if (usdtBalance) {
-                balanceUsdt = parseFloat(usdtBalance) / 1e6;
-                break;
+          if (balanceData.data && balanceData.data.length > 0) {
+            const account = balanceData.data[0];
+            
+            // TRX balance (in sun, 1 TRX = 1,000,000 sun)
+            if (account.balance) {
+              balanceTrx = account.balance / 1e6;
+            }
+            
+            // TRC20 tokens (including USDT)
+            if (account.trc20 && Array.isArray(account.trc20)) {
+              for (const tokenObj of account.trc20) {
+                const usdtBalance = tokenObj[USDT_CONTRACT];
+                if (usdtBalance) {
+                  balanceUsdt = parseFloat(usdtBalance) / 1e6;
+                  break;
+                }
               }
             }
+            balanceSource = "trongrid";
           }
         }
+      } catch (balanceError) {
+        console.error("Error fetching balance from TronGrid:", balanceError);
       }
-    } catch (balanceError) {
-      console.error("Error fetching balance from TronGrid:", balanceError);
     }
 
     const countryWallets = await prisma.countryWallet.findMany({
@@ -427,6 +445,7 @@ export async function POST() {
       balance: {
         usdt: balanceUsdt,
         trx: balanceTrx,
+        source: balanceSource,
       },
       newTransactions: newTransactionsCount,
       processedTransactions: processedCount,
