@@ -190,38 +190,29 @@ export default function AgenciesPage() {
               </div>
               
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-green-600 mb-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className={`rounded-lg p-4 ${fbmData.totalBalance >= 0 ? "bg-green-50" : "bg-red-50"}`}>
+                    <div className={`flex items-center gap-2 mb-1 ${fbmData.totalBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
                       <DollarSign className="w-4 h-4" />
-                      <span className="text-sm">Общий баланс</span>
+                      <span className="text-sm font-medium">Баланс</span>
                     </div>
-                    <div className="text-2xl font-bold text-green-700">
+                    <div className={`text-2xl font-bold ${fbmData.totalBalance >= 0 ? "text-green-700" : "text-red-700"}`}>
                       {formatMoney(fbmData.totalBalance)}
                     </div>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-blue-600 mb-1">
                       <Calendar className="w-4 h-4" />
-                      <span className="text-sm">Per Month</span>
+                      <span className="text-sm font-medium">Общий спенд</span>
                     </div>
                     <div className="text-2xl font-bold text-blue-700">
-                      {formatMoney(fbmData.perMonth)}
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-slate-600 mb-1">
-                      <Users className="w-4 h-4" />
-                      <span className="text-sm">Аккаунтов</span>
-                    </div>
-                    <div className="text-2xl font-bold text-slate-700">
-                      {fbmData.accounts.filter(a => a.status === "ACTIVE").length}
+                      {formatMoney(fbmData.dailySpends.reduce((sum, d) => sum + d.amount, 0))}
                     </div>
                   </div>
                 </div>
 
                 {fbmData.dailySpends.length > 0 && (
-                  <div className="mb-6">
+                  <div>
                     <h3 className="text-sm font-medium text-slate-700 mb-3">Ежедневные спенды</h3>
                     <div className="flex flex-wrap gap-2">
                       {fbmData.dailySpends.map((d, i) => (
@@ -230,40 +221,6 @@ export default function AgenciesPage() {
                           <span className="font-medium ml-1">{formatMoney(d.amount)}</span>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )}
-
-                {fbmData.accounts.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-700 mb-3">Аккаунты</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-200">
-                            <th className="text-left py-2 px-3 font-medium text-slate-600">Дата</th>
-                            <th className="text-left py-2 px-3 font-medium text-slate-600">Баер</th>
-                            <th className="text-left py-2 px-3 font-medium text-slate-600">Статус</th>
-                            <th className="text-right py-2 px-3 font-medium text-slate-600">Депозит</th>
-                            <th className="text-right py-2 px-3 font-medium text-slate-600">Баланс</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {fbmData.accounts.slice(0, 15).map((acc, i) => (
-                            <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                              <td className="py-2 px-3 text-slate-600">{acc.date}</td>
-                              <td className="py-2 px-3 font-medium">{acc.bayer}</td>
-                              <td className="py-2 px-3">
-                                <span className={`px-2 py-0.5 rounded text-xs ${acc.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                                  {acc.status}
-                                </span>
-                              </td>
-                              <td className="py-2 px-3 text-right">{formatMoney(acc.deposit)}</td>
-                              <td className="py-2 px-3 text-right font-medium">{formatMoney(acc.balance)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
                     </div>
                   </div>
                 )}

@@ -213,9 +213,10 @@ export async function getFbmData(
   try {
     const sheets = await getGoogleSheetsClient();
     
+    // Expand range to include column AF and beyond for daily spends
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `'${sheetName}'!A1:V50`,
+      range: `'${sheetName}'!A1:AZ50`,
     });
 
     const rows = response.data.values || [];
@@ -227,16 +228,22 @@ export async function getFbmData(
     const headerRow1 = rows[0] || [];
     const headerRow2 = rows[1] || [];
     
+    // perMonth from column G (index 6)
     perMonth = parseNumber(headerRow2[6]);
     
-    for (let i = 7; i < headerRow2.length; i++) {
-      const dayNum = parseInt(String(headerRow1[i] || '0')) || (i - 6);
+    // Daily spends start from column AF (index 31) - dates are in row 1, amounts in row 2
+    const spendStartCol = 31;
+    for (let i = spendStartCol; i < headerRow1.length; i++) {
+      const dayLabel = headerRow1[i];
       const amount = parseNumber(headerRow2[i]);
-      if (amount > 0) {
+      // Parse day number from label or use column offset
+      const dayNum = parseInt(String(dayLabel || '0')) || (i - spendStartCol + 1);
+      if (dayLabel || amount > 0) {
         dailySpends.push({ day: dayNum, amount });
       }
     }
 
+    // Sum balances from column F (index 5) for all accounts
     let totalBalance = 0;
     for (let i = 2; i < rows.length; i++) {
       const row = rows[i];
