@@ -55,6 +55,89 @@ export interface AgencyBalanceRow {
   balance: number;
 }
 
+export interface CrossgifData {
+  canUseBalance: number;
+  remainingBalance: number;
+  dailySpends: { date: string; amount: number }[];
+  totalSpend: number;
+  desks: { name: string; id: string; canUse: number }[];
+}
+
+function parseNumber(value: string | undefined | null): number {
+  if (!value) return 0;
+  const cleaned = String(value).replace(/[$,\s]/g, '');
+  return parseFloat(cleaned) || 0;
+}
+
+export async function getCrossgifData(
+  spreadsheetId: string,
+  sheetName: string = '1/2026'
+): Promise<CrossgifData> {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    
+    const balanceResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `'${sheetName}'!A1:AP30`,
+    });
+
+    const rows = balanceResponse.data.values || [];
+    
+    let canUseBalance = 0;
+    let remainingBalance = 0;
+    const dailySpends: { date: string; amount: number }[] = [];
+    const desks: { name: string; id: string; canUse: number }[] = [];
+
+    const headerRow = rows[2] || [];
+    const summaryRow = rows[3] || [];
+    
+    canUseBalance = parseNumber(summaryRow[2]);
+    remainingBalance = parseNumber(summaryRow[5]);
+    
+    const dateStartCol = 32;
+    for (let i = dateStartCol; i < headerRow.length; i++) {
+      const dateLabel = headerRow[i];
+      const spendValue = parseNumber(summaryRow[i]);
+      if (dateLabel && spendValue > 0) {
+        dailySpends.push({
+          date: String(dateLabel),
+          amount: spendValue,
+        });
+      }
+    }
+
+    for (let i = 4; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[1]) continue;
+      
+      const deskName = row[3] || '';
+      const deskId = row[4] || '';
+      const deskCanUse = parseNumber(row[2]);
+      
+      if (deskName && String(deskName).includes('Desk')) {
+        desks.push({
+          name: String(deskName),
+          id: String(deskId),
+          canUse: deskCanUse,
+        });
+      }
+    }
+
+    const totalSpend = dailySpends.reduce((sum, d) => sum + d.amount, 0);
+
+    return {
+      canUseBalance,
+      remainingBalance,
+      dailySpends,
+      totalSpend,
+      desks,
+    };
+  } catch (error) {
+    console.error('Error reading Crossgif sheet:', error);
+    throw error;
+  }
+}
+
 export async function getAgencyBalancesFromSheet(
   spreadsheetId: string,
   sheetName: string,
@@ -73,7 +156,6 @@ export async function getAgencyBalancesFromSheet(
       return [];
     }
 
-    const headerRow = rows[0];
     const dataRows = rows.slice(1);
 
     const result: AgencyBalanceRow[] = [];
@@ -84,9 +166,9 @@ export async function getAgencyBalancesFromSheet(
       result.push({
         date: String(row[0] || ''),
         agency: String(row[1] || ''),
-        topUp: parseFloat(String(row[2] || '0').replace(/[^\d.-]/g, '')) || 0,
-        spend: parseFloat(String(row[3] || '0').replace(/[^\d.-]/g, '')) || 0,
-        balance: parseFloat(String(row[4] || '0').replace(/[^\d.-]/g, '')) || 0,
+        topUp: parseNumber(row[2]),
+        spend: parseNumber(row[3]),
+        balance: parseNumber(row[4]),
       });
     }
 
@@ -124,9 +206,9 @@ export async function getSheetInfo(spreadsheetId: string) {
 
     return {
       title: response.data.properties?.title,
-      sheets: response.data.sheets?.map((s: { properties?: { title?: string; sheetId?: number } }) => ({
-        title: s.properties?.title,
-        sheetId: s.properties?.sheetId,
+      sheets: response.data.sheets?.map((s) => ({
+        title: s.properties?.title ?? undefined,
+        sheetId: s.properties?.sheetId ?? undefined,
       })),
     };
   } catch (error) {
