@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Filter, RefreshCw, ExternalLink } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Filter, RefreshCw, ExternalLink, AlertCircle } from "lucide-react";
 
 interface Transaction {
   id: string;
@@ -35,10 +35,25 @@ interface Pagination {
   totalPages: number;
 }
 
+interface SyncResult {
+  success: boolean;
+  moralisEnabled: boolean;
+  moralisIncoming: number;
+  moralisOutgoing: number;
+  newTransactions: number;
+  debug?: {
+    mainAddress: string;
+    countryWallets: number;
+    moralisError?: string;
+  };
+}
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 20,
@@ -147,6 +162,27 @@ export default function TransactionsPage() {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch("/api/wallet/sync", {
+        method: "POST",
+      });
+      const data = await response.json();
+      setSyncResult(data);
+      
+      if (data.success) {
+        await fetchTransactions();
+      }
+    } catch (error) {
+      console.error("Error syncing:", error);
+      setSyncResult({ success: false, moralisEnabled: false, moralisIncoming: 0, moralisOutgoing: 0, newTransactions: 0 });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const totalIncoming = transactions
     .filter((tx) => tx.isIncoming)
     .reduce((sum, tx) => sum + tx.amount, 0);
@@ -162,14 +198,40 @@ export default function TransactionsPage() {
               История транзакций
             </h1>
             <button
-              onClick={fetchTransactions}
-              disabled={loading}
+              onClick={handleSync}
+              disabled={syncing || loading}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              Обновить
+              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Синхронизация..." : "Обновить"}
             </button>
           </div>
+
+          {syncResult && (
+            <div className={`mb-4 p-4 rounded-lg border ${syncResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+              <div className="flex items-start gap-3">
+                <AlertCircle className={`w-5 h-5 mt-0.5 ${syncResult.success ? "text-green-600" : "text-red-600"}`} />
+                <div className="text-sm">
+                  <p className={`font-medium ${syncResult.success ? "text-green-800" : "text-red-800"}`}>
+                    {syncResult.success ? "Синхронизация завершена" : "Ошибка синхронизации"}
+                  </p>
+                  <p className="text-slate-600 mt-1">
+                    Moralis API: {syncResult.moralisEnabled ? "Включён" : "Отключён"} | 
+                    Входящих: {syncResult.moralisIncoming} | 
+                    Исходящих: {syncResult.moralisOutgoing} | 
+                    Новых: {syncResult.newTransactions}
+                  </p>
+                  {syncResult.debug && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Адрес: {syncResult.debug.mainAddress?.slice(0, 10)}... | 
+                      Кошельков стран: {syncResult.debug.countryWallets}
+                      {syncResult.debug.moralisError && <span className="text-red-600"> | Ошибка: {syncResult.debug.moralisError}</span>}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

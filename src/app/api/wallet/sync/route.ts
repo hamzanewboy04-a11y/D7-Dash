@@ -95,6 +95,12 @@ export async function POST() {
     let processedCount = 0;
     let outgoingTransactionsCount = 0;
     let processedOutgoingCount = 0;
+    let moralisIncomingTotal = 0;
+    let moralisOutgoingTotal = 0;
+    let debugInfo: { mainAddress: string; countryWallets: number; moralisError?: string } = {
+      mainAddress: mainAddress,
+      countryWallets: countryWallets.length,
+    };
 
     const moralisApiKey = process.env.MORALIS_API_KEY;
     
@@ -105,6 +111,7 @@ export async function POST() {
     if (moralisApiKey) {
       try {
         const incomingTransfers = await getMoralisUsdtTransfers(mainAddress, moralisApiKey, 'incoming');
+        moralisIncomingTotal = incomingTransfers.length;
         
         for (const tx of incomingTransfers) {
           const txId = tx.transaction_hash;
@@ -198,10 +205,12 @@ export async function POST() {
         }
       } catch (txError) {
         console.error("Error fetching incoming transfers:", txError);
+        debugInfo.moralisError = String(txError);
       }
 
       try {
         const outgoingTransfers = await getMoralisUsdtTransfers(mainAddress, moralisApiKey, 'outgoing');
+        moralisOutgoingTotal = outgoingTransfers.length;
         
         for (const tx of outgoingTransfers) {
           const txId = tx.transaction_hash;
@@ -367,6 +376,9 @@ export async function POST() {
       outgoingTransactions: outgoingTransactionsCount,
       processedOutgoing: processedOutgoingCount,
       moralisEnabled: !!moralisApiKey,
+      moralisIncoming: moralisIncomingTotal,
+      moralisOutgoing: moralisOutgoingTotal,
+      debug: debugInfo,
       lastSyncedAt: new Date().toISOString(),
     });
   } catch (error) {
