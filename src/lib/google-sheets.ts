@@ -104,7 +104,7 @@ export async function getCrossgifData(
     
     const balanceResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `'${sheetName}'!A1:BZ10`,
+      range: `'${sheetName}'!A1:BZ20`,
     });
 
     const rows = balanceResponse.data.values || [];
@@ -140,18 +140,33 @@ export async function getCrossgifData(
     }
     
     console.log('CROSSGIF dailySpends count:', dailySpends.length, 'first 5:', dailySpends.slice(0, 5));
+    console.log('CROSSGIF total rows:', rows.length);
 
     const deskSpends: DeskDailySpend[] = [];
 
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];
-      if (!row || !row[1]) continue;
+      if (!row) continue;
       
-      const deskName = row[3] || '';
-      const deskId = row[4] || '';
-      const deskCanUse = parseNumber(row[2]);
+      console.log(`Row ${i}:`, row.slice(0, 8));
       
-      if (deskName && String(deskName).includes('Desk')) {
+      // Search for "Desk" in any of the first few columns
+      let deskName = '';
+      let deskId = '';
+      let deskCanUse = 0;
+      
+      for (let j = 0; j < Math.min(row.length, 8); j++) {
+        const cell = String(row[j] || '');
+        if (cell.includes('Desk')) {
+          deskName = cell;
+          deskId = String(row[j + 1] || '');
+          deskCanUse = parseNumber(row[j - 1]);
+          console.log(`Found desk at row ${i} col ${j}:`, deskName, deskId);
+          break;
+        }
+      }
+      
+      if (deskName) {
         desks.push({
           name: String(deskName),
           id: String(deskId),
