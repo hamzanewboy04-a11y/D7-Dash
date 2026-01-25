@@ -135,6 +135,12 @@
 A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Recent Changes (January 2026)
+- **HTX Exchange API Integration**:
+  - Integrated with HTX (Huobi) API for real-time exchange balance fetching
+  - Fetches actual USDT balance from HTX spot account
+  - Requires HTX_API_KEY and HTX_SECRET_KEY secrets
+  - Balance syncs automatically when clicking sync button on dashboard
+  - Replaced TronGrid on-chain balance (which showed 0 for exchange deposit addresses)
 - **Enhanced Wallet Integration with Expense & Balance Tracking**:
   - Store main wallet address in Settings > Кошелёк tab
   - Auto-sync wallet balance every 60 seconds
