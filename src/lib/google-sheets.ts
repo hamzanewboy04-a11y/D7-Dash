@@ -104,7 +104,7 @@ export async function getCrossgifData(
     
     const balanceResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `'${sheetName}'!A1:BZ20`,
+      range: `'${sheetName}'!A1:BZ30`,
     });
 
     const rows = balanceResponse.data.values || [];
@@ -148,31 +148,18 @@ export async function getCrossgifData(
       const row = rows[i];
       if (!row) continue;
       
-      console.log(`Row ${i}:`, row.slice(0, 8));
+      // Column E (index 4) contains desk name like "Desk 1", "Desk 2", "Desk 3"
+      const deskNameCell = String(row[4] || '');
       
-      // Search for "Desk" in any of the first few columns
-      let deskName = '';
-      let deskId = '';
-      let deskCanUse = 0;
-      
-      for (let j = 0; j < Math.min(row.length, 8); j++) {
-        const cell = String(row[j] || '');
-        if (cell.includes('Desk')) {
-          deskName = cell;
-          deskId = String(row[j + 1] || '');
-          deskCanUse = parseNumber(row[j - 1]);
-          console.log(`Found desk at row ${i} col ${j}:`, deskName, deskId);
-          break;
-        }
-      }
-      
-      if (deskName) {
-        desks.push({
-          name: String(deskName),
-          id: String(deskId),
-          canUse: deskCanUse,
-        });
+      if (deskNameCell.includes('Desk')) {
+        // Normalize desk name: "Desk 1" -> "Desk1", "Desk 2" -> "Desk2"
+        const deskName = deskNameCell.replace(/\s+/g, '');
+        const deskId = String(row[7] || ''); // Column H = ID ACC
+        const deskCanUse = parseNumber(row[2]); // Column C = Can Use
         
+        console.log(`Found desk at row ${i}:`, deskName, 'ID:', deskId);
+        
+        // Daily spends start at column M (index 12)
         const deskDailySpends: { day: number; amount: number }[] = [];
         let deskTotal = 0;
         
@@ -189,14 +176,20 @@ export async function getCrossgifData(
           }
         }
         
+        console.log(`${deskName} total: ${deskTotal}, days with spend: ${deskDailySpends.filter(d => d.amount > 0).length}`);
+        
         deskSpends.push({
-          deskName: String(deskName),
-          deskId: String(deskId),
+          deskName,
+          deskId,
           dailySpends: deskDailySpends,
           totalSpend: deskTotal,
         });
         
-        console.log(`CROSSGIF ${deskName} total: ${deskTotal}, days with spend: ${deskDailySpends.filter(d => d.amount > 0).length}`);
+        desks.push({
+          name: deskName,
+          id: deskId,
+          canUse: deskCanUse,
+        });
       }
     }
 
