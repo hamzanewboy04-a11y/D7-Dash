@@ -144,6 +144,18 @@ export async function POST() {
               walletTx = await prisma.walletTransaction.findUnique({
                 where: { txId },
               });
+              
+              // Update existing transaction with country info if missing
+              if (walletTx && countryMatch && !walletTx.countryId) {
+                await prisma.walletTransaction.update({
+                  where: { id: walletTx.id },
+                  data: {
+                    countryId: countryMatch.countryId,
+                    countryWalletId: countryMatch.walletId,
+                  },
+                });
+                walletTx.countryId = countryMatch.countryId;
+              }
             } else {
               throw createError;
             }
