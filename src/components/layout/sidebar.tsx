@@ -20,6 +20,7 @@ import {
   Share2,
   Building2,
   HelpCircle,
+  History,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface AuthUser {
 const navigation = [
   { name: "Дашборд", href: "/", icon: LayoutDashboard, section: "dashboard" },
   { name: "Страны", href: "/countries", icon: Globe, section: "countries" },
+  { name: "Транзакции", href: "/transactions", icon: History, section: "transactions" },
   { name: "Баинг", href: "/buying", icon: ShoppingCart, section: "buying" },
   { name: "Кабинеты", href: "/cabinets", icon: Building2, section: "cabinets" },
   { name: "SMM", href: "/smm", icon: Share2, section: "smm" },
