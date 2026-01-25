@@ -148,10 +148,15 @@ export async function getCrossgifData(
       const row = rows[i];
       if (!row) continue;
       
+      // Log first 6 columns to see structure
+      if (i < 10 || i === 14 || i === 20) {
+        console.log(`Row ${i} cols:`, row.slice(0, 8).map((c, idx) => `[${idx}]=${c}`));
+      }
+      
       // Column E (index 4) contains desk name like "Desk 1", "Desk 2", "Desk 3"
       const deskNameCell = String(row[4] || '');
       
-      if (deskNameCell.includes('Desk')) {
+      if (deskNameCell.toLowerCase().includes('desk')) {
         // Normalize desk name: "Desk 1" -> "Desk1", "Desk 2" -> "Desk2"
         const deskName = deskNameCell.replace(/\s+/g, '');
         const deskId = String(row[7] || ''); // Column H = ID ACC
