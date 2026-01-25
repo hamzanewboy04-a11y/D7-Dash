@@ -538,11 +538,27 @@ export default function DashboardPage() {
                   <>
                     {exchangeBalance && (
                       <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border-2 border-slate-200">
-                        <p className="text-sm font-medium text-slate-600">{exchangeBalance.name}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-slate-600">{exchangeBalance.name}</p>
+                          {walletData?.mainAddress && (
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              onClick={syncWallet} 
+                              disabled={walletSyncing}
+                              className="h-6 w-6 p-0"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${walletSyncing ? 'animate-spin' : ''}`} />
+                            </Button>
+                          )}
+                        </div>
                         <p className={`text-2xl font-bold mt-1 ${exchangeBalance.currentAmount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                           {exchangeBalance.currentAmount >= 0 ? "" : "-"}${Math.abs(exchangeBalance.currentAmount).toLocaleString()} 
                         </p>
                         <p className="text-xs text-slate-400 mt-1">{exchangeBalance.currency}</p>
+                        {walletData?.lastBalanceTrx !== undefined && walletData.lastBalanceTrx > 0 && (
+                          <p className="text-xs text-slate-400">{walletData.lastBalanceTrx.toLocaleString(undefined, { maximumFractionDigits: 2 })} TRX</p>
+                        )}
                       </div>
                     )}
                     {agencyBalances.map((balance) => (
@@ -566,41 +582,11 @@ export default function DashboardPage() {
               })()}
             </div>
 
-            {/* TRON Wallet Balance */}
-            {walletData?.mainAddress && (
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 mt-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Wallet className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-600">TRON Кошелёк</p>
-                    <p className="text-xl font-bold text-blue-600">
-                      ${walletData.lastBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {walletData.lastBalanceTrx.toLocaleString(undefined, { maximumFractionDigits: 2 })} TRX
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={syncWallet} 
-                    disabled={walletSyncing}
-                    className="text-xs"
-                  >
-                    <RefreshCw className={`w-3 h-3 mr-1 ${walletSyncing ? 'animate-spin' : ''}`} />
-                    Обновить
-                  </Button>
-                  {walletData.lastSyncedAt && (
-                    <p className="text-xs text-slate-400">
-                      {new Date(walletData.lastSyncedAt).toLocaleString('ru-RU')}
-                    </p>
-                  )}
-                </div>
-              </div>
+            {/* Last sync time */}
+            {walletData?.mainAddress && walletData.lastSyncedAt && (
+              <p className="text-xs text-slate-400 mt-3 text-right">
+                Последняя синхронизация: {new Date(walletData.lastSyncedAt).toLocaleString('ru-RU')}
+              </p>
             )}
           </CardContent>
         </Card>

@@ -414,6 +414,20 @@ export async function POST() {
       },
     });
 
+    // Синхронизируем баланс биржи с балансом TRON кошелька
+    const exchangeBalance = await prisma.balance.findUnique({
+      where: { code: "EXCHANGE" },
+    });
+    
+    if (exchangeBalance && balanceUsdt > 0) {
+      await prisma.balance.update({
+        where: { id: exchangeBalance.id },
+        data: {
+          currentAmount: balanceUsdt,
+        },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       balance: {
