@@ -3,6 +3,91 @@
 import { useState, useEffect } from "react";
 import { RefreshCw, Building2, TrendingUp, DollarSign, Calendar, Users, AlertCircle, CheckCircle } from "lucide-react";
 
+function SpendCalendar({ 
+  spends, 
+  formatMoney 
+}: { 
+  spends: { date: string; amount: number }[] | { day: number; amount: number }[];
+  formatMoney: (amount: number) => string;
+}) {
+  const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  
+  const normalizedSpends = spends.map((s, i) => {
+    if ('day' in s) {
+      return { day: s.day, amount: s.amount };
+    }
+    const dayNum = parseInt(s.date.split('/')[0]) || (i + 1);
+    return { day: dayNum, amount: s.amount };
+  });
+
+  const maxAmount = Math.max(...normalizedSpends.map(s => s.amount), 1);
+  
+  const getIntensity = (amount: number) => {
+    if (amount === 0) return 'bg-slate-100';
+    const ratio = amount / maxAmount;
+    if (ratio < 0.25) return 'bg-green-100';
+    if (ratio < 0.5) return 'bg-yellow-100';
+    if (ratio < 0.75) return 'bg-orange-100';
+    return 'bg-red-100';
+  };
+
+  const firstDayOffset = 2;
+  const totalDays = Math.max(...normalizedSpends.map(s => s.day), 31);
+  const weeks: (typeof normalizedSpends[0] | null)[][] = [];
+  
+  let currentWeek: (typeof normalizedSpends[0] | null)[] = Array(firstDayOffset).fill(null);
+  
+  for (let day = 1; day <= totalDays; day++) {
+    const spend = normalizedSpends.find(s => s.day === day) || { day, amount: 0 };
+    currentWeek.push(spend);
+    
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+  }
+  
+  if (currentWeek.length > 0) {
+    while (currentWeek.length < 7) {
+      currentWeek.push(null);
+    }
+    weeks.push(currentWeek);
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
+        {daysOfWeek.map((day, i) => (
+          <div key={i} className="text-center py-2 text-xs font-medium text-slate-500">
+            {day}
+          </div>
+        ))}
+      </div>
+      {weeks.map((week, weekIdx) => (
+        <div key={weekIdx} className="grid grid-cols-7 border-b border-slate-100 last:border-b-0">
+          {week.map((spend, dayIdx) => (
+            <div
+              key={dayIdx}
+              className={`p-2 min-h-[60px] border-r border-slate-100 last:border-r-0 ${
+                spend ? getIntensity(spend.amount) : 'bg-slate-50'
+              }`}
+            >
+              {spend && (
+                <>
+                  <div className="text-xs font-medium text-slate-600 mb-1">{spend.day}</div>
+                  <div className={`text-xs font-semibold ${spend.amount > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
+                    {formatMoney(spend.amount)}
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface CrossgifData {
   success: boolean;
   agency: string;
@@ -166,17 +251,11 @@ export default function AgenciesPage() {
 
                 {crossgifData.dailySpends.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-medium text-slate-700 mb-3">Ежедневные спенды</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-                      {crossgifData.dailySpends.map((d, i) => (
-                        <div key={i} className="flex justify-between bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm">
-                          <span className="text-slate-500 font-medium">{d.date}</span>
-                          <span className={`font-semibold ${d.amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>
-                            {formatMoney(d.amount)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    <h3 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Ежедневные спенды (Январь 2026)
+                    </h3>
+                    <SpendCalendar spends={crossgifData.dailySpends} formatMoney={formatMoney} />
                   </div>
                 )}
 
@@ -215,17 +294,11 @@ export default function AgenciesPage() {
 
                 {fbmData.dailySpends.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-slate-700 mb-3">Ежедневные спенды</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-                      {fbmData.dailySpends.map((d, i) => (
-                        <div key={i} className="flex justify-between bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm">
-                          <span className="text-slate-500 font-medium">{d.day}</span>
-                          <span className={`font-semibold ${d.amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>
-                            {formatMoney(d.amount)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    <h3 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Ежедневные спенды (Январь 2026)
+                    </h3>
+                    <SpendCalendar spends={fbmData.dailySpends} formatMoney={formatMoney} />
                   </div>
                 )}
               </div>
