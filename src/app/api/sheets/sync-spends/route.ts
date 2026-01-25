@@ -4,7 +4,7 @@ import { requireEditorAuth } from "@/lib/auth";
 import { getCrossgifData, getFbmData } from "@/lib/google-sheets";
 
 const CROSSGIF_SPREADSHEET_ID = "1juk7449zs4jpNuI-o5X7XCsKjbIAXWPjQAMji4MmS2g";
-const FBM_SPREADSHEET_ID = "1NKS2CVJjf-gXs5oSXRnCfdj2xXZOIvmvpVS0AiHDwXM";
+const FBM_SPREADSHEET_ID = "1mLYrOR0lYe8tWsFhslUhEyhEhRjCr_h4lljPfqzhMvE";
 
 interface DeskCountryMapping {
   [deskName: string]: string;
