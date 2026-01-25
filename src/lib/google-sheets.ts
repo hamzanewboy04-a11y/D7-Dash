@@ -96,53 +96,42 @@ export async function getCrossgifData(
     
     const balanceResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `'${sheetName}'!A1:AZ10`,
+      range: `'${sheetName}'!A1:BZ10`,
     });
 
     const rows = balanceResponse.data.values || [];
-    console.log('CROSSGIF rows count:', rows.length);
-    console.log('CROSSGIF row 0 (first 15 cols):', rows[0]?.slice(0, 15));
-    console.log('CROSSGIF row 2 (first 15 cols):', rows[2]?.slice(0, 15));
-    console.log('CROSSGIF row 3 (first 15 cols):', rows[3]?.slice(0, 15));
     
     let canUseBalance = 0;
     let remainingBalance = 0;
     const dailySpends: { date: string; amount: number }[] = [];
     const desks: { name: string; id: string; canUse: number }[] = [];
 
-    const dateRow = rows[0] || [];
-    const totalsRow = rows[2] || [];
-    const balanceRow = rows[3] || [];
+    const spendsRow = rows[3] || [];
     
     // Column F (index 5) = "Can Use", Column G (index 6) = "The remaining balance" (actual balance)
-    canUseBalance = parseNumber(balanceRow[5]);
-    remainingBalance = parseNumber(balanceRow[6]);
+    canUseBalance = parseNumber(spendsRow[5]);
+    remainingBalance = parseNumber(spendsRow[6]);
     
-    console.log('CROSSGIF dateRow length:', dateRow.length, 'totalsRow length:', totalsRow.length);
-    console.log('CROSSGIF dateRow cols 11-15:', dateRow.slice(11, 16));
-    console.log('CROSSGIF totalsRow cols 11-15:', totalsRow.slice(11, 16));
+    // Row 4 (index 3) has daily spends starting from column M (index 12)
+    // Column L (index 11) is "TOTAL SPENT", columns M onwards are daily spends
+    // Generate dates based on current month (1/1, 2/1, 3/1, etc.)
+    const dateStartCol = 12;
+    const currentMonth = sheetName.split('/')[0] || '1';
     
-    // Row 1 (index 0) has dates: 1/1, 2/1, 3/1, etc.
-    // Row 3 (index 2) has totals: 0.00$, 0.00$, 368.08$, etc.
-    // Daily spends start from column L (index 11)
-    const dateStartCol = 11;
-    for (let i = dateStartCol; i < Math.max(dateRow.length, totalsRow.length); i++) {
-      const dateLabel = dateRow[i];
-      const spendValue = parseNumber(totalsRow[i]);
-      // Include all dates - check for date-like patterns (1/1, 22/1, etc.)
-      if (dateLabel) {
-        const dateStr = String(dateLabel);
-        // Match various date formats: 1/1, 22/1, 1.1.2026, etc
-        if (dateStr.match(/\d+[\/\.]\d+/) || dateStr.match(/^\d+$/)) {
-          dailySpends.push({
-            date: dateStr,
-            amount: spendValue,
-          });
-        }
+    for (let i = dateStartCol; i < spendsRow.length; i++) {
+      const dayNum = i - dateStartCol + 1;
+      const spendValue = parseNumber(spendsRow[i]);
+      
+      // Only include valid spend values (days 1-31)
+      if (dayNum <= 31) {
+        dailySpends.push({
+          date: `${dayNum}/${currentMonth}`,
+          amount: spendValue,
+        });
       }
     }
     
-    console.log('CROSSGIF dailySpends count:', dailySpends.length);
+    console.log('CROSSGIF dailySpends count:', dailySpends.length, 'first 5:', dailySpends.slice(0, 5));
 
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];
