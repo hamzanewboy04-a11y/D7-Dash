@@ -140,7 +140,11 @@ A financial dashboard application for D7 Team, tracking revenue, expenses, and p
   - Fetches actual USDT balance from HTX spot account
   - Requires HTX_API_KEY and HTX_SECRET_KEY secrets
   - Balance syncs automatically when clicking sync button on dashboard
-  - Replaced TronGrid on-chain balance (which showed 0 for exchange deposit addresses)
+- **BEP20 (BSC) Network Support**:
+  - Switched from TRC20 (TRON) to BEP20 (Binance Smart Chain) for transaction tracking
+  - Uses BSCScan API for detecting incoming/outgoing USDT transfers
+  - Country wallets use Trust Wallet BEP20 addresses
+  - Exchange deposit address: 0x8cd0f0f43fb2705b16f32a5c0e5f2f1c63ae1fda
 - **Enhanced Wallet Integration with Expense & Balance Tracking**:
   - Store main wallet address in Settings > Кошелёк tab
   - Auto-sync wallet balance every 60 seconds
