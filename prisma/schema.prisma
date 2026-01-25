@@ -29,6 +29,7 @@ model Country {
   smmSettings  SmmProjectSettings?
   cabinets     Cabinet[]
   priemkas     Priemka[]
+  wallets      CountryWallet[]
 }
 
 // Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
@@ -675,4 +676,66 @@ model BalanceTransaction {
   @@index([balanceId])
   @@index([date])
   @@index([type])
+}
+
+// === TRON Кошелёк - Настройки ===
+model WalletSettings {
+  id              String   @id @default(cuid())
+  mainAddress     String   // Основной TRON адрес кошелька
+  lastSyncedAt    DateTime? // Последняя синхронизация с TronScan
+  lastBalance     Float    @default(0) // Последний известный баланс USDT
+  lastBalanceTrx  Float    @default(0) // Последний известный баланс TRX
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// === Кошельки по странам (для определения источника платежей) ===
+model CountryWallet {
+  id          String   @id @default(cuid())
+  address     String   @unique // TRON адрес кошелька страны
+  countryId   String
+  country     Country  @relation(fields: [countryId], references: [id])
+  name        String?  // Название для отображения (например "Италия основной")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  transactions WalletTransaction[]
+  
+  @@index([countryId])
+}
+
+// === Транзакции кошелька ===
+model WalletTransaction {
+  id              String   @id @default(cuid())
+  txId            String   @unique // ID транзакции в блокчейне (hash)
+  fromAddress     String   // Адрес отправителя
+  toAddress       String   // Адрес получателя
+  amount          Float    // Сумма в токенах
+  tokenSymbol     String   @default("USDT") // Символ токена (USDT, TRX, etc.)
+  tokenDecimals   Int      @default(6)
+  timestamp       DateTime // Время транзакции
+  
+  // Связь со страной (если определено)
+  countryWalletId String?
+  countryWallet   CountryWallet? @relation(fields: [countryWalletId], references: [id])
+  countryId       String?  // Дублируем для быстрого доступа
+  
+  // Обработка
+  isProcessed     Boolean  @default(false) // Была ли транзакция обработана (записана в доход)
+  processedAt     DateTime?
+  isIncoming      Boolean  @default(true) // true = входящий, false = исходящий
+  
+  // Сырые данные от API
+  rawData         Json?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([timestamp])
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@index([countryWalletId])
+  @@index([isProcessed])
 }
