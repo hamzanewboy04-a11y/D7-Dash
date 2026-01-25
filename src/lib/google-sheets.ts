@@ -196,6 +196,74 @@ export async function getCurrentAgencyBalances(
   return latestBalances;
 }
 
+export interface FbmData {
+  perMonth: number;
+  dailySpends: { day: number; amount: number }[];
+  totalBalance: number;
+  accounts: { date: string; bayer: string; ads: string; status: string; deposit: number; balance: number }[];
+}
+
+export async function getFbmData(
+  spreadsheetId: string,
+  sheetName: string = 'DailySpend_Jan26'
+): Promise<FbmData> {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `'${sheetName}'!A1:V50`,
+    });
+
+    const rows = response.data.values || [];
+    
+    let perMonth = 0;
+    const dailySpends: { day: number; amount: number }[] = [];
+    const accounts: { date: string; bayer: string; ads: string; status: string; deposit: number; balance: number }[] = [];
+
+    const headerRow1 = rows[0] || [];
+    const headerRow2 = rows[1] || [];
+    
+    perMonth = parseNumber(headerRow2[6]);
+    
+    for (let i = 7; i < headerRow2.length; i++) {
+      const dayNum = parseInt(String(headerRow1[i] || '0')) || (i - 6);
+      const amount = parseNumber(headerRow2[i]);
+      if (amount > 0) {
+        dailySpends.push({ day: dayNum, amount });
+      }
+    }
+
+    let totalBalance = 0;
+    for (let i = 2; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || !row[0]) continue;
+      
+      const balance = parseNumber(row[5]);
+      totalBalance += balance;
+      
+      accounts.push({
+        date: String(row[0] || ''),
+        bayer: String(row[1] || ''),
+        ads: String(row[2] || ''),
+        status: String(row[3] || ''),
+        deposit: parseNumber(row[4]),
+        balance: balance,
+      });
+    }
+
+    return {
+      perMonth,
+      dailySpends,
+      totalBalance,
+      accounts,
+    };
+  } catch (error) {
+    console.error('Error reading FBM sheet:', error);
+    throw error;
+  }
+}
+
 export async function getSheetInfo(spreadsheetId: string) {
   try {
     const sheets = await getGoogleSheetsClient();
