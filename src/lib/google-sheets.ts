@@ -113,12 +113,13 @@ export async function getCrossgifData(
     canUseBalance = parseNumber(summaryRow[5]);
     remainingBalance = parseNumber(summaryRow[6]);
     
-    // Daily spends are in blue cells starting from column AH (index 33) - dates like 22/1, 23/1, etc.
-    const dateStartCol = 33;
-    for (let i = dateStartCol; i < headerRow.length; i++) {
+    // Daily spends start from column L (index 11) - dates like 1/1, 2/1, 3/1, etc.
+    // Row 3 has dates, Row 4 has totals
+    const dateStartCol = 11;
+    for (let i = dateStartCol; i < Math.max(headerRow.length, summaryRow.length); i++) {
       const dateLabel = headerRow[i];
       const spendValue = parseNumber(summaryRow[i]);
-      // Include all dates with any spend value (including 0 for recent days)
+      // Include all dates (match format like 1/1, 22/1, etc.)
       if (dateLabel && String(dateLabel).match(/\d+\/\d+/)) {
         dailySpends.push({
           date: String(dateLabel),
