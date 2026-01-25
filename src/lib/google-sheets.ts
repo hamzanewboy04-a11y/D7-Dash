@@ -146,6 +146,16 @@ export async function getCrossgifData(
     const deskSpends: DeskDailySpend[] = [];
     const debugRows: { rowIdx: number; cols: string[] }[] = [];
 
+    // Log first 10 rows to understand structure
+    console.log('=== CROSSGIF DEBUG: First 10 rows ===');
+    for (let i = 0; i < Math.min(10, rows.length); i++) {
+      const row = rows[i];
+      if (row) {
+        console.log(`Row ${i}:`, JSON.stringify(row.slice(0, 8)));
+      }
+    }
+    console.log('=== END DEBUG ===');
+
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];
       if (!row) continue;
