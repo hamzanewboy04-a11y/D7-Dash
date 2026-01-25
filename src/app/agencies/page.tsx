@@ -96,7 +96,19 @@ interface CrossgifData {
   totalSpend: number;
   dailySpends: { date: string; amount: number }[];
   desks: { name: string; id: string; canUse: number }[];
+  deskSpends: {
+    deskName: string;
+    deskId: string;
+    dailySpends: { day: number; amount: number }[];
+    totalSpend: number;
+  }[];
 }
+
+const DESK_COUNTRY_MAP: Record<string, string> = {
+  "Desk1": "Аргентина",
+  "Desk2": "Перу 2",
+  "Desk3": "Перу 1",
+};
 
 interface FbmData {
   success: boolean;
@@ -338,11 +350,43 @@ export default function AgenciesPage() {
                   </div>
                 </div>
 
+                {crossgifData.deskSpends && crossgifData.deskSpends.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-slate-700 mb-4 flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Спенды по странам
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {crossgifData.deskSpends.map((desk) => (
+                        <div key={desk.deskName} className="border border-slate-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <div className="font-medium text-slate-900">
+                                {DESK_COUNTRY_MAP[desk.deskName] || desk.deskName}
+                              </div>
+                              <div className="text-xs text-slate-500">{desk.deskName}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-purple-600">
+                                {formatMoney(desk.totalSpend)}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {desk.dailySpends.filter(d => d.amount > 0).length} дней
+                              </div>
+                            </div>
+                          </div>
+                          <SpendCalendar spends={desk.dailySpends} formatMoney={formatMoney} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {crossgifData.dailySpends.length > 0 && (
                   <div className="mb-6">
                     <h3 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      Ежедневные спенды (Январь 2026)
+                      Общие ежедневные спенды (Январь 2026)
                     </h3>
                     <SpendCalendar spends={crossgifData.dailySpends} formatMoney={formatMoney} />
                   </div>
