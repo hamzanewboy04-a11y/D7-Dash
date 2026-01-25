@@ -121,10 +121,9 @@ export async function getCrossgifData(
     canUseBalance = parseNumber(spendsRow[5]);
     remainingBalance = parseNumber(spendsRow[6]);
     
-    // Row 4 (index 3) has daily spends starting from column M (index 12)
-    // Column L (index 11) is "TOTAL SPENT", columns M onwards are daily spends
-    // Generate dates based on current month (1/1, 2/1, 3/1, etc.)
-    const dateStartCol = 12;
+    // Row 4 (index 3) has daily spends starting from column L (index 11)
+    // Column K (index 10) is "TOTAL SPENT", columns L onwards (index 11+) are daily spends (1/1, 2/1, 3/1...)
+    const dateStartCol = 11;
     const currentMonth = sheetName.split('/')[0] || '1';
     
     for (let i = dateStartCol; i < spendsRow.length; i++) {
@@ -184,7 +183,7 @@ export async function getCrossgifData(
         
         console.log(`Found desk at row ${i}:`, deskName, 'ID:', deskId);
         
-        // Daily spends start at column M (index 12)
+        // Daily spends start at column L (index 11)
         const deskDailySpends: { day: number; amount: number }[] = [];
         let deskTotal = 0;
         
