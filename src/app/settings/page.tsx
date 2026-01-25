@@ -92,6 +92,25 @@ interface CountryWallet {
   isActive: boolean;
 }
 
+interface Balance {
+  id: string;
+  type: string;
+  name: string;
+  code: string;
+  currentAmount: number;
+  currency: string;
+  isActive: boolean;
+}
+
+interface AgencyWallet {
+  id: string;
+  address: string;
+  balanceId: string;
+  balance: { id: string; name: string; code: string; type: string };
+  name: string | null;
+  isActive: boolean;
+}
+
 const ALL_SECTIONS = [
   { id: "dashboard", name: "Дашборд" },
   { id: "countries", name: "Страны" },
@@ -218,6 +237,9 @@ export default function SettingsPage() {
   const [newCountryWallet, setNewCountryWallet] = useState({ address: "", countryId: "", name: "" });
   const [walletSyncing, setWalletSyncing] = useState(false);
   const [walletLoading, setWalletLoading] = useState(true);
+  const [agencyWallets, setAgencyWallets] = useState<AgencyWallet[]>([]);
+  const [balances, setBalances] = useState<Balance[]>([]);
+  const [newAgencyWallet, setNewAgencyWallet] = useState({ address: "", balanceId: "", name: "" });
   const { isAdmin } = useAuth();
 
   // Load settings from API
@@ -340,6 +362,72 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const loadAgencyWallets = useCallback(async () => {
+    try {
+      const res = await fetch("/api/wallet/agency-wallets");
+      if (res.ok) {
+        const data = await res.json();
+        setAgencyWallets(data);
+      }
+    } catch (error) {
+      console.error("Error loading agency wallets:", error);
+    }
+  }, []);
+
+  const loadBalances = useCallback(async () => {
+    try {
+      const res = await fetch("/api/balances");
+      if (res.ok) {
+        const data = await res.json();
+        setBalances(data);
+      }
+    } catch (error) {
+      console.error("Error loading balances:", error);
+    }
+  }, []);
+
+  const addAgencyWallet = async () => {
+    if (!newAgencyWallet.address || !newAgencyWallet.balanceId) {
+      alert("Адрес и агентство обязательны");
+      return;
+    }
+    try {
+      const res = await fetch("/api/wallet/agency-wallets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newAgencyWallet),
+      });
+      if (res.ok) {
+        await loadAgencyWallets();
+        setNewAgencyWallet({ address: "", balanceId: "", name: "" });
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка добавления кошелька агентства");
+      }
+    } catch (error) {
+      console.error("Error adding agency wallet:", error);
+      alert("Ошибка добавления кошелька агентства");
+    }
+  };
+
+  const deleteAgencyWallet = async (id: string) => {
+    if (!confirm("Удалить этот кошелёк агентства?")) return;
+    try {
+      const res = await fetch(`/api/wallet/agency-wallets?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        await loadAgencyWallets();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка удаления кошелька");
+      }
+    } catch (error) {
+      console.error("Error deleting agency wallet:", error);
+      alert("Ошибка удаления кошелька");
+    }
+  };
+
   const saveWalletAddress = async () => {
     if (!newWalletAddress.trim()) {
       alert("Введите адрес кошелька");
@@ -418,7 +506,7 @@ export default function SettingsPage() {
           lastBalanceTrx: data.balance.trx,
           lastSyncedAt: data.lastSyncedAt,
         } : null);
-        alert(`Синхронизация завершена. Новых транзакций: ${data.newTransactions}, обработано: ${data.processedTransactions}`);
+        alert(`Синхронизация завершена.\nВходящих: ${data.newTransactions} (обработано: ${data.processedTransactions})\nИсходящих: ${data.outgoingTransactions || 0} (обработано: ${data.processedOutgoing || 0})`);
       } else {
         const error = await res.json();
         alert(error.error || "Ошибка синхронизации");
@@ -528,8 +616,8 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas(), loadSmmProjects(), loadWalletSettings(), loadCountryWallets()]).finally(() => setLoading(false));
-  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers, loadPriemkas, loadSmmProjects, loadWalletSettings, loadCountryWallets]);
+    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas(), loadSmmProjects(), loadWalletSettings(), loadCountryWallets(), loadAgencyWallets(), loadBalances()]).finally(() => setLoading(false));
+  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers, loadPriemkas, loadSmmProjects, loadWalletSettings, loadCountryWallets, loadAgencyWallets, loadBalances]);
 
   const handleSettingChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -2821,6 +2909,85 @@ export default function SettingsPage() {
                         size="sm"
                         className="text-red-500 hover:text-red-700"
                         onClick={() => deleteCountryWallet(wallet.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Кошельки агентств</CardTitle>
+              <CardDescription>
+                Адреса для автоматического учёта пополнений агентств (TRUST, CROSSGIF, FBM).
+                При синхронизации исходящие переводы на эти адреса будут автоматически записаны как пополнения агентств.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                <Select
+                  value={newAgencyWallet.balanceId}
+                  onValueChange={(value) => setNewAgencyWallet(prev => ({ ...prev, balanceId: value }))}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Выберите агентство" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {balances.filter(b => b.type === "agency" && b.isActive).map((balance) => (
+                      <SelectItem key={balance.id} value={balance.id}>
+                        {balance.name} ({balance.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="TRX адрес кошелька агентства"
+                  value={newAgencyWallet.address}
+                  onChange={(e) => setNewAgencyWallet(prev => ({ ...prev, address: e.target.value }))}
+                  className="flex-1 min-w-[200px]"
+                />
+                <Input
+                  placeholder="Название (опционально)"
+                  value={newAgencyWallet.name}
+                  onChange={(e) => setNewAgencyWallet(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-[180px]"
+                />
+                <Button onClick={addAgencyWallet}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить
+                </Button>
+              </div>
+
+              {agencyWallets.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  Нет добавленных кошельков агентств
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {agencyWallets.map((wallet) => (
+                    <div 
+                      key={wallet.id} 
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{wallet.balance?.name}</span>
+                          <span className="text-xs text-muted-foreground">({wallet.balance?.code})</span>
+                          {wallet.name && (
+                            <span className="text-sm text-muted-foreground">- {wallet.name}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{wallet.address}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => deleteAgencyWallet(wallet.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

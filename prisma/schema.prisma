@@ -659,6 +659,21 @@ model Balance {
   updatedAt    DateTime @updatedAt
   
   transactions BalanceTransaction[]
+  agencyWallets AgencyWallet[]
+}
+
+// === Кошельки агентств для пополнения (TRUST, CROSSGIF, FBM) ===
+model AgencyWallet {
+  id          String   @id @default(cuid())
+  address     String   @unique // TRON адрес кошелька агентства
+  balanceId   String
+  balance     Balance  @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  name        String?  // Название для отображения
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([balanceId])
 }
 
 // === Транзакции по балансам ===
@@ -727,6 +742,9 @@ model WalletTransaction {
   processedAt     DateTime?
   isIncoming      Boolean  @default(true) // true = входящий, false = исходящий
   
+  // Связь с расходом (для исходящих транзакций)
+  expenseId       String?  // ID созданного расхода
+  
   // Сырые данные от API
   rawData         Json?
   
@@ -738,4 +756,5 @@ model WalletTransaction {
   @@index([toAddress])
   @@index([countryWalletId])
   @@index([isProcessed])
+  @@index([expenseId])
 }
