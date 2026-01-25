@@ -2,47 +2,32 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireEditorAuth } from "@/lib/auth";
 
+// TronGrid API (free, no auth required)
+const TRONGRID_BASE_URL = "https://api.trongrid.io";
+// TronScan API for transactions
 const TRONSCAN_BASE_URL = "https://apilist.tronscanapi.com";
+// USDT TRC20 contract address
+const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-interface TronScanToken {
-  token_abbr?: string;
-  tokenInfo?: {
-    tokenAbbr?: string;
-  };
-  balance?: string;
-  amount?: string;
+interface TronGridAccountResponse {
+  data?: Array<{
+    balance?: number;
+    trc20?: Array<Record<string, string>>;
+  }>;
+  success?: boolean;
 }
 
-interface TronScanWalletResponse {
-  data?: TronScanToken[];
-}
-
-interface TronScanTransaction {
-  hash?: string;
-  txHash?: string;
-  transactionHash?: string;
+interface TronGridTransfer {
   transaction_id?: string;
-  ownerAddress?: string;
   from?: string;
-  fromAddress?: string;
-  from_address?: string;
-  toAddress?: string;
   to?: string;
-  to_address?: string;
-  amount?: string;
-  quant?: string;
   value?: string;
-  contractData?: {
-    amount?: string;
-  };
-  tokenInfo?: {
-    tokenAbbr?: string;
-    tokenDecimal?: number;
-  };
   block_timestamp?: number;
-  block_ts?: number;
-  timestamp?: number;
-  confirmed?: boolean;
+  token_info?: {
+    symbol?: string;
+    decimals?: number;
+    address?: string;
+  };
 }
 
 async function fetchWithTimeout(url: string, timeout = 10000): Promise<Response> {
@@ -101,28 +86,37 @@ export async function POST() {
     let balanceUsdt = 0;
     let balanceTrx = 0;
 
+    // Fetch balance using TronGrid API (free, no auth required)
     try {
-      const balanceUrl = `${TRONSCAN_BASE_URL}/api/account/wallet?address=${mainAddress}&asset_type=1`;
+      const balanceUrl = `${TRONGRID_BASE_URL}/v1/accounts/${mainAddress}`;
       const balanceResponse = await fetchWithTimeout(balanceUrl);
       
       if (balanceResponse.ok) {
-        const balanceData: TronScanWalletResponse = await balanceResponse.json();
+        const balanceData: TronGridAccountResponse = await balanceResponse.json();
         
-        if (balanceData.data && Array.isArray(balanceData.data)) {
-          for (const token of balanceData.data) {
-            const abbr = (token.token_abbr || token.tokenInfo?.tokenAbbr || "").toLowerCase();
-            const rawBalance = token.balance || token.amount || "0";
-            
-            if (abbr === "usdt") {
-              balanceUsdt = parseFloat(rawBalance) / 1e6;
-            } else if (abbr === "trx") {
-              balanceTrx = parseFloat(rawBalance) / 1e6;
+        if (balanceData.data && balanceData.data.length > 0) {
+          const account = balanceData.data[0];
+          
+          // TRX balance (in sun, 1 TRX = 1,000,000 sun)
+          if (account.balance) {
+            balanceTrx = account.balance / 1e6;
+          }
+          
+          // TRC20 tokens (including USDT)
+          if (account.trc20 && Array.isArray(account.trc20)) {
+            for (const tokenObj of account.trc20) {
+              // Check if this is USDT by contract address
+              const usdtBalance = tokenObj[USDT_CONTRACT];
+              if (usdtBalance) {
+                balanceUsdt = parseFloat(usdtBalance) / 1e6;
+                break;
+              }
             }
           }
         }
       }
     } catch (balanceError) {
-      console.error("Error fetching balance:", balanceError);
+      console.error("Error fetching balance from TronGrid:", balanceError);
     }
 
     const countryWallets = await prisma.countryWallet.findMany({
@@ -161,10 +155,9 @@ export async function POST() {
     let outgoingTransactionsCount = 0;
     let processedOutgoingCount = 0;
 
-    const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
-
+    // Fetch incoming TRC20 transfers using TronGrid API
     try {
-      const trc20TxUrl = `${TRONSCAN_BASE_URL}/api/token_trc20/transfers?toAddress=${mainAddress}&limit=50&start=0&sort=-timestamp&contract_address=${USDT_CONTRACT}`;
+      const trc20TxUrl = `${TRONGRID_BASE_URL}/v1/accounts/${mainAddress}/transactions/trc20?only_to=true&limit=50&contract_address=${USDT_CONTRACT}`;
       const trc20Response = await fetchWithTimeout(trc20TxUrl);
       
       if (trc20Response.ok) {
@@ -262,7 +255,8 @@ export async function POST() {
     }
 
     try {
-      const outgoingTxUrl = `${TRONSCAN_BASE_URL}/api/token_trc20/transfers?fromAddress=${mainAddress}&limit=50&start=0&sort=-timestamp&contract_address=${USDT_CONTRACT}`;
+      // Fetch outgoing TRC20 transfers using TronGrid API
+      const outgoingTxUrl = `${TRONGRID_BASE_URL}/v1/accounts/${mainAddress}/transactions/trc20?only_from=true&limit=50&contract_address=${USDT_CONTRACT}`;
       const outgoingResponse = await fetchWithTimeout(outgoingTxUrl);
       
       if (outgoingResponse.ok) {
