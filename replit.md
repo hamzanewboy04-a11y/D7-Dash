@@ -145,6 +145,13 @@
 A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Recent Changes (January 2026)
+- **Spend Auto-Sync from Google Sheets to Countries**:
+  - Automatically syncs daily spends from CROSSGIF and FBM sheets to Countries page
+  - CROSSGIF desks mapped to countries: Desk1 → Argentina, Desk2 → Peru 2, Desk3 → Peru 1
+  - FBM sheet mapped to Italy (Women)
+  - Hourly auto-refresh of agency data
+  - Manual sync button on Agencies page for instant updates
+  - Desk-to-country mapping configurable via Settings API
 - **HTX Exchange API Integration**:
   - Integrated with HTX (Huobi) API for real-time exchange balance fetching
   - Fetches actual USDT balance from HTX spot account
