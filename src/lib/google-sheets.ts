@@ -65,8 +65,26 @@ export interface CrossgifData {
 
 function parseNumber(value: string | undefined | null): number {
   if (!value) return 0;
-  const cleaned = String(value).replace(/[$,\s]/g, '');
-  return parseFloat(cleaned) || 0;
+  let str = String(value).replace(/[$\s]/g, '');
+  
+  // Handle European format: 1.234,56 or 213,67
+  // If there's a comma and it's used as decimal separator (not thousands)
+  const hasComma = str.includes(',');
+  const hasDot = str.includes('.');
+  
+  if (hasComma && hasDot) {
+    // Format like 1.234,56 - dot is thousands, comma is decimal
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma && !hasDot) {
+    // Format like 213,67 - comma is decimal
+    str = str.replace(',', '.');
+  }
+  // else: Format like 1234.56 or 1,234.56 - standard format, just remove commas
+  else if (hasComma) {
+    str = str.replace(/,/g, '');
+  }
+  
+  return parseFloat(str) || 0;
 }
 
 export async function getCrossgifData(
