@@ -225,22 +225,21 @@ export async function getFbmData(
     const dailySpends: { day: number; amount: number }[] = [];
     const accounts: { date: string; bayer: string; ads: string; status: string; deposit: number; balance: number }[] = [];
 
-    const spendRow = rows[0] || [];    // Row 1: spend amounts
-    const dateRow = rows[1] || [];     // Row 2: dates (2026-01-01 format)
-    const dayNumRow = rows[2] || [];   // Row 3: day numbers (1, 2, 3...)
+    const headerRow = rows[0] || [];   // Row 1: headers with day numbers starting at col Y
+    const dataRow = rows[1] || [];     // Row 2: data with spend amounts and "Per Month"
     
-    // perMonth from column G (index 6) in row 2
-    perMonth = parseNumber(dateRow[6]);
+    // perMonth from column H (index 7) - "Per Month" value
+    perMonth = parseNumber(dataRow[7]);
     
-    // Daily spends start from column AF (index 31)
-    // Row 1 has amounts, Row 2 has dates, Row 3 has day numbers
-    const spendStartCol = 31;
-    for (let i = spendStartCol; i < spendRow.length; i++) {
-      const amount = parseNumber(spendRow[i]);
-      const dateLabel = dateRow[i] || '';
-      const dayNum = parseInt(String(dayNumRow[i] || '0')) || (i - spendStartCol + 1);
-      // Include all days that have a date or amount
-      if (dateLabel || amount > 0) {
+    // Daily spends start from column Y (index 24)
+    // Row 1 has day numbers, Row 2 has spend amounts
+    const spendStartCol = 24;
+    for (let i = spendStartCol; i < Math.max(headerRow.length, dataRow.length); i++) {
+      const dayLabel = headerRow[i] || '';
+      const amount = parseNumber(dataRow[i]);
+      const dayNum = parseInt(String(dayLabel || '0')) || (i - spendStartCol + 1);
+      // Include days with amounts
+      if (amount > 0 || (dayLabel && String(dayLabel).match(/^\d+$/))) {
         dailySpends.push({ 
           day: dayNum, 
           amount,
@@ -249,9 +248,9 @@ export async function getFbmData(
     }
 
     // Sum balances from column F (index 5) for all accounts
-    // Account data starts from row 4 (index 3) after spend/date/dayNum rows
+    // Account data starts from row 3 (index 2) after header and summary rows
     let totalBalance = 0;
-    for (let i = 3; i < rows.length; i++) {
+    for (let i = 2; i < rows.length; i++) {
       const row = rows[i];
       if (!row || !row[0]) continue;
       
