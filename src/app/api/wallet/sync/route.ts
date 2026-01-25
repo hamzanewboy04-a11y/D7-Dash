@@ -123,57 +123,69 @@ export async function POST() {
     let newTransactionsCount = 0;
     let processedCount = 0;
 
+    const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
     try {
-      const txUrl = `${TRONSCAN_BASE_URL}/api/transaction?sort=-timestamp&limit=50&toAddress=${mainAddress}`;
-      const txResponse = await fetchWithTimeout(txUrl);
+      const trc20TxUrl = `${TRONSCAN_BASE_URL}/api/token_trc20/transfers?toAddress=${mainAddress}&limit=50&start=0&sort=-timestamp&contract_address=${USDT_CONTRACT}`;
+      const trc20Response = await fetchWithTimeout(trc20TxUrl);
       
-      if (txResponse.ok) {
-        const txData: TronScanTransactionResponse = await txResponse.json();
-        const transactions = txData.data || txData.token_transfers || [];
+      if (trc20Response.ok) {
+        const trc20Data = await trc20Response.json();
+        const trc20Transfers = trc20Data.token_transfers || trc20Data.data || [];
         
-        for (const tx of transactions) {
-          const txId = tx.hash || tx.txHash || tx.transactionHash;
+        for (const tx of trc20Transfers) {
+          const txId = tx.transaction_id || tx.hash || tx.txHash || tx.transactionHash;
           if (!txId) continue;
 
-          const existingTx = await prisma.walletTransaction.findUnique({
-            where: { txId },
-          });
-          if (existingTx) continue;
-
-          const fromAddress = tx.ownerAddress || tx.from || tx.fromAddress || "";
-          const toAddress = tx.toAddress || tx.to || mainAddress;
-          const tokenAbbr = tx.tokenInfo?.tokenAbbr?.toUpperCase() || "TRX";
-          const tokenDecimals = tx.tokenInfo?.tokenDecimal || 6;
+          const fromAddress = tx.from_address || tx.ownerAddress || tx.from || tx.fromAddress || "";
+          const toAddress = tx.to_address || tx.toAddress || tx.to || mainAddress;
+          const tokenAbbr = "USDT";
+          const tokenDecimals = 6;
           
           let amount = 0;
-          const rawAmount = tx.amount || tx.contractData?.amount || "0";
+          const rawAmount = tx.quant || tx.amount || tx.value || tx.contractData?.amount || "0";
           amount = parseFloat(rawAmount) / Math.pow(10, tokenDecimals);
 
-          const timestamp = tx.block_timestamp || tx.timestamp || Date.now();
+          const timestamp = tx.block_timestamp || tx.timestamp || tx.block_ts || Date.now();
           const txDate = new Date(timestamp);
 
           const countryMatch = addressToCountry.get(fromAddress.toLowerCase());
           
-          const walletTx = await prisma.walletTransaction.create({
-            data: {
-              txId,
-              fromAddress,
-              toAddress,
-              amount,
-              tokenSymbol: tokenAbbr,
-              tokenDecimals,
-              timestamp: txDate,
-              countryWalletId: countryMatch?.walletId || null,
-              countryId: countryMatch?.countryId || null,
-              isIncoming: true,
-              isProcessed: false,
-              rawData: tx as object,
-            },
-          });
+          let isNewTransaction = false;
+          let walletTx;
+          
+          try {
+            walletTx = await prisma.walletTransaction.create({
+              data: {
+                txId,
+                fromAddress,
+                toAddress,
+                amount,
+                tokenSymbol: tokenAbbr,
+                tokenDecimals,
+                timestamp: txDate,
+                countryWalletId: countryMatch?.walletId || null,
+                countryId: countryMatch?.countryId || null,
+                isIncoming: true,
+                isProcessed: false,
+                rawData: tx as object,
+              },
+            });
+            isNewTransaction = true;
+            newTransactionsCount++;
+          } catch (createError: unknown) {
+            if (createError && typeof createError === 'object' && 'code' in createError && createError.code === 'P2002') {
+              walletTx = await prisma.walletTransaction.findUnique({
+                where: { txId },
+              });
+            } else {
+              throw createError;
+            }
+          }
 
-          newTransactionsCount++;
+          if (!walletTx) continue;
 
-          if (countryMatch && tokenAbbr === "USDT" && !walletTx.isProcessed) {
+          if (countryMatch && isNewTransaction && !walletTx.isProcessed) {
             const dateOnly = new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate());
             
             await prisma.dailyMetrics.upsert({
@@ -208,7 +220,7 @@ export async function POST() {
         }
       }
     } catch (txError) {
-      console.error("Error fetching transactions:", txError);
+      console.error("Error fetching TRC20 transfers:", txError);
     }
 
     await prisma.walletSettings.update({

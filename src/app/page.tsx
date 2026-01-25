@@ -103,6 +103,14 @@ interface GoalSettings {
   monthOfStabilityDays: number;
 }
 
+interface WalletData {
+  mainAddress: string | null;
+  lastBalance: number;
+  lastBalanceTrx: number;
+  lastSyncedAt: string | null;
+  isActive: boolean;
+}
+
 interface Balance {
   id: string;
   type: string;
@@ -179,6 +187,8 @@ export default function DashboardPage() {
   const [goalSettings, setGoalSettings] = useState<GoalSettings | null>(null);
   const [agencies, setAgencies] = useState<Array<{ code: string; name: string }>>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
+  const [walletData, setWalletData] = useState<WalletData | null>(null);
+  const [walletSyncing, setWalletSyncing] = useState(false);
 
   const fetchGoalSettings = async () => {
     try {
@@ -367,12 +377,48 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchWalletData = async () => {
+    try {
+      const response = await fetch("/api/wallet/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setWalletData(data);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet data:", error);
+    }
+  };
+
+  const syncWallet = async () => {
+    if (walletSyncing) return;
+    setWalletSyncing(true);
+    try {
+      const response = await fetch("/api/wallet/sync", { method: "POST" });
+      if (response.ok) {
+        const result = await response.json();
+        setWalletData(prev => prev ? { ...prev, lastBalance: result.balance.usdt, lastBalanceTrx: result.balance.trx, lastSyncedAt: result.lastSyncedAt } : prev);
+      }
+    } catch (error) {
+      console.error("Error syncing wallet:", error);
+    } finally {
+      setWalletSyncing(false);
+    }
+  };
+
   useEffect(() => {
     checkSeeded();
     fetchDashboardData();
     fetchYesterdayData();
     fetchGoalSettings();
     fetchBalances();
+    fetchWalletData();
+
+    // Auto-sync wallet every 60 seconds
+    const walletSyncInterval = setInterval(() => {
+      syncWallet();
+    }, 60000);
+
+    return () => clearInterval(walletSyncInterval);
   }, []);
 
   if (loading) {
@@ -519,6 +565,43 @@ export default function DashboardPage() {
                 );
               })()}
             </div>
+
+            {/* TRON Wallet Balance */}
+            {walletData?.mainAddress && (
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 mt-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Wallet className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">TRON Кошелёк</p>
+                    <p className="text-xl font-bold text-blue-600">
+                      ${walletData.lastBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {walletData.lastBalanceTrx.toLocaleString(undefined, { maximumFractionDigits: 2 })} TRX
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={syncWallet} 
+                    disabled={walletSyncing}
+                    className="text-xs"
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${walletSyncing ? 'animate-spin' : ''}`} />
+                    Обновить
+                  </Button>
+                  {walletData.lastSyncedAt && (
+                    <p className="text-xs text-slate-400">
+                      {new Date(walletData.lastSyncedAt).toLocaleString('ru-RU')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Plus, Trash2, Play, Pause, Ban, Loader2, Check, RefreshCw, Target, Users, Shield, Edit, Key } from "lucide-react";
+import { Save, Plus, Trash2, Play, Pause, Ban, Loader2, Check, RefreshCw, Target, Users, Shield, Edit, Key, Wallet } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 
 interface Country {
@@ -72,6 +72,24 @@ interface SmmPlanPeriod {
   bigReviewsPlan: number;
   createdAt: string;
   updatedAt: string;
+}
+
+interface WalletSettings {
+  id: string;
+  mainAddress: string;
+  lastSyncedAt: string | null;
+  lastBalance: number;
+  lastBalanceTrx: number;
+  isActive: boolean;
+}
+
+interface CountryWallet {
+  id: string;
+  address: string;
+  countryId: string;
+  country: { id: string; name: string; code: string };
+  name: string | null;
+  isActive: boolean;
 }
 
 const ALL_SECTIONS = [
@@ -194,6 +212,12 @@ export default function SettingsPage() {
   const [showAddPeriodFor, setShowAddPeriodFor] = useState<string | null>(null);
   const [newPeriod, setNewPeriod] = useState({ startDate: "", endDate: "", postsPlan: "0", storiesPlan: "0", miniReviewsPlan: "0", bigReviewsPlan: "0" });
   const [editingPeriod, setEditingPeriod] = useState<SmmPlanPeriod | null>(null);
+  const [walletSettings, setWalletSettings] = useState<WalletSettings | null>(null);
+  const [countryWallets, setCountryWallets] = useState<CountryWallet[]>([]);
+  const [newWalletAddress, setNewWalletAddress] = useState("");
+  const [newCountryWallet, setNewCountryWallet] = useState({ address: "", countryId: "", name: "" });
+  const [walletSyncing, setWalletSyncing] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(true);
   const { isAdmin } = useAuth();
 
   // Load settings from API
@@ -286,6 +310,126 @@ export default function SettingsPage() {
       console.error("Error loading plan periods:", error);
     }
   }, []);
+
+  const loadWalletSettings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/wallet/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setWalletSettings(data);
+        if (data.mainAddress) {
+          setNewWalletAddress(data.mainAddress);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading wallet settings:", error);
+    }
+  }, []);
+
+  const loadCountryWallets = useCallback(async () => {
+    try {
+      const res = await fetch("/api/wallet/country-wallets");
+      if (res.ok) {
+        const data = await res.json();
+        setCountryWallets(data);
+      }
+    } catch (error) {
+      console.error("Error loading country wallets:", error);
+    } finally {
+      setWalletLoading(false);
+    }
+  }, []);
+
+  const saveWalletAddress = async () => {
+    if (!newWalletAddress.trim()) {
+      alert("Введите адрес кошелька");
+      return;
+    }
+    try {
+      const res = await fetch("/api/wallet/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mainAddress: newWalletAddress }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setWalletSettings(data);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка сохранения адреса кошелька");
+      }
+    } catch (error) {
+      console.error("Error saving wallet address:", error);
+      alert("Ошибка сохранения адреса кошелька");
+    }
+  };
+
+  const addCountryWallet = async () => {
+    if (!newCountryWallet.address || !newCountryWallet.countryId) {
+      alert("Адрес и страна обязательны");
+      return;
+    }
+    try {
+      const res = await fetch("/api/wallet/country-wallets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCountryWallet),
+      });
+      if (res.ok) {
+        await loadCountryWallets();
+        setNewCountryWallet({ address: "", countryId: "", name: "" });
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка добавления кошелька");
+      }
+    } catch (error) {
+      console.error("Error adding country wallet:", error);
+      alert("Ошибка добавления кошелька");
+    }
+  };
+
+  const deleteCountryWallet = async (id: string) => {
+    if (!confirm("Удалить этот кошелёк?")) return;
+    try {
+      const res = await fetch(`/api/wallet/country-wallets?id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        await loadCountryWallets();
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка удаления кошелька");
+      }
+    } catch (error) {
+      console.error("Error deleting country wallet:", error);
+      alert("Ошибка удаления кошелька");
+    }
+  };
+
+  const syncWallet = async () => {
+    setWalletSyncing(true);
+    try {
+      const res = await fetch("/api/wallet/sync", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setWalletSettings(prev => prev ? {
+          ...prev,
+          lastBalance: data.balance.usdt,
+          lastBalanceTrx: data.balance.trx,
+          lastSyncedAt: data.lastSyncedAt,
+        } : null);
+        alert(`Синхронизация завершена. Новых транзакций: ${data.newTransactions}, обработано: ${data.processedTransactions}`);
+      } else {
+        const error = await res.json();
+        alert(error.error || "Ошибка синхронизации");
+      }
+    } catch (error) {
+      console.error("Error syncing wallet:", error);
+      alert("Ошибка синхронизации кошелька");
+    } finally {
+      setWalletSyncing(false);
+    }
+  };
 
   const handleAddPlanPeriod = async (projectId: string) => {
     if (!newPeriod.startDate || !newPeriod.endDate) {
@@ -384,8 +528,8 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas(), loadSmmProjects()]).finally(() => setLoading(false));
-  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers, loadPriemkas, loadSmmProjects]);
+    Promise.all([loadSettings(), loadCountries(), loadGoalSettings(), loadUsers(), loadPriemkas(), loadSmmProjects(), loadWalletSettings(), loadCountryWallets()]).finally(() => setLoading(false));
+  }, [loadSettings, loadCountries, loadGoalSettings, loadUsers, loadPriemkas, loadSmmProjects, loadWalletSettings, loadCountryWallets]);
 
   const handleSettingChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -845,6 +989,7 @@ export default function SettingsPage() {
           <TabsTrigger value="system" className="px-3 py-1.5">Система</TabsTrigger>
           <TabsTrigger value="priemkas" className="px-3 py-1.5">Приёмки</TabsTrigger>
           <TabsTrigger value="smm-projects" className="px-3 py-1.5">SMM Проекты</TabsTrigger>
+          <TabsTrigger value="wallet" className="px-3 py-1.5">Кошелёк</TabsTrigger>
         </TabsList>
 
         {/* Commission Rates */}
@@ -2533,6 +2678,152 @@ export default function SettingsPage() {
                           </div>
                         </>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Wallet Settings */}
+        <TabsContent value="wallet" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Основной кошелёк TRON
+              </CardTitle>
+              <CardDescription>
+                Адрес кошелька для приёма USDT (TRC-20)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="TRX адрес (например, TJV...)"
+                  value={newWalletAddress}
+                  onChange={(e) => setNewWalletAddress(e.target.value)}
+                  className="flex-1"
+                />
+                <Button onClick={saveWalletAddress}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Сохранить
+                </Button>
+              </div>
+
+              {walletSettings && walletSettings.mainAddress && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Баланс USDT:</span>
+                    <span className="font-medium">{walletSettings.lastBalance?.toFixed(2) || "0.00"} USDT</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Баланс TRX:</span>
+                    <span className="font-medium">{walletSettings.lastBalanceTrx?.toFixed(2) || "0.00"} TRX</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Последняя синхронизация:</span>
+                    <span className="text-sm">
+                      {walletSettings.lastSyncedAt 
+                        ? new Date(walletSettings.lastSyncedAt).toLocaleString("ru-RU")
+                        : "Никогда"}
+                    </span>
+                  </div>
+                  <Separator className="my-2" />
+                  <Button 
+                    onClick={syncWallet} 
+                    disabled={walletSyncing}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {walletSyncing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    {walletSyncing ? "Синхронизация..." : "Синхронизировать"}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Кошельки по странам</CardTitle>
+              <CardDescription>
+                Адреса кошельков для отслеживания входящих платежей от стран
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                <Select
+                  value={newCountryWallet.countryId}
+                  onValueChange={(value) => setNewCountryWallet(prev => ({ ...prev, countryId: value }))}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Выберите страну" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.filter(c => c.isActive).map((country) => (
+                      <SelectItem key={country.id} value={country.id}>
+                        {country.name} ({country.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="TRX адрес"
+                  value={newCountryWallet.address}
+                  onChange={(e) => setNewCountryWallet(prev => ({ ...prev, address: e.target.value }))}
+                  className="flex-1 min-w-[200px]"
+                />
+                <Input
+                  placeholder="Название (опционально)"
+                  value={newCountryWallet.name}
+                  onChange={(e) => setNewCountryWallet(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-[180px]"
+                />
+                <Button onClick={addCountryWallet}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить
+                </Button>
+              </div>
+
+              {walletLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : countryWallets.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  Нет добавленных кошельков стран
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {countryWallets.map((wallet) => (
+                    <div 
+                      key={wallet.id} 
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{wallet.country?.name}</span>
+                          <span className="text-xs text-muted-foreground">({wallet.country?.code})</span>
+                          {wallet.name && (
+                            <span className="text-sm text-muted-foreground">- {wallet.name}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{wallet.address}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => deleteCountryWallet(wallet.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser, requireAuth } from "@/lib/auth";
+import { requireAuth, requireEditorAuth } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -38,10 +38,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
-    }
+    const authError = await requireEditorAuth();
+    if (authError) return authError;
 
     const body = await request.json();
     const { mainAddress, lastBalance, lastBalanceTrx } = body;
