@@ -3,63 +3,135 @@ import { requireAuth } from "@/lib/auth";
 import { getHTXUSDTTransactions, HTXDepositWithdraw } from "@/lib/htx-api";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const authError = await requireAuth();
     if (authError) return authError;
 
+    const { searchParams } = new URL(request.url);
+    const countryFilter = searchParams.get("countryId") || "";
+    const typeFilter = searchParams.get("type") || "";
+
     const apiKey = process.env.HTX_API_KEY;
     const secretKey = process.env.HTX_SECRET_KEY;
 
-    if (!apiKey || !secretKey) {
-      return NextResponse.json({
-        error: "HTX API ключи не настроены",
-        deposits: [],
-        withdrawals: [],
-      });
-    }
-
-    const { deposits, withdrawals } = await getHTXUSDTTransactions(apiKey, secretKey);
-
-    // Fetch country wallets to match deposit addresses
     const countryWallets = await prisma.countryWallet.findMany({
       where: { isActive: true },
       include: { country: { select: { id: true, name: true, code: true } } },
     });
 
-    // Create address to country map (lowercase for matching)
     const addressToCountry = new Map<string, { id: string; name: string; code: string }>();
     for (const wallet of countryWallets) {
       addressToCountry.set(wallet.address.toLowerCase(), wallet.country);
     }
 
-    // Format transactions for display with country matching
-    const formatTx = (tx: HTXDepositWithdraw) => {
-      const address = tx.address?.toLowerCase() || "";
-      const matchedCountry = addressToCountry.get(address) || null;
-      
-      return {
-        id: tx.id,
-        type: tx.type,
-        currency: tx.currency.toUpperCase(),
-        txHash: tx['tx-hash'],
+    let apiDeposits: HTXDepositWithdraw[] = [];
+    let apiWithdrawals: HTXDepositWithdraw[] = [];
+
+    if (apiKey && secretKey) {
+      try {
+        const result = await getHTXUSDTTransactions(apiKey, secretKey);
+        apiDeposits = result.deposits;
+        apiWithdrawals = result.withdrawals;
+
+        for (const tx of [...apiDeposits, ...apiWithdrawals]) {
+          const address = tx.address?.toLowerCase() || "";
+          const matchedCountry = addressToCountry.get(address) || null;
+          
+          await prisma.htxTransaction.upsert({
+            where: { htxId: tx.id },
+            update: {
+              state: tx.state,
+              htxUpdatedAt: new Date(tx['updated-at']),
+              countryId: matchedCountry?.id || null,
+              countryName: matchedCountry?.name || null,
+              countryCode: matchedCountry?.code || null,
+            },
+            create: {
+              htxId: tx.id,
+              type: tx.type,
+              currency: tx.currency.toUpperCase(),
+              txHash: tx['tx-hash'] || null,
+              chain: tx.chain,
+              amount: tx.amount,
+              address: tx.address || null,
+              fee: tx.fee || 0,
+              state: tx.state,
+              htxCreatedAt: new Date(tx['created-at']),
+              htxUpdatedAt: new Date(tx['updated-at']),
+              countryId: matchedCountry?.id || null,
+              countryName: matchedCountry?.name || null,
+              countryCode: matchedCountry?.code || null,
+            },
+          });
+        }
+      } catch (apiError) {
+        console.error("HTX API error (will use cached data):", apiError);
+      }
+    }
+
+    const whereClause: Record<string, unknown> = {};
+    if (countryFilter) {
+      whereClause.countryId = countryFilter;
+    }
+    if (typeFilter === "deposit" || typeFilter === "withdraw") {
+      whereClause.type = typeFilter;
+    }
+
+    const allTransactions = await prisma.htxTransaction.findMany({
+      where: whereClause,
+      orderBy: { htxCreatedAt: "desc" },
+    });
+
+    const deposits = allTransactions
+      .filter(tx => tx.type === "deposit")
+      .map(tx => ({
+        id: tx.htxId,
+        type: tx.type as "deposit",
+        currency: tx.currency,
+        txHash: tx.txHash,
         chain: tx.chain,
         amount: tx.amount,
         address: tx.address,
         fee: tx.fee,
         state: tx.state,
-        createdAt: new Date(tx['created-at']).toISOString(),
-        updatedAt: new Date(tx['updated-at']).toISOString(),
-        country: matchedCountry,
-      };
-    };
+        createdAt: tx.htxCreatedAt.toISOString(),
+        country: tx.countryId ? { id: tx.countryId, name: tx.countryName!, code: tx.countryCode! } : null,
+      }));
+
+    const withdrawals = allTransactions
+      .filter(tx => tx.type === "withdraw")
+      .map(tx => ({
+        id: tx.htxId,
+        type: tx.type as "withdraw",
+        currency: tx.currency,
+        txHash: tx.txHash,
+        chain: tx.chain,
+        amount: tx.amount,
+        address: tx.address,
+        fee: tx.fee,
+        state: tx.state,
+        createdAt: tx.htxCreatedAt.toISOString(),
+        country: tx.countryId ? { id: tx.countryId, name: tx.countryName!, code: tx.countryCode! } : null,
+      }));
+
+    const allDeposits = await prisma.htxTransaction.findMany({ where: { type: "deposit" } });
+    const allWithdrawals = await prisma.htxTransaction.findMany({ where: { type: "withdraw" } });
+
+    const countries = await prisma.country.findMany({
+      select: { id: true, name: true, code: true },
+      orderBy: { name: "asc" },
+    });
 
     return NextResponse.json({
-      deposits: deposits.map(formatTx),
-      withdrawals: withdrawals.map(formatTx),
-      totalDeposits: deposits.reduce((sum, tx) => sum + tx.amount, 0),
-      totalWithdrawals: withdrawals.reduce((sum, tx) => sum + tx.amount, 0),
+      deposits,
+      withdrawals,
+      totalDeposits: allDeposits.reduce((sum, tx) => sum + tx.amount, 0),
+      totalWithdrawals: allWithdrawals.reduce((sum, tx) => sum + tx.amount, 0),
+      totalCount: allTransactions.length,
+      countries,
       fetchedAt: new Date().toISOString(),
+      apiConnected: !!(apiKey && secretKey),
     });
   } catch (error) {
     console.error("Error fetching HTX transactions:", error);

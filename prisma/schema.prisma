@@ -762,3 +762,32 @@ model WalletTransaction {
   @@index([isProcessed])
   @@index([expenseId])
 }
+
+// === HTX Транзакции (депозиты/выводы с биржи) ===
+model HtxTransaction {
+  id              String   @id @default(cuid())
+  htxId           Int      @unique // ID транзакции в HTX
+  type            String   // "deposit" | "withdraw"
+  currency        String   // USDT
+  txHash          String?  // Хэш транзакции в блокчейне
+  chain           String   // TRC20USDT, BEP20USDT, etc.
+  amount          Float    // Сумма
+  address         String?  // Адрес (для депозитов - откуда, для выводов - куда)
+  fee             Float    @default(0)
+  state           String   // confirmed, safe, etc.
+  htxCreatedAt    DateTime // Время создания в HTX
+  htxUpdatedAt    DateTime // Время обновления в HTX
+  
+  // Связь со страной (если определено по адресу)
+  countryId       String?
+  countryName     String?
+  countryCode     String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([htxCreatedAt])
+  @@index([type])
+  @@index([countryId])
+  @@index([address])
+}

@@ -96,6 +96,13 @@ export default function TransactionsPage() {
     direction: "",
   });
 
+  const [htxFilters, setHtxFilters] = useState({
+    countryId: "",
+    type: "",
+  });
+
+  const [htxCountries, setHtxCountries] = useState<Country[]>([]);
+
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
@@ -128,23 +135,30 @@ export default function TransactionsPage() {
     }
   }, [pagination.page, pagination.limit, filters]);
 
-  const fetchHTXTransactions = async () => {
+  const fetchHTXTransactions = useCallback(async () => {
     setHtxLoading(true);
     try {
-      const response = await fetch("/api/htx/transactions");
+      const params = new URLSearchParams();
+      if (htxFilters.countryId) params.set("countryId", htxFilters.countryId);
+      if (htxFilters.type) params.set("type", htxFilters.type);
+      
+      const response = await fetch(`/api/htx/transactions?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setHtxTransactions({
           deposits: data.deposits || [],
           withdrawals: data.withdrawals || [],
         });
+        if (data.countries) {
+          setHtxCountries(data.countries);
+        }
       }
     } catch (error) {
       console.error("Error fetching HTX transactions:", error);
     } finally {
       setHtxLoading(false);
     }
-  };
+  }, [htxFilters]);
 
   const fetchCountries = async () => {
     try {
@@ -160,8 +174,11 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     fetchCountries();
-    fetchHTXTransactions();
   }, []);
+
+  useEffect(() => {
+    fetchHTXTransactions();
+  }, [fetchHTXTransactions]);
 
   useEffect(() => {
     if (activeTab === "blockchain") {
@@ -373,6 +390,49 @@ export default function TransactionsPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* HTX Filters */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-slate-500" />
+                <span className="text-sm font-medium text-slate-700">Фильтры:</span>
+              </div>
+              
+              <select
+                value={htxFilters.countryId}
+                onChange={(e) => setHtxFilters(prev => ({ ...prev, countryId: e.target.value }))}
+                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Все страны</option>
+                {htxCountries.map((country) => (
+                  <option key={country.id} value={country.id}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={htxFilters.type}
+                onChange={(e) => setHtxFilters(prev => ({ ...prev, type: e.target.value }))}
+                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Все типы</option>
+                <option value="deposit">Депозиты</option>
+                <option value="withdraw">Выводы</option>
+              </select>
+
+              {(htxFilters.countryId || htxFilters.type) && (
+                <button
+                  onClick={() => setHtxFilters({ countryId: "", type: "" })}
+                  className="px-3 py-2 text-sm text-slate-600 hover:text-slate-900 flex items-center gap-1"
+                >
+                  <X className="w-4 h-4" />
+                  Сбросить
+                </button>
+              )}
             </div>
           </div>
 
