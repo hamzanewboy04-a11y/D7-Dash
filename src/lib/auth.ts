@@ -195,3 +195,14 @@ export async function requireAdminAuth(): Promise<NextResponse | null> {
   }
   return null;
 }
+
+export async function requireRole(allowedRoles: UserRole[]): Promise<NextResponse | null> {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!allowedRoles.includes(user.role)) {
+    return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
+  }
+  return null;
+}
