@@ -135,12 +135,15 @@
 A financial dashboard application for D7 Team, tracking revenue, expenses, and payroll across multiple countries (Peru, Italy Women, Italy Men, Argentina, Chile). Built with Next.js 16, React 19, and PostgreSQL/Prisma.
 
 ## Recent Changes (January 2026)
-- **TronScan Wallet Integration**: Automatic TRON wallet balance monitoring and payment detection
+- **Enhanced Wallet Integration with Expense & Balance Tracking**:
   - Store main wallet address in Settings > Кошелёк tab
   - Auto-sync wallet balance every 60 seconds
   - Display USDT and TRX balance on dashboard
   - Map country-specific sender wallets (Italy, Peru, Argentina, etc.)
   - Auto-detect incoming transfers and record as revenue for the matched country
+  - **NEW: Track outgoing transactions as expenses** - All withdrawals recorded with "wallet_transfer" category for later categorization
+  - **NEW: Agency wallet addresses** - Map TRUST, CROSSGIF, FBM wallets in settings
+  - **NEW: Auto-detect agency top-ups** - Transfers to agency wallets automatically update both exchange balance (decrease) and agency balance (increase)
   - Transaction history logging with idempotency (no duplicates)
 - **Balance Tracking System**: Track exchange (Биржа) and agency (TRUST, CROSSGIF, FBM) balances on dashboard
   - Agency top-up expenses decrease exchange and increase agency balance
