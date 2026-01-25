@@ -144,22 +144,22 @@ export default function AgenciesPage() {
               
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className={`rounded-lg p-4 ${crossgifData.remainingBalance >= 0 ? "bg-green-50" : "bg-red-50"}`}>
+                    <div className={`flex items-center gap-2 mb-1 ${crossgifData.remainingBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <DollarSign className="w-4 h-4" />
+                      <span className="text-sm font-medium">Актуальный баланс</span>
+                    </div>
+                    <div className={`text-2xl font-bold ${crossgifData.remainingBalance >= 0 ? "text-green-700" : "text-red-700"}`}>
+                      {formatMoney(crossgifData.remainingBalance)}
+                    </div>
+                  </div>
                   <div className="bg-purple-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-purple-600 mb-1">
-                      <DollarSign className="w-4 h-4" />
+                      <TrendingUp className="w-4 h-4" />
                       <span className="text-sm">Can Use</span>
                     </div>
                     <div className="text-2xl font-bold text-purple-700">
                       {formatMoney(crossgifData.canUseBalance)}
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-slate-600 mb-1">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm">Остаток</span>
-                    </div>
-                    <div className={`text-2xl font-bold ${crossgifData.remainingBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatMoney(crossgifData.remainingBalance)}
                     </div>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">

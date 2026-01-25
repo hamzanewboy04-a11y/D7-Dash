@@ -91,8 +91,9 @@ export async function getCrossgifData(
     const headerRow = rows[2] || [];
     const summaryRow = rows[3] || [];
     
-    canUseBalance = parseNumber(summaryRow[2]);
-    remainingBalance = parseNumber(summaryRow[5]);
+    // Column F (index 5) = "Can Use", Column G (index 6) = "The remaining balance" (actual balance)
+    canUseBalance = parseNumber(summaryRow[5]);
+    remainingBalance = parseNumber(summaryRow[6]);
     
     const dateStartCol = 32;
     for (let i = dateStartCol; i < headerRow.length; i++) {

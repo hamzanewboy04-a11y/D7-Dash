@@ -29,14 +29,14 @@ export async function POST(request: Request) {
       if (crossgifBalance) {
         await prisma.balance.update({
           where: { id: crossgifBalance.id },
-          data: { currentAmount: crossgifData.canUseBalance }
+          data: { currentAmount: crossgifData.remainingBalance }
         });
       }
 
       results.push({
         agency: "CROSSGIF",
         success: true,
-        balance: crossgifData.canUseBalance,
+        balance: crossgifData.remainingBalance,
         perMonth: crossgifData.totalSpend,
       });
     } catch (error) {

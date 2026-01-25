@@ -46,14 +46,14 @@ export async function POST(request: Request) {
     if (crossgifBalance) {
       await prisma.balance.update({
         where: { id: crossgifBalance.id },
-        data: { currentAmount: data.canUseBalance }
+        data: { currentAmount: data.remainingBalance }
       });
     }
 
     return NextResponse.json({
       success: true,
       agency: "CROSSGIF",
-      updatedBalance: data.canUseBalance,
+      updatedBalance: data.remainingBalance,
       ...data,
     });
   } catch (error) {
