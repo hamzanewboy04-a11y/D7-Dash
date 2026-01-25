@@ -1,0 +1,64 @@
+2026-01-25 17:48:38.13
+Running database schema sync...
+2026-01-25 17:48:42.79
+Loaded Prisma config from prisma.config.ts.
+2026-01-25 17:48:43.02
+Prisma schema loaded from prisma/schema.prisma.
+2026-01-25 17:48:43.03
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-divine-butterfly-afqsybdx.c-2.us-west-2.aws.neon.tech"
+2026-01-25 17:48:47.71
+The database is already in sync with the Prisma schema.
+2026-01-25 17:48:47.79
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.8.0
+2026-01-25 17:48:47.79
+npm notice New major version of npm available! 10.8.2 -> 11.8.0
+2026-01-25 17:48:47.79
+npm notice
+2026-01-25 17:48:47.79
+npm notice
+2026-01-25 17:48:47.79
+npm notice To update run: npm install -g npm@11.8.0
+2026-01-25 17:48:47.80
+Syncing data to production...
+2026-01-25 17:48:49.15
+[Sync] Checking production database...
+2026-01-25 17:48:49.16
+[Sync] Loaded 9 cabinets, 10 desks, 180 buyer metrics
+2026-01-25 17:48:49.33
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-01-25 17:48:49.33
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-01-25 17:48:49.33
+To prepare for this change:
+2026-01-25 17:48:49.33
+(node:119) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-01-25 17:48:49.33
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-01-25 17:48:49.33
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-01-25 17:48:49.33
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-01-25 17:48:49.78
+[Sync] Data is already in sync
+2026-01-25 17:48:49.78
+[Sync] Current: 9 cabinets, 10 desks, 180 metrics
+2026-01-25 17:48:49.84
+[Sync] Final summary:
+2026-01-25 17:48:49.84
+cmkl84azs0003u6gkwgsymoxq: 5 records, $568.85
+2026-01-25 17:48:49.84
+cmkl84ayd0000u6gkt1xxcvhl: 124 records, $28782.69
+2026-01-25 17:48:49.84
+cmkl84azd0002u6gkoml9aboi: 51 records, $10057.63
+2026-01-25 17:48:49.94
+Starting Next.js server...
+2026-01-25 17:48:50.13
+> next start -p 5000 -H 0.0.0.0
+2026-01-25 17:48:50.13
+> d7-dash-app@0.1.0 start
+2026-01-25 17:48:50.73
+- Local: http://localhost:5000
+2026-01-25 17:48:50.73
+✓ Starting...
+2026-01-25 17:48:50.73
+▲ Next.js 16.1.3

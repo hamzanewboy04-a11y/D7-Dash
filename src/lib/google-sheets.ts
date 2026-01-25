@@ -168,14 +168,16 @@ export async function getCrossgifData(
         });
       }
       
-      // Column E (index 4) contains desk name like "Desk 1", "Desk 2", "Desk 3"
-      const deskNameCell = String(row[4] || '');
+      // Column H (index 7) contains desk name + ID like "Desk 1\n1892992501431116"
+      const deskCellValue = String(row[7] || '');
       
-      if (deskNameCell.toLowerCase().includes('desk')) {
-        // Normalize desk name: "Desk 1" -> "Desk1", "Desk 2" -> "Desk2"
-        const deskName = deskNameCell.replace(/\s+/g, '');
-        const deskId = String(row[7] || ''); // Column H = ID ACC
-        const deskCanUse = parseNumber(row[2]); // Column C = Can Use
+      if (deskCellValue.toLowerCase().includes('desk')) {
+        // Parse "Desk 1\n1892992501431116" -> deskName="Desk1", deskId="1892992501431116"
+        const deskParts = deskCellValue.split('\n');
+        const deskNameRaw = deskParts[0] || '';
+        const deskName = deskNameRaw.replace(/\s+/g, ''); // "Desk 1" -> "Desk1"
+        const deskId = deskParts[1] || String(row[8] || ''); // ID from same cell or column I
+        const deskCanUse = parseNumber(row[5]); // Column F = Can Use
         
         console.log(`Found desk at row ${i}:`, deskName, 'ID:', deskId);
         
