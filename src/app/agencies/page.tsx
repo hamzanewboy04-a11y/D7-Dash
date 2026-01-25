@@ -143,29 +143,20 @@ export default function AgenciesPage() {
               </div>
               
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className={`rounded-lg p-4 ${crossgifData.remainingBalance >= 0 ? "bg-green-50" : "bg-red-50"}`}>
                     <div className={`flex items-center gap-2 mb-1 ${crossgifData.remainingBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
                       <DollarSign className="w-4 h-4" />
-                      <span className="text-sm font-medium">Актуальный баланс</span>
+                      <span className="text-sm font-medium">Баланс</span>
                     </div>
                     <div className={`text-2xl font-bold ${crossgifData.remainingBalance >= 0 ? "text-green-700" : "text-red-700"}`}>
                       {formatMoney(crossgifData.remainingBalance)}
                     </div>
                   </div>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-purple-600 mb-1">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm">Can Use</span>
-                    </div>
-                    <div className="text-2xl font-bold text-purple-700">
-                      {formatMoney(crossgifData.canUseBalance)}
-                    </div>
-                  </div>
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-blue-600 mb-1">
                       <Calendar className="w-4 h-4" />
-                      <span className="text-sm">Спенд за период</span>
+                      <span className="text-sm font-medium">Общий спенд</span>
                     </div>
                     <div className="text-2xl font-bold text-blue-700">
                       {formatMoney(crossgifData.totalSpend)}
@@ -187,20 +178,6 @@ export default function AgenciesPage() {
                   </div>
                 )}
 
-                {crossgifData.desks.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-700 mb-3">Дески</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {crossgifData.desks.map((desk, i) => (
-                        <div key={i} className="border border-slate-200 rounded-lg p-3">
-                          <div className="font-medium text-slate-900">{desk.name}</div>
-                          <div className="text-xs text-slate-500 truncate">{desk.id}</div>
-                          <div className="text-sm text-green-600 mt-1">{formatMoney(desk.canUse)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}
