@@ -121,9 +121,9 @@ export async function getCrossgifData(
     canUseBalance = parseNumber(spendsRow[5]);
     remainingBalance = parseNumber(spendsRow[6]);
     
-    // Row 4 (index 3) has daily spends starting from column L (index 11)
-    // Column K (index 10) is "TOTAL SPENT", columns L onwards (index 11+) are daily spends (1/1, 2/1, 3/1...)
-    const dateStartCol = 11;
+    // Row 4 (index 3) has daily spends starting from column M (index 12)
+    // Column L (index 11) is "TOTAL SPENT", columns M onwards (index 12+) are daily spends (1/1, 2/1, 3/1...)
+    const dateStartCol = 12;
     const currentMonth = sheetName.split('/')[0] || '1';
     
     for (let i = dateStartCol; i < spendsRow.length; i++) {
@@ -145,76 +145,90 @@ export async function getCrossgifData(
     const deskSpends: DeskDailySpend[] = [];
     const debugRows: { rowIdx: number; cols: string[] }[] = [];
 
-    // Log ALL rows to understand structure - look for desk patterns
-    console.log('=== CROSSGIF DEBUG: All rows, column H (desk info) ===');
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (row) {
-        const colH = String(row[7] || '').substring(0, 30);
-        if (colH) {
-          console.log(`Row ${i} col H:`, JSON.stringify(colH));
-        }
-      }
+    // First pass: find all desk header rows and their ranges
+    // Structure: Desk label appears on first row, subsequent rows until next desk belong to it
+    interface DeskRange {
+      deskName: string;
+      deskId: string;
+      startRow: number;
+      endRow: number; // exclusive
+      canUse: number;
     }
-    console.log('=== END DEBUG ===');
-
+    
+    const deskRanges: DeskRange[] = [];
+    
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];
       if (!row) continue;
-      
-      // Store debug data for first 10 rows
-      if (i < 15) {
-        debugRows.push({
-          rowIdx: i,
-          cols: row.slice(0, 15).map((c: unknown) => String(c || ''))
-        });
-      }
       
       // Column H (index 7) contains desk name + ID like "Desk 1\n1892992501431116"
       const deskCellValue = String(row[7] || '');
       
       if (deskCellValue.toLowerCase().includes('desk')) {
-        // Parse "Desk 1\n1892992501431116" -> deskName="Desk1", deskId="1892992501431116"
         const deskParts = deskCellValue.split('\n');
         const deskNameRaw = deskParts[0] || '';
-        const deskName = deskNameRaw.replace(/\s+/g, ''); // "Desk 1" -> "Desk1"
-        const deskId = deskParts[1] || String(row[8] || ''); // ID from same cell or column I
-        const deskCanUse = parseNumber(row[5]); // Column F = Can Use
+        const deskName = deskNameRaw.replace(/\s+/g, '');
+        const deskId = deskParts[1] || '';
+        const deskCanUse = parseNumber(row[5]);
         
-        console.log(`Found desk at row ${i}:`, deskName, 'ID:', deskId);
+        // Close previous desk range
+        if (deskRanges.length > 0) {
+          deskRanges[deskRanges.length - 1].endRow = i;
+        }
         
-        // Daily spends start at column L (index 11)
-        const deskDailySpends: { day: number; amount: number }[] = [];
-        let deskTotal = 0;
+        deskRanges.push({
+          deskName,
+          deskId,
+          startRow: i,
+          endRow: rows.length, // Will be adjusted when next desk is found
+          canUse: deskCanUse,
+        });
+        
+        console.log(`Found desk ${deskName} starting at row ${i}`);
+      }
+    }
+    
+    console.log('Desk ranges:', deskRanges.map(d => `${d.deskName}: rows ${d.startRow}-${d.endRow}`));
+    
+    // Second pass: aggregate spends for each desk from all its rows
+    for (const deskRange of deskRanges) {
+      const deskDailySpends: { day: number; amount: number }[] = [];
+      
+      // Initialize daily spends with zeros
+      for (let day = 1; day <= 31; day++) {
+        deskDailySpends.push({ day, amount: 0 });
+      }
+      
+      // Sum up spends from all rows in this desk's range
+      for (let rowIdx = deskRange.startRow; rowIdx < deskRange.endRow; rowIdx++) {
+        const row = rows[rowIdx];
+        if (!row) continue;
         
         for (let col = dateStartCol; col < row.length; col++) {
           const dayNum = col - dateStartCol + 1;
-          const spendValue = parseNumber(row[col]);
-          
           if (dayNum <= 31) {
-            deskDailySpends.push({
-              day: dayNum,
-              amount: spendValue,
-            });
-            deskTotal += spendValue;
+            const spendValue = parseNumber(row[col]);
+            deskDailySpends[dayNum - 1].amount += spendValue;
           }
         }
-        
-        console.log(`${deskName} total: ${deskTotal}, days with spend: ${deskDailySpends.filter(d => d.amount > 0).length}`);
-        
-        deskSpends.push({
-          deskName,
-          deskId,
-          dailySpends: deskDailySpends,
-          totalSpend: deskTotal,
-        });
-        
-        desks.push({
-          name: deskName,
-          id: deskId,
-          canUse: deskCanUse,
-        });
       }
+      
+      const deskTotal = deskDailySpends.reduce((sum, d) => sum + d.amount, 0);
+      
+      console.log(`${deskRange.deskName} total: ${deskTotal.toFixed(2)}, rows ${deskRange.startRow}-${deskRange.endRow - 1}`);
+      
+      deskSpends.push({
+        deskName: deskRange.deskName,
+        deskId: deskRange.deskId,
+        dailySpends: deskDailySpends,
+        totalSpend: deskTotal,
+      });
+      
+      desks.push({
+        name: deskRange.deskName,
+        id: deskRange.deskId,
+        canUse: deskRange.canUse,
+      });
     }
 
     const totalSpend = dailySpends.reduce((sum, d) => sum + d.amount, 0);
