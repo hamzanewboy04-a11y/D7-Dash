@@ -96,10 +96,14 @@ export async function getCrossgifData(
     
     const balanceResponse = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `'${sheetName}'!A1:AP30`,
+      range: `'${sheetName}'!A1:AZ10`,
     });
 
     const rows = balanceResponse.data.values || [];
+    console.log('CROSSGIF rows count:', rows.length);
+    console.log('CROSSGIF row 0 (first 15 cols):', rows[0]?.slice(0, 15));
+    console.log('CROSSGIF row 2 (first 15 cols):', rows[2]?.slice(0, 15));
+    console.log('CROSSGIF row 3 (first 15 cols):', rows[3]?.slice(0, 15));
     
     let canUseBalance = 0;
     let remainingBalance = 0;
@@ -114,6 +118,10 @@ export async function getCrossgifData(
     canUseBalance = parseNumber(balanceRow[5]);
     remainingBalance = parseNumber(balanceRow[6]);
     
+    console.log('CROSSGIF dateRow length:', dateRow.length, 'totalsRow length:', totalsRow.length);
+    console.log('CROSSGIF dateRow cols 11-15:', dateRow.slice(11, 16));
+    console.log('CROSSGIF totalsRow cols 11-15:', totalsRow.slice(11, 16));
+    
     // Row 1 (index 0) has dates: 1/1, 2/1, 3/1, etc.
     // Row 3 (index 2) has totals: 0.00$, 0.00$, 368.08$, etc.
     // Daily spends start from column L (index 11)
@@ -121,14 +129,20 @@ export async function getCrossgifData(
     for (let i = dateStartCol; i < Math.max(dateRow.length, totalsRow.length); i++) {
       const dateLabel = dateRow[i];
       const spendValue = parseNumber(totalsRow[i]);
-      // Include all dates (match format like 1/1, 22/1, etc.)
-      if (dateLabel && String(dateLabel).match(/\d+\/\d+/)) {
-        dailySpends.push({
-          date: String(dateLabel),
-          amount: spendValue,
-        });
+      // Include all dates - check for date-like patterns (1/1, 22/1, etc.)
+      if (dateLabel) {
+        const dateStr = String(dateLabel);
+        // Match various date formats: 1/1, 22/1, 1.1.2026, etc
+        if (dateStr.match(/\d+[\/\.]\d+/) || dateStr.match(/^\d+$/)) {
+          dailySpends.push({
+            date: dateStr,
+            amount: spendValue,
+          });
+        }
       }
     }
+    
+    console.log('CROSSGIF dailySpends count:', dailySpends.length);
 
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];

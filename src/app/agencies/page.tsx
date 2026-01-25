@@ -167,11 +167,13 @@ export default function AgenciesPage() {
                 {crossgifData.dailySpends.length > 0 && (
                   <div className="mb-6">
                     <h3 className="text-sm font-medium text-slate-700 mb-3">Ежедневные спенды</h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
                       {crossgifData.dailySpends.map((d, i) => (
-                        <div key={i} className="bg-slate-100 rounded px-3 py-1 text-sm">
-                          <span className="text-slate-500">{d.date}:</span>
-                          <span className="font-medium ml-1">{formatMoney(d.amount)}</span>
+                        <div key={i} className="flex justify-between bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm">
+                          <span className="text-slate-500 font-medium">{d.date}</span>
+                          <span className={`font-semibold ${d.amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                            {formatMoney(d.amount)}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -214,11 +216,13 @@ export default function AgenciesPage() {
                 {fbmData.dailySpends.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-slate-700 mb-3">Ежедневные спенды</h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
                       {fbmData.dailySpends.map((d, i) => (
-                        <div key={i} className="bg-slate-100 rounded px-3 py-1 text-sm">
-                          <span className="text-slate-500">{d.day}:</span>
-                          <span className="font-medium ml-1">{formatMoney(d.amount)}</span>
+                        <div key={i} className="flex justify-between bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm">
+                          <span className="text-slate-500 font-medium">{d.day}</span>
+                          <span className={`font-semibold ${d.amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                            {formatMoney(d.amount)}
+                          </span>
                         </div>
                       ))}
                     </div>
