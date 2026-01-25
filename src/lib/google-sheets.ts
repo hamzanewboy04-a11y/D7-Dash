@@ -55,12 +55,20 @@ export interface AgencyBalanceRow {
   balance: number;
 }
 
+export interface DeskDailySpend {
+  deskName: string;
+  deskId: string;
+  dailySpends: { day: number; amount: number }[];
+  totalSpend: number;
+}
+
 export interface CrossgifData {
   canUseBalance: number;
   remainingBalance: number;
   dailySpends: { date: string; amount: number }[];
   totalSpend: number;
   desks: { name: string; id: string; canUse: number }[];
+  deskSpends: DeskDailySpend[];
 }
 
 function parseNumber(value: string | undefined | null): number {
@@ -133,6 +141,8 @@ export async function getCrossgifData(
     
     console.log('CROSSGIF dailySpends count:', dailySpends.length, 'first 5:', dailySpends.slice(0, 5));
 
+    const deskSpends: DeskDailySpend[] = [];
+
     for (let i = 4; i < rows.length; i++) {
       const row = rows[i];
       if (!row || !row[1]) continue;
@@ -147,6 +157,31 @@ export async function getCrossgifData(
           id: String(deskId),
           canUse: deskCanUse,
         });
+        
+        const deskDailySpends: { day: number; amount: number }[] = [];
+        let deskTotal = 0;
+        
+        for (let col = dateStartCol; col < row.length; col++) {
+          const dayNum = col - dateStartCol + 1;
+          const spendValue = parseNumber(row[col]);
+          
+          if (dayNum <= 31) {
+            deskDailySpends.push({
+              day: dayNum,
+              amount: spendValue,
+            });
+            deskTotal += spendValue;
+          }
+        }
+        
+        deskSpends.push({
+          deskName: String(deskName),
+          deskId: String(deskId),
+          dailySpends: deskDailySpends,
+          totalSpend: deskTotal,
+        });
+        
+        console.log(`CROSSGIF ${deskName} total: ${deskTotal}, days with spend: ${deskDailySpends.filter(d => d.amount > 0).length}`);
       }
     }
 
@@ -158,6 +193,7 @@ export async function getCrossgifData(
       dailySpends,
       totalSpend,
       desks,
+      deskSpends,
     };
   } catch (error) {
     console.error('Error reading Crossgif sheet:', error);

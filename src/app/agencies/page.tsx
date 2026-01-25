@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RefreshCw, Building2, TrendingUp, DollarSign, Calendar, Users, AlertCircle, CheckCircle } from "lucide-react";
+import { RefreshCw, Building2, TrendingUp, DollarSign, Calendar, Users, AlertCircle, CheckCircle, Database } from "lucide-react";
 
 function SpendCalendar({ 
   spends, 
@@ -122,6 +122,11 @@ export default function AgenciesPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastAutoSync, setLastAutoSync] = useState<Date | null>(null);
   const [nextAutoSync, setNextAutoSync] = useState<Date | null>(null);
+  const [syncingSpends, setSyncingSpends] = useState(false);
+  const [spendSyncResult, setSpendSyncResult] = useState<{
+    success: boolean;
+    results: { agency: string; country: string; daysUpdated: number; totalSpend: number }[];
+  } | null>(null);
 
   const fetchData = async (isAutoSync = false) => {
     if (!isAutoSync) setLoading(true);
@@ -164,6 +169,20 @@ export default function AgenciesPage() {
       console.error(err);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSyncSpends = async () => {
+    setSyncingSpends(true);
+    setSpendSyncResult(null);
+    try {
+      const response = await fetch("/api/sheets/sync-spends?sheetName=1/2026&fbmSheetName=DailySpend_Jan26", { method: "POST" });
+      const data = await response.json();
+      setSpendSyncResult(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSyncingSpends(false);
     }
   };
 
@@ -226,8 +245,39 @@ export default function AgenciesPage() {
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Синхронизация..." : "Синхронизировать"}
           </button>
+          <button
+            onClick={handleSyncSpends}
+            disabled={syncingSpends}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+          >
+            <Database className={`w-4 h-4 ${syncingSpends ? "animate-spin" : ""}`} />
+            {syncingSpends ? "Синхронизация..." : "Синхр. спендов в Страны"}
+          </button>
         </div>
       </div>
+
+      {spendSyncResult && (
+        <div className={`mb-6 p-4 rounded-lg border ${spendSyncResult.success ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+          <div className="flex items-center gap-2 mb-2">
+            {spendSyncResult.success ? (
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            )}
+            <span className="font-medium">Спенды синхронизированы в Страны:</span>
+          </div>
+          <div className="text-sm space-y-1">
+            {spendSyncResult.results.map((r, i) => (
+              <div key={i} className="text-green-700">
+                {r.agency} → {r.country}: {r.daysUpdated} дней, {formatMoney(r.totalSpend)}
+              </div>
+            ))}
+            {spendSyncResult.results.length === 0 && (
+              <div className="text-slate-500">Нет данных для синхронизации</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {syncResult && (
         <div className={`mb-6 p-4 rounded-lg border ${syncResult.success ? "bg-green-50 border-green-200" : "bg-yellow-50 border-yellow-200"}`}>
