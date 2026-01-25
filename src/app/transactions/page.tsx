@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Sidebar } from "@/components/layout/sidebar";
 import { ArrowDownCircle, ArrowUpCircle, Filter, RefreshCw, ExternalLink } from "lucide-react";
 
 interface Transaction {
@@ -157,10 +156,7 @@ export default function TransactionsPage() {
     .reduce((sum, tx) => sum + tx.amount, 0);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 ml-64 p-8">
-        <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-slate-900">
               История транзакций
@@ -421,8 +417,6 @@ export default function TransactionsPage() {
               </>
             )}
           </div>
-        </div>
-      </main>
     </div>
   );
 }
