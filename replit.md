@@ -142,9 +142,10 @@ A financial dashboard application for D7 Team, tracking revenue, expenses, and p
   - Balance syncs automatically when clicking sync button on dashboard
 - **BEP20 (BSC) Network Support**:
   - Switched from TRC20 (TRON) to BEP20 (Binance Smart Chain) for transaction tracking
-  - Uses BSCScan API for detecting incoming/outgoing USDT transfers
+  - Uses Moralis API for detecting incoming/outgoing USDT transfers (free tier)
   - Country wallets use Trust Wallet BEP20 addresses
   - Exchange deposit address: 0x8cd0f0f43fb2705b16f32a5c0e5f2f1c63ae1fda
+  - Requires MORALIS_API_KEY secret
 - **Enhanced Wallet Integration with Expense & Balance Tracking**:
   - Store main wallet address in Settings > Кошелёк tab
   - Auto-sync wallet balance every 60 seconds
