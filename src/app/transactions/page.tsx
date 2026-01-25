@@ -232,16 +232,23 @@ export default function TransactionsPage() {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const response = await fetch("/api/wallet/sync", {
-        method: "POST",
-      });
-      const data = await response.json();
-      setSyncResult(data);
+      const [walletResponse, htxResponse] = await Promise.all([
+        fetch("/api/wallet/sync", { method: "POST" }),
+        fetch("/api/htx/transactions", { method: "POST" }),
+      ]);
       
-      if (data.success) {
-        await fetchTransactions();
-        await fetchHTXTransactions();
-      }
+      const walletData = await walletResponse.json();
+      const htxData = await htxResponse.json();
+      
+      setSyncResult({
+        ...walletData,
+        htxSynced: htxData.synced || 0,
+      });
+      
+      await Promise.all([
+        fetchTransactions(),
+        fetchHTXTransactions(),
+      ]);
     } catch (error) {
       console.error("Error syncing:", error);
       setSyncResult({ success: false, moralisEnabled: false, moralisIncoming: 0, moralisOutgoing: 0, newTransactions: 0 });
@@ -400,29 +407,35 @@ export default function TransactionsPage() {
                 <Filter className="w-4 h-4 text-slate-500" />
                 <span className="text-sm font-medium text-slate-700">Фильтры:</span>
               </div>
-              
-              <select
-                value={htxFilters.countryId}
-                onChange={(e) => setHtxFilters(prev => ({ ...prev, countryId: e.target.value }))}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Все страны</option>
-                {htxCountries.map((country) => (
-                  <option key={country.id} value={country.id}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
 
               <select
                 value={htxFilters.type}
-                onChange={(e) => setHtxFilters(prev => ({ ...prev, type: e.target.value }))}
+                onChange={(e) => setHtxFilters(prev => ({ 
+                  ...prev, 
+                  type: e.target.value,
+                  countryId: e.target.value === "withdraw" ? "" : prev.countryId
+                }))}
                 className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Все типы</option>
                 <option value="deposit">Депозиты</option>
                 <option value="withdraw">Выводы</option>
               </select>
+              
+              {htxFilters.type !== "withdraw" && (
+                <select
+                  value={htxFilters.countryId}
+                  onChange={(e) => setHtxFilters(prev => ({ ...prev, countryId: e.target.value, type: e.target.value ? "deposit" : prev.type }))}
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Все страны (депозиты)</option>
+                  {htxCountries.map((country) => (
+                    <option key={country.id} value={country.id}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               {(htxFilters.countryId || htxFilters.type) && (
                 <button

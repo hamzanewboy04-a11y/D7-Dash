@@ -12,69 +12,11 @@ export async function GET(request: Request) {
     const countryFilter = searchParams.get("countryId") || "";
     const typeFilter = searchParams.get("type") || "";
 
-    const apiKey = process.env.HTX_API_KEY;
-    const secretKey = process.env.HTX_SECRET_KEY;
-
-    const countryWallets = await prisma.countryWallet.findMany({
-      where: { isActive: true },
-      include: { country: { select: { id: true, name: true, code: true } } },
-    });
-
-    const addressToCountry = new Map<string, { id: string; name: string; code: string }>();
-    for (const wallet of countryWallets) {
-      addressToCountry.set(wallet.address.toLowerCase(), wallet.country);
-    }
-
-    let apiDeposits: HTXDepositWithdraw[] = [];
-    let apiWithdrawals: HTXDepositWithdraw[] = [];
-
-    if (apiKey && secretKey) {
-      try {
-        const result = await getHTXUSDTTransactions(apiKey, secretKey);
-        apiDeposits = result.deposits;
-        apiWithdrawals = result.withdrawals;
-
-        for (const tx of [...apiDeposits, ...apiWithdrawals]) {
-          const address = tx.address?.toLowerCase() || "";
-          const matchedCountry = addressToCountry.get(address) || null;
-          
-          await prisma.htxTransaction.upsert({
-            where: { htxId: tx.id },
-            update: {
-              state: tx.state,
-              htxUpdatedAt: new Date(tx['updated-at']),
-              countryId: matchedCountry?.id || null,
-              countryName: matchedCountry?.name || null,
-              countryCode: matchedCountry?.code || null,
-            },
-            create: {
-              htxId: tx.id,
-              type: tx.type,
-              currency: tx.currency.toUpperCase(),
-              txHash: tx['tx-hash'] || null,
-              chain: tx.chain,
-              amount: tx.amount,
-              address: tx.address || null,
-              fee: tx.fee || 0,
-              state: tx.state,
-              htxCreatedAt: new Date(tx['created-at']),
-              htxUpdatedAt: new Date(tx['updated-at']),
-              countryId: matchedCountry?.id || null,
-              countryName: matchedCountry?.name || null,
-              countryCode: matchedCountry?.code || null,
-            },
-          });
-        }
-      } catch (apiError) {
-        console.error("HTX API error (will use cached data):", apiError);
-      }
-    }
-
     const whereClause: Record<string, unknown> = {};
     if (countryFilter) {
       whereClause.countryId = countryFilter;
-    }
-    if (typeFilter === "deposit" || typeFilter === "withdraw") {
+      whereClause.type = "deposit";
+    } else if (typeFilter === "deposit" || typeFilter === "withdraw") {
       whereClause.type = typeFilter;
     }
 
@@ -112,11 +54,16 @@ export async function GET(request: Request) {
         fee: tx.fee,
         state: tx.state,
         createdAt: tx.htxCreatedAt.toISOString(),
-        country: tx.countryId ? { id: tx.countryId, name: tx.countryName!, code: tx.countryCode! } : null,
+        country: null,
       }));
 
-    const allDeposits = await prisma.htxTransaction.findMany({ where: { type: "deposit" } });
-    const allWithdrawals = await prisma.htxTransaction.findMany({ where: { type: "withdraw" } });
+    const totalStats = await prisma.htxTransaction.groupBy({
+      by: ['type'],
+      _sum: { amount: true },
+    });
+
+    const totalDeposits = totalStats.find(s => s.type === 'deposit')?._sum.amount || 0;
+    const totalWithdrawals = totalStats.find(s => s.type === 'withdraw')?._sum.amount || 0;
 
     const countries = await prisma.country.findMany({
       select: { id: true, name: true, code: true },
@@ -126,12 +73,11 @@ export async function GET(request: Request) {
     return NextResponse.json({
       deposits,
       withdrawals,
-      totalDeposits: allDeposits.reduce((sum, tx) => sum + tx.amount, 0),
-      totalWithdrawals: allWithdrawals.reduce((sum, tx) => sum + tx.amount, 0),
+      totalDeposits,
+      totalWithdrawals,
       totalCount: allTransactions.length,
       countries,
       fetchedAt: new Date().toISOString(),
-      apiConnected: !!(apiKey && secretKey),
     });
   } catch (error) {
     console.error("Error fetching HTX transactions:", error);
@@ -140,6 +86,129 @@ export async function GET(request: Request) {
         error: "Ошибка получения транзакций HTX: " + String(error),
         deposits: [],
         withdrawals: [],
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST() {
+  try {
+    const authError = await requireAuth();
+    if (authError) return authError;
+
+    const apiKey = process.env.HTX_API_KEY;
+    const secretKey = process.env.HTX_SECRET_KEY;
+
+    if (!apiKey || !secretKey) {
+      return NextResponse.json({
+        error: "HTX API ключи не настроены",
+        synced: 0,
+      }, { status: 400 });
+    }
+
+    await prisma.htxTransaction.updateMany({
+      where: {
+        type: "withdraw",
+        OR: [
+          { countryId: { not: null } },
+          { countryName: { not: null } },
+          { countryCode: { not: null } },
+        ],
+      },
+      data: {
+        countryId: null,
+        countryName: null,
+        countryCode: null,
+      },
+    });
+
+    const countryWallets = await prisma.countryWallet.findMany({
+      where: { isActive: true },
+      include: { country: { select: { id: true, name: true, code: true } } },
+    });
+
+    const addressToCountry = new Map<string, { id: string; name: string; code: string }>();
+    for (const wallet of countryWallets) {
+      addressToCountry.set(wallet.address.toLowerCase(), wallet.country);
+    }
+
+    const { deposits, withdrawals } = await getHTXUSDTTransactions(apiKey, secretKey);
+
+    let synced = 0;
+
+    for (const tx of deposits) {
+      const address = tx.address?.toLowerCase() || "";
+      const matchedCountry = addressToCountry.get(address) || null;
+      
+      await prisma.htxTransaction.upsert({
+        where: { htxId: tx.id },
+        update: {
+          state: tx.state,
+          htxUpdatedAt: new Date(tx['updated-at']),
+          countryId: matchedCountry?.id || null,
+          countryName: matchedCountry?.name || null,
+          countryCode: matchedCountry?.code || null,
+        },
+        create: {
+          htxId: tx.id,
+          type: "deposit",
+          currency: tx.currency.toUpperCase(),
+          txHash: tx['tx-hash'] || null,
+          chain: tx.chain,
+          amount: tx.amount,
+          address: tx.address || null,
+          fee: tx.fee || 0,
+          state: tx.state,
+          htxCreatedAt: new Date(tx['created-at']),
+          htxUpdatedAt: new Date(tx['updated-at']),
+          countryId: matchedCountry?.id || null,
+          countryName: matchedCountry?.name || null,
+          countryCode: matchedCountry?.code || null,
+        },
+      });
+      synced++;
+    }
+
+    for (const tx of withdrawals) {
+      await prisma.htxTransaction.upsert({
+        where: { htxId: tx.id },
+        update: {
+          state: tx.state,
+          htxUpdatedAt: new Date(tx['updated-at']),
+        },
+        create: {
+          htxId: tx.id,
+          type: "withdraw",
+          currency: tx.currency.toUpperCase(),
+          txHash: tx['tx-hash'] || null,
+          chain: tx.chain,
+          amount: tx.amount,
+          address: tx.address || null,
+          fee: tx.fee || 0,
+          state: tx.state,
+          htxCreatedAt: new Date(tx['created-at']),
+          htxUpdatedAt: new Date(tx['updated-at']),
+          countryId: null,
+          countryName: null,
+          countryCode: null,
+        },
+      });
+      synced++;
+    }
+
+    return NextResponse.json({
+      success: true,
+      synced,
+      deposits: deposits.length,
+      withdrawals: withdrawals.length,
+    });
+  } catch (error) {
+    console.error("Error syncing HTX transactions:", error);
+    return NextResponse.json(
+      { 
+        error: "Ошибка синхронизации HTX: " + String(error),
+        synced: 0,
       },
       { status: 500 }
     );
