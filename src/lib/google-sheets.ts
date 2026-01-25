@@ -106,19 +106,21 @@ export async function getCrossgifData(
     const dailySpends: { date: string; amount: number }[] = [];
     const desks: { name: string; id: string; canUse: number }[] = [];
 
-    const headerRow = rows[2] || [];
-    const summaryRow = rows[3] || [];
+    const dateRow = rows[0] || [];
+    const totalsRow = rows[2] || [];
+    const balanceRow = rows[3] || [];
     
     // Column F (index 5) = "Can Use", Column G (index 6) = "The remaining balance" (actual balance)
-    canUseBalance = parseNumber(summaryRow[5]);
-    remainingBalance = parseNumber(summaryRow[6]);
+    canUseBalance = parseNumber(balanceRow[5]);
+    remainingBalance = parseNumber(balanceRow[6]);
     
-    // Daily spends start from column L (index 11) - dates like 1/1, 2/1, 3/1, etc.
-    // Row 3 has dates, Row 4 has totals
+    // Row 1 (index 0) has dates: 1/1, 2/1, 3/1, etc.
+    // Row 3 (index 2) has totals: 0.00$, 0.00$, 368.08$, etc.
+    // Daily spends start from column L (index 11)
     const dateStartCol = 11;
-    for (let i = dateStartCol; i < Math.max(headerRow.length, summaryRow.length); i++) {
-      const dateLabel = headerRow[i];
-      const spendValue = parseNumber(summaryRow[i]);
+    for (let i = dateStartCol; i < Math.max(dateRow.length, totalsRow.length); i++) {
+      const dateLabel = dateRow[i];
+      const spendValue = parseNumber(totalsRow[i]);
       // Include all dates (match format like 1/1, 22/1, etc.)
       if (dateLabel && String(dateLabel).match(/\d+\/\d+/)) {
         dailySpends.push({
