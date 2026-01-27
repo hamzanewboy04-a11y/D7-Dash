@@ -143,7 +143,20 @@ export async function ensureDefaultAdmin(): Promise<void> {
   });
 
   if (!adminExists) {
-    const passwordHash = await hashPassword("admin123");
+    const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
+    
+    if (!initialPassword) {
+      throw new Error(
+        'INITIAL_ADMIN_PASSWORD environment variable is required to create the default admin user. ' +
+        'Please set it in your .env file.'
+      );
+    }
+
+    if (initialPassword.length < 8) {
+      throw new Error('INITIAL_ADMIN_PASSWORD must be at least 8 characters long');
+    }
+
+    const passwordHash = await hashPassword(initialPassword);
     await prisma.user.create({
       data: {
         username: "admin",
@@ -152,7 +165,8 @@ export async function ensureDefaultAdmin(): Promise<void> {
         mustChangePassword: true,
       },
     });
-    console.log("Default admin user created: admin / admin123");
+    console.log("Default admin user created with username: admin");
+    console.log("IMPORTANT: Please change the default password immediately after first login!");
   }
 }
 

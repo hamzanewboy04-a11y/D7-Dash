@@ -44,9 +44,11 @@ export async function POST(request: NextRequest) {
     cookieStore.set("d7_session", token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? "none" : "lax",
+      // Use 'strict' for better CSRF protection in production
+      // Use 'lax' in development for easier testing
+      sameSite: isProduction ? "strict" : "lax",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     return NextResponse.json({
