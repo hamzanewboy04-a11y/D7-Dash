@@ -2,20 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession, ensureDefaultAdmin } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { validateBody, loginSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
     await ensureDefaultAdmin();
 
     const body = await request.json();
-    const { username, password } = body;
-
-    if (!username || !password) {
+    
+    // Validate input
+    const validation = validateBody(loginSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "Имя пользователя и пароль обязательны" },
+        { error: validation.error },
         { status: 400 }
       );
     }
+
+    const { username, password } = validation.data;
 
     const user = await prisma.user.findUnique({
       where: { username },

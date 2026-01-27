@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { calculateAllMetrics } from "@/lib/calculations";
 import { getCurrentUser, canEdit } from "@/lib/auth";
+import { validateBody, createMetricsSchema } from "@/lib/validation";
 
 // GET /api/metrics - Get metrics with optional filters
 export async function GET(request: Request) {
@@ -87,6 +88,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    
+    // Validate input
+    const validation = validateBody(createMetricsSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const {
       date,
       countryId,
@@ -112,14 +123,7 @@ export async function POST(request: Request) {
       adAccountBalanceFact,
       balancePriemkaFact,
       balanceOwnFact,
-    } = body;
-
-    if (!date || !countryId) {
-      return NextResponse.json(
-        { error: "Date and countryId are required" },
-        { status: 400 }
-      );
-    }
+    } = validation.data;
 
     // Calculate spends from ad accounts
     let spendTrust = 0;
@@ -148,12 +152,12 @@ export async function POST(request: Request) {
       spendTrust,
       spendCrossgif,
       spendFbm,
-      revenueLocalPriemka: revenueLocalPriemka || 0,
-      revenueUsdtPriemka: revenueUsdtPriemka || 0,
-      revenueLocalOwn: revenueLocalOwn || 0,
-      revenueUsdtOwn: revenueUsdtOwn || 0,
-      fdCount: fdCount || 0,
-      fdSumLocal: fdSumLocal || 0,
+      revenueLocalPriemka,
+      revenueUsdtPriemka,
+      revenueLocalOwn,
+      revenueUsdtOwn,
+      fdCount,
+      fdSumLocal,
       payrollContent,
       payrollReviews,
       payrollDesigner,
@@ -168,57 +172,57 @@ export async function POST(request: Request) {
         date: new Date(date),
         countryId,
         // Balances
-        adAccountBalanceFact: adAccountBalanceFact || 0,
-        adAccountDeposit: adSpends?.reduce((sum: number, s: { deposit?: number }) => sum + (s.deposit || 0), 0) || 0,
+        adAccountBalanceFact,
+        adAccountDeposit: adSpends?.reduce((sum, s) => sum + s.deposit, 0) || 0,
         // Spend
         totalSpend: calculated.totalSpend,
         agencyFee: calculated.agencyFee,
         // Revenue Priemka
-        revenueLocalPriemka: revenueLocalPriemka || 0,
-        revenueUsdtPriemka: revenueUsdtPriemka || 0,
+        revenueLocalPriemka,
+        revenueUsdtPriemka,
         exchangeRatePriemka: calculated.exchangeRatePriemka,
         commissionPriemka: calculated.commissionPriemka,
         // Revenue Own
-        revenueLocalOwn: revenueLocalOwn || 0,
-        revenueUsdtOwn: revenueUsdtOwn || 0,
+        revenueLocalOwn,
+        revenueUsdtOwn,
         exchangeRateOwn: calculated.exchangeRateOwn,
         // Totals
         totalRevenueUsdt: calculated.totalRevenueUsdt,
         totalExpensesUsdt: calculated.totalExpensesUsdt,
         expensesWithoutSpend: calculated.expensesWithoutSpend,
         // Balances
-        balancePriemkaFact: balancePriemkaFact || 0,
-        balanceOwnFact: balanceOwnFact || 0,
+        balancePriemkaFact,
+        balanceOwnFact,
         // FD/RD
-        fdCount: fdCount || 0,
-        fdSumLocal: fdSumLocal || 0,
+        fdCount,
+        fdSumLocal,
         fdSumUsdt: calculated.fdSumUsdt,
         rdSumLocal: calculated.rdSumLocal,
         rdSumUsdt: calculated.rdSumUsdt,
         // Payroll
         payrollRdHandler: calculated.payrollRdHandler,
         payrollFdHandler: calculated.payrollFdHandler,
-        payrollContent: payrollContent || 0,
-        payrollReviews: payrollReviews || 0,
-        payrollDesigner: payrollDesigner || 0,
+        payrollContent,
+        payrollReviews,
+        payrollDesigner,
         payrollBuyer: calculated.payrollBuyer,
-        payrollHeadDesigner: payrollHeadDesigner || 10,
+        payrollHeadDesigner,
         totalPayroll: calculated.totalPayroll,
         // Additional
-        chatterfyCost: chatterfyCost || 0,
-        additionalExpenses: additionalExpenses || 0,
+        chatterfyCost,
+        additionalExpenses,
         // Profit
         netProfitMath: calculated.netProfitMath,
         roi: calculated.roi,
         // Create ad spend records
         dailyAdSpends: adSpends
           ? {
-              create: adSpends.map((s: { adAccountId: string; spend?: number; deposit?: number; balance?: number }) => ({
+              create: adSpends.map((s) => ({
                 date: new Date(date),
                 adAccountId: s.adAccountId,
-                spend: s.spend || 0,
-                deposit: s.deposit || 0,
-                balance: s.balance || 0,
+                spend: s.spend,
+                deposit: s.deposit,
+                balance: s.balance,
               })),
             }
           : undefined,
