@@ -149,6 +149,15 @@ export function handleZodError(error: ZodError): AppError {
 }
 
 /**
+ * Helper to include details only in development mode
+ */
+function includeDetailsInDev(details: unknown): { details?: unknown } {
+  return process.env.NODE_ENV === 'development' && details 
+    ? { details } 
+    : {};
+}
+
+/**
  * Handle all errors and return appropriate NextResponse
  */
 export function handleApiError(error: unknown, context: string): NextResponse {
@@ -160,9 +169,7 @@ export function handleApiError(error: unknown, context: string): NextResponse {
       {
         error: error.message,
         type: error.type,
-        ...(process.env.NODE_ENV === 'development' && error.details 
-          ? { details: error.details } 
-          : {}),
+        ...includeDetailsInDev(error.details),
       },
       { status: error.statusCode }
     );
@@ -175,9 +182,7 @@ export function handleApiError(error: unknown, context: string): NextResponse {
       {
         error: appError.message,
         type: appError.type,
-        ...(process.env.NODE_ENV === 'development' && appError.details 
-          ? { details: appError.details } 
-          : {}),
+        ...includeDetailsInDev(appError.details),
       },
       { status: appError.statusCode }
     );
@@ -193,9 +198,7 @@ export function handleApiError(error: unknown, context: string): NextResponse {
       {
         error: appError.message,
         type: appError.type,
-        ...(process.env.NODE_ENV === 'development' && appError.details 
-          ? { details: appError.details } 
-          : {}),
+        ...includeDetailsInDev(appError.details),
       },
       { status: appError.statusCode }
     );
@@ -207,9 +210,7 @@ export function handleApiError(error: unknown, context: string): NextResponse {
       {
         error: 'Внутренняя ошибка сервера',
         type: ErrorType.INTERNAL,
-        ...(process.env.NODE_ENV === 'development' 
-          ? { details: { message: error.message, stack: error.stack } } 
-          : {}),
+        ...includeDetailsInDev({ message: error.message, stack: error.stack }),
       },
       { status: 500 }
     );

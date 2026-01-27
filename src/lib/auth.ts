@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import crypto from "crypto";
+import { passwordRequirementsSchema } from "./validation";
 
 const SESSION_COOKIE_NAME = "d7_session";
 const SESSION_EXPIRY_DAYS = 7;
@@ -152,8 +153,13 @@ export async function ensureDefaultAdmin(): Promise<void> {
       );
     }
 
-    if (initialPassword.length < 8) {
-      throw new Error('INITIAL_ADMIN_PASSWORD must be at least 8 characters long');
+    // Validate password using the same schema as password changes
+    const passwordValidation = passwordRequirementsSchema.safeParse(initialPassword);
+    if (!passwordValidation.success) {
+      const errors = passwordValidation.error.errors.map(e => e.message).join(', ');
+      throw new Error(
+        `INITIAL_ADMIN_PASSWORD does not meet security requirements: ${errors}`
+      );
     }
 
     const passwordHash = await hashPassword(initialPassword);
