@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { calculateAllMetrics } from "@/lib/calculations";
 import { getCurrentUser, canEdit } from "@/lib/auth";
 import { validateBody, createMetricsSchema } from "@/lib/validation";
+import { asyncHandler, forbiddenError, validationError } from "@/lib/errors";
 
 // GET /api/metrics - Get metrics with optional filters
 export async function GET(request: Request) {
@@ -77,168 +78,154 @@ export async function GET(request: Request) {
 }
 
 // POST /api/metrics - Create daily metrics
-export async function POST(request: Request) {
-  try {
-    const user = await getCurrentUser();
-    if (!user || !canEdit(user)) {
-      return NextResponse.json(
-        { error: "Недостаточно прав для выполнения операции" },
-        { status: 403 }
-      );
-    }
+export const POST = asyncHandler('POST /api/metrics', async (request: Request) => {
+  const user = await getCurrentUser();
+  if (!user || !canEdit(user)) {
+    throw forbiddenError();
+  }
 
-    const body = await request.json();
-    
-    // Validate input
-    const validation = validateBody(createMetricsSchema, body);
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
-    }
+  const body = await request.json();
+  
+  // Validate input
+  const validation = validateBody(createMetricsSchema, body);
+  if (!validation.success) {
+    throw validationError(validation.error);
+  }
 
-    const {
-      date,
-      countryId,
-      // Ad spends by account
-      adSpends, // Array of { adAccountId, spend, deposit, balance }
-      // Revenue
-      revenueLocalPriemka,
-      revenueUsdtPriemka,
-      revenueLocalOwn,
-      revenueUsdtOwn,
-      // FD data
-      fdCount,
-      fdSumLocal,
-      // Manual payroll
-      payrollContent,
-      payrollReviews,
-      payrollDesigner,
-      payrollHeadDesigner,
-      // Additional
-      chatterfyCost,
-      additionalExpenses,
-      // Balance facts (manual input)
-      adAccountBalanceFact,
-      balancePriemkaFact,
-      balanceOwnFact,
-    } = validation.data;
+  const {
+    date,
+    countryId,
+    // Ad spends by account
+    adSpends, // Array of { adAccountId, spend, deposit, balance }
+    // Revenue
+    revenueLocalPriemka,
+    revenueUsdtPriemka,
+    revenueLocalOwn,
+    revenueUsdtOwn,
+    // FD data
+    fdCount,
+    fdSumLocal,
+    // Manual payroll
+    payrollContent,
+    payrollReviews,
+    payrollDesigner,
+    payrollHeadDesigner,
+    // Additional
+    chatterfyCost,
+    additionalExpenses,
+    // Balance facts (manual input)
+    adAccountBalanceFact,
+    balancePriemkaFact,
+    balanceOwnFact,
+  } = validation.data;
 
-    // Calculate spends from ad accounts
-    let spendTrust = 0;
-    let spendCrossgif = 0;
-    let spendFbm = 0;
+  // Calculate spends from ad accounts
+  let spendTrust = 0;
+  let spendCrossgif = 0;
+  let spendFbm = 0;
 
-    if (adSpends && Array.isArray(adSpends)) {
-      for (const adSpend of adSpends) {
-        const account = await prisma.adAccount.findUnique({
-          where: { id: adSpend.adAccountId },
-        });
-        if (account) {
-          if (account.name.toUpperCase().includes("TRUST")) {
-            spendTrust += adSpend.spend || 0;
-          } else if (account.name.toUpperCase().includes("CROSSGIF") || account.name.toUpperCase().includes("КРОСГИФ")) {
-            spendCrossgif += adSpend.spend || 0;
-          } else if (account.name.toUpperCase().includes("FBM")) {
-            spendFbm += adSpend.spend || 0;
-          }
+  if (adSpends && Array.isArray(adSpends)) {
+    for (const adSpend of adSpends) {
+      const account = await prisma.adAccount.findUnique({
+        where: { id: adSpend.adAccountId },
+      });
+      if (account) {
+        if (account.name.toUpperCase().includes("TRUST")) {
+          spendTrust += adSpend.spend || 0;
+        } else if (account.name.toUpperCase().includes("CROSSGIF") || account.name.toUpperCase().includes("КРОСГИФ")) {
+          spendCrossgif += adSpend.spend || 0;
+        } else if (account.name.toUpperCase().includes("FBM")) {
+          spendFbm += adSpend.spend || 0;
         }
       }
     }
+  }
 
-    // Calculate all derived metrics
-    const calculated = calculateAllMetrics({
-      spendTrust,
-      spendCrossgif,
-      spendFbm,
+  // Calculate all derived metrics
+  const calculated = calculateAllMetrics({
+    spendTrust,
+    spendCrossgif,
+    spendFbm,
+    revenueLocalPriemka,
+    revenueUsdtPriemka,
+    revenueLocalOwn,
+    revenueUsdtOwn,
+    fdCount,
+    fdSumLocal,
+    payrollContent,
+    payrollReviews,
+    payrollDesigner,
+    payrollHeadDesigner,
+    chatterfyCost,
+    additionalExpenses,
+  });
+
+  // Create the daily metrics record
+  const metrics = await prisma.dailyMetrics.create({
+    data: {
+      date: new Date(date),
+      countryId,
+      // Balances
+      adAccountBalanceFact,
+      adAccountDeposit: adSpends?.reduce((sum, s) => sum + s.deposit, 0) || 0,
+      // Spend
+      totalSpend: calculated.totalSpend,
+      agencyFee: calculated.agencyFee,
+      // Revenue Priemka
       revenueLocalPriemka,
       revenueUsdtPriemka,
+      exchangeRatePriemka: calculated.exchangeRatePriemka,
+      commissionPriemka: calculated.commissionPriemka,
+      // Revenue Own
       revenueLocalOwn,
       revenueUsdtOwn,
+      exchangeRateOwn: calculated.exchangeRateOwn,
+      // Totals
+      totalRevenueUsdt: calculated.totalRevenueUsdt,
+      totalExpensesUsdt: calculated.totalExpensesUsdt,
+      expensesWithoutSpend: calculated.expensesWithoutSpend,
+      // Balances
+      balancePriemkaFact,
+      balanceOwnFact,
+      // FD/RD
       fdCount,
       fdSumLocal,
+      fdSumUsdt: calculated.fdSumUsdt,
+      rdSumLocal: calculated.rdSumLocal,
+      rdSumUsdt: calculated.rdSumUsdt,
+      // Payroll
+      payrollRdHandler: calculated.payrollRdHandler,
+      payrollFdHandler: calculated.payrollFdHandler,
       payrollContent,
       payrollReviews,
       payrollDesigner,
+      payrollBuyer: calculated.payrollBuyer,
       payrollHeadDesigner,
+      totalPayroll: calculated.totalPayroll,
+      // Additional
       chatterfyCost,
       additionalExpenses,
-    });
+      // Profit
+      netProfitMath: calculated.netProfitMath,
+      roi: calculated.roi,
+      // Create ad spend records
+      dailyAdSpends: adSpends
+        ? {
+            create: adSpends.map((s) => ({
+              date: new Date(date),
+              adAccountId: s.adAccountId,
+              spend: s.spend,
+              deposit: s.deposit,
+              balance: s.balance,
+            })),
+          }
+        : undefined,
+    },
+    include: {
+      country: true,
+      dailyAdSpends: true,
+    },
+  });
 
-    // Create the daily metrics record
-    const metrics = await prisma.dailyMetrics.create({
-      data: {
-        date: new Date(date),
-        countryId,
-        // Balances
-        adAccountBalanceFact,
-        adAccountDeposit: adSpends?.reduce((sum, s) => sum + s.deposit, 0) || 0,
-        // Spend
-        totalSpend: calculated.totalSpend,
-        agencyFee: calculated.agencyFee,
-        // Revenue Priemka
-        revenueLocalPriemka,
-        revenueUsdtPriemka,
-        exchangeRatePriemka: calculated.exchangeRatePriemka,
-        commissionPriemka: calculated.commissionPriemka,
-        // Revenue Own
-        revenueLocalOwn,
-        revenueUsdtOwn,
-        exchangeRateOwn: calculated.exchangeRateOwn,
-        // Totals
-        totalRevenueUsdt: calculated.totalRevenueUsdt,
-        totalExpensesUsdt: calculated.totalExpensesUsdt,
-        expensesWithoutSpend: calculated.expensesWithoutSpend,
-        // Balances
-        balancePriemkaFact,
-        balanceOwnFact,
-        // FD/RD
-        fdCount,
-        fdSumLocal,
-        fdSumUsdt: calculated.fdSumUsdt,
-        rdSumLocal: calculated.rdSumLocal,
-        rdSumUsdt: calculated.rdSumUsdt,
-        // Payroll
-        payrollRdHandler: calculated.payrollRdHandler,
-        payrollFdHandler: calculated.payrollFdHandler,
-        payrollContent,
-        payrollReviews,
-        payrollDesigner,
-        payrollBuyer: calculated.payrollBuyer,
-        payrollHeadDesigner,
-        totalPayroll: calculated.totalPayroll,
-        // Additional
-        chatterfyCost,
-        additionalExpenses,
-        // Profit
-        netProfitMath: calculated.netProfitMath,
-        roi: calculated.roi,
-        // Create ad spend records
-        dailyAdSpends: adSpends
-          ? {
-              create: adSpends.map((s) => ({
-                date: new Date(date),
-                adAccountId: s.adAccountId,
-                spend: s.spend,
-                deposit: s.deposit,
-                balance: s.balance,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        country: true,
-        dailyAdSpends: true,
-      },
-    });
-
-    return NextResponse.json(metrics, { status: 201 });
-  } catch (error) {
-    console.error("Error creating metrics:", error);
-    return NextResponse.json(
-      { error: "Failed to create metrics" },
-      { status: 500 }
-    );
-  }
-}
+  return NextResponse.json(metrics, { status: 201 });
+});
