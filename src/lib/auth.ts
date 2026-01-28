@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import crypto from "crypto";
+import { passwordRequirementsSchema } from "./validation";
 
 const SESSION_COOKIE_NAME = "d7_session";
 const SESSION_EXPIRY_DAYS = 7;
@@ -143,7 +144,25 @@ export async function ensureDefaultAdmin(): Promise<void> {
   });
 
   if (!adminExists) {
-    const passwordHash = await hashPassword("admin123");
+    const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
+    
+    if (!initialPassword) {
+      throw new Error(
+        'INITIAL_ADMIN_PASSWORD environment variable is required to create the default admin user. ' +
+        'Please set it in your .env file.'
+      );
+    }
+
+    // Validate password using the same schema as password changes
+    const passwordValidation = passwordRequirementsSchema.safeParse(initialPassword);
+    if (!passwordValidation.success) {
+      const errors = passwordValidation.error.errors.map(e => e.message).join(', ');
+      throw new Error(
+        `INITIAL_ADMIN_PASSWORD does not meet security requirements: ${errors}`
+      );
+    }
+
+    const passwordHash = await hashPassword(initialPassword);
     await prisma.user.create({
       data: {
         username: "admin",
@@ -152,7 +171,8 @@ export async function ensureDefaultAdmin(): Promise<void> {
         mustChangePassword: true,
       },
     });
-    console.log("Default admin user created: admin / admin123");
+    console.log("Default admin user created with username: admin");
+    console.log("IMPORTANT: Please change the default password immediately after first login!");
   }
 }
 
