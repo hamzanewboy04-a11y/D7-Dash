@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, Plus, Trash2, Play, Pause, Ban, Loader2, Check, RefreshCw, Target, Users, Shield, Edit, Key, Wallet } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
+import CountryCalculationSettings from "@/components/settings/country-calculation-settings";
 
 interface Country {
   id: string;
@@ -1623,6 +1624,9 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+          
+          {/* Country Calculation Settings */}
+          <CountryCalculationSettings countries={countries} />
         </TabsContent>
 
         {/* Goals & Achievements */}
