@@ -74,7 +74,18 @@ export default function CountryCalculationSettings({ countries }: { countries: C
       const response = await fetch(`/api/countries/settings?countryId=${countryId}`);
       if (response.ok) {
         const data = await response.json();
-        setSettings(data || { countryId });
+        if (data) {
+          // Convert decimal rates to percentages for display
+          const displayData = {
+            ...data,
+            priemkaCommissionRate: data.priemkaCommissionRate !== undefined ? data.priemkaCommissionRate * 100 : undefined,
+            buyerPayrollRate: data.buyerPayrollRate !== undefined ? data.buyerPayrollRate * 100 : undefined,
+            rdHandlerRate: data.rdHandlerRate !== undefined ? data.rdHandlerRate * 100 : undefined,
+          };
+          setSettings(displayData);
+        } else {
+          setSettings({ countryId });
+        }
       } else {
         setSettings({ countryId });
       }
