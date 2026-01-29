@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession, ensureDefaultAdmin } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { validateBody, loginSchema } from "@/lib/validation";
 import { asyncHandler, unauthorizedError, validationError } from "@/lib/errors";
 
-export const POST = asyncHandler('POST /api/auth/login', async (request: NextRequest) => {
+export const POST = asyncHandler('POST /api/auth/login', async (request: Request) => {
   await ensureDefaultAdmin();
 
   const body = await request.json();

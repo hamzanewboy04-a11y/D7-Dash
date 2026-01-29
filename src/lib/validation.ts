@@ -183,8 +183,8 @@ export const createPayrollSchema = z.object({
  */
 
 export const paginationSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1)).optional().default('1'),
-  limit: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1).max(100)).optional().default('50'),
+  page: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1)).optional().default(() => 1),
+  limit: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1).max(100)).optional().default(() => 50),
 });
 
 /**
@@ -200,7 +200,8 @@ export function validateBody<T>(
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      const errors = (error as any).errors || [];
+      const errorMessages = errors.map((err: any) => `${err.path?.join('.') || 'field'}: ${err.message}`).join(', ');
       return { success: false, error: errorMessages };
     }
     return { success: false, error: 'Validation failed' };
@@ -224,7 +225,8 @@ export function validateQuery<T>(
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+      const errors = (error as any).errors || [];
+      const errorMessages = errors.map((err: any) => `${err.path?.join('.') || 'field'}: ${err.message}`).join(', ');
       return { success: false, error: errorMessages };
     }
     return { success: false, error: 'Validation failed' };

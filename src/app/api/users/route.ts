@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         passwordHash,
         role,
         email: email || null,
-        allowedSections: Array.isArray(allowedSections) ? allowedSections : [],
+        allowedSections: Array.isArray(allowedSections) ? allowedSections.join(',') : "",
         mustChangePassword: false,
       },
       select: {
@@ -137,7 +137,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (Array.isArray(allowedSections)) {
-      updateData.allowedSections = allowedSections;
+      updateData.allowedSections = allowedSections.join(',');
     }
 
     const updatedUser = await prisma.user.update({

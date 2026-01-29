@@ -14,7 +14,7 @@ export interface AuthUser {
   role: UserRole;
   email: string | null;
   mustChangePassword: boolean;
-  allowedSections: string[];
+  allowedSections: string; // Comma-separated string
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -156,7 +156,7 @@ export async function ensureDefaultAdmin(): Promise<void> {
     // Validate password using the same schema as password changes
     const passwordValidation = passwordRequirementsSchema.safeParse(initialPassword);
     if (!passwordValidation.success) {
-      const errors = passwordValidation.error.errors.map(e => e.message).join(', ');
+      const errors = (passwordValidation.error as any).errors?.map((e: any) => e.message).join(', ') || 'Invalid password';
       throw new Error(
         `INITIAL_ADMIN_PASSWORD does not meet security requirements: ${errors}`
       );
