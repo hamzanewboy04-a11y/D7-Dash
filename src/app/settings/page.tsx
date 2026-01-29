@@ -31,7 +31,7 @@ interface User {
   role: string;
   email: string | null;
   mustChangePassword: boolean;
-  allowedSections: string[];
+  allowedSections: string; // Comma-separated string
   createdAt: string;
 }
 
@@ -111,6 +111,16 @@ interface AgencyWallet {
   name: string | null;
   isActive: boolean;
 }
+
+// Helper functions for allowedSections conversion
+const sectionsToArray = (sections: string): string[] => {
+  if (!sections || sections.trim() === "") return [];
+  return sections.split(',').map(s => s.trim()).filter(Boolean);
+};
+
+const sectionsToString = (sections: string[]): string => {
+  return sections.join(',');
+};
 
 const ALL_SECTIONS = [
   { id: "dashboard", name: "Дашборд" },
@@ -1910,9 +1920,9 @@ export default function SettingsPage() {
                           <p className="text-sm text-slate-500">
                             {user.email || "Нет email"} • Создан: {new Date(user.createdAt).toLocaleDateString("ru")}
                           </p>
-                          {user.allowedSections && user.allowedSections.length > 0 && (
+                          {user.allowedSections && sectionsToArray(user.allowedSections).length > 0 && (
                             <p className="text-xs text-blue-600 mt-1">
-                              Доступ: {user.allowedSections.map(s => ALL_SECTIONS.find(sec => sec.id === s)?.name || s).join(", ")}
+                              Доступ: {sectionsToArray(user.allowedSections).map(s => ALL_SECTIONS.find(sec => sec.id === s)?.name || s).join(", ")}
                             </p>
                           )}
                         </div>
@@ -1928,7 +1938,7 @@ export default function SettingsPage() {
                             onClick={() => {
                               setEditingUser(user);
                               setEditRole(user.role);
-                              setEditAllowedSections(user.allowedSections || []);
+                              setEditAllowedSections(sectionsToArray(user.allowedSections));
                             }}
                             title="Редактировать"
                           >
