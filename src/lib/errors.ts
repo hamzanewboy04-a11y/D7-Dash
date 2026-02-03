@@ -136,15 +136,16 @@ export function handlePrismaError(error: unknown): AppError {
  * Convert Zod validation errors to AppError
  */
 export function handleZodError(error: ZodError): AppError {
-  const errorMessages = error.errors
-    .map(err => `${err.path.join('.')}: ${err.message}`)
+  const errors = (error as any).errors || [];
+  const errorMessages = errors
+    .map((err: any) => `${err.path?.join('.') || 'field'}: ${err.message}`)
     .join('; ');
   
   return new AppError(
     ErrorType.VALIDATION,
     errorMessages,
     400,
-    { errors: error.errors }
+    { errors }
   );
 }
 

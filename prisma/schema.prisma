@@ -30,6 +30,7 @@ model Country {
   cabinets     Cabinet[]
   priemkas     Priemka[]
   wallets      CountryWallet[]
+  countrySettings CountrySettings?
 }
 
 // Рекламные кабинеты (ТРАСТ, КРОССГИФ, FBM)
@@ -340,6 +341,38 @@ model Settings {
   updatedAt             DateTime @updatedAt
 }
 
+// Настройки по стране (для кастомизации расчётов)
+model CountrySettings {
+  id                     String   @id @default(cuid())
+  countryId              String   @unique
+  country                Country  @relation(fields: [countryId], references: [id])
+  
+  // Комиссии и ставки
+  priemkaCommissionRate  Float?   // Комиссия приёмки (по умолчанию 15%)
+  buyerPayrollRate       Float?   // Ставка баера (по умолчанию 12% от спенда)
+  rdHandlerRate          Float?   // Ставка обработчика РД (по умолчанию 4%)
+  
+  // ФД тиры
+  fdTier1Rate            Float?   // ФД Тир 1 (< 5) по умолчанию $3
+  fdTier2Rate            Float?   // ФД Тир 2 (5-10) по умолчанию $4
+  fdTier3Rate            Float?   // ФД Тир 3 (> 10) по умолчанию $5
+  fdBonusThreshold       Int?     // Порог бонуса ФД (по умолчанию 5)
+  fdBonus                Float?   // Сумма бонуса ФД (по умолчанию $15)
+  fdMultiplier           Float?   // Множитель ФД (по умолчанию 1.2)
+  
+  // Фиксированные ставки
+  headDesignerFixed      Float?   // Хед дизайнер фикс (по умолчанию $10)
+  contentFixedRate       Float?   // Контент фикс за день (по умолчанию $15)
+  designerFixedRate      Float?   // Дизайнер фикс (по умолчанию $20)
+  reviewerFixedRate      Float?   // Отзовик фикс (по умолчанию $10)
+  
+  // Дополнительные параметры
+  chatterfyCostDefault   Float?   // Стоимость Chatterfy по умолчанию
+  
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
 // Недельные сводки (агрегированные данные)
 model WeeklySummary {
   id              String   @id @default(cuid())
@@ -392,7 +425,7 @@ model User {
   role                String    @default("viewer") // admin, editor, viewer
   email               String?
   mustChangePassword  Boolean   @default(false)
-  allowedSections     String[]  @default([]) // Empty array means all sections allowed; sections: dashboard, countries, finance, payroll, import, data-entry, analytics, settings
+  allowedSections     String    @default("") // Empty string means all sections allowed; comma-separated sections: dashboard, countries, finance, payroll, import, data-entry, analytics, settings
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }

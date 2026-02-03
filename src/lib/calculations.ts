@@ -1,6 +1,24 @@
 // D7 Team Dashboard - Calculation Functions
 // Based on Google Sheets formulas
 
+// Country-specific settings for customizable calculations
+export interface CountryCalculationSettings {
+  priemkaCommissionRate?: number;  // Default 0.15 (15%)
+  buyerPayrollRate?: number;       // Default 0.12 (12%)
+  rdHandlerRate?: number;          // Default 0.04 (4%)
+  fdTier1Rate?: number;            // Default 3
+  fdTier2Rate?: number;            // Default 4
+  fdTier3Rate?: number;            // Default 5
+  fdBonusThreshold?: number;       // Default 5
+  fdBonus?: number;                // Default 15
+  fdMultiplier?: number;           // Default 1.2
+  headDesignerFixed?: number;      // Default 10
+  contentFixedRate?: number;       // Default 15
+  designerFixedRate?: number;      // Default 20
+  reviewerFixedRate?: number;      // Default 10
+  chatterfyCostDefault?: number;   // Default 0
+}
+
 export interface DailyMetricsInput {
   // Ad Account Spends
   spendTrust: number;
@@ -26,6 +44,9 @@ export interface DailyMetricsInput {
   payrollHeadDesigner?: number;
   chatterfyCost?: number;
   additionalExpenses?: number;
+  
+  // Optional country-specific settings
+  countrySettings?: CountryCalculationSettings;
 }
 
 export interface CalculatedMetrics {
@@ -78,9 +99,9 @@ export function calculateExchangeRate(local: number, usdt: number): number {
   return usdt > 0 ? local / usdt : 0;
 }
 
-// Комиссия приёмки: 15%
-export function calculatePriemkaCommission(revenueUsdtPriemka: number): number {
-  return revenueUsdtPriemka * 0.15;
+// Комиссия приёмки: 15% (или кастомное значение)
+export function calculatePriemkaCommission(revenueUsdtPriemka: number, rate: number = 0.15): number {
+  return revenueUsdtPriemka * rate;
 }
 
 // Общий доход USDT
@@ -98,31 +119,41 @@ export function calculateRdSum(revenueLocalOwn: number, fdSumLocal: number): num
   return revenueLocalOwn - fdSumLocal;
 }
 
-// ФОТ обраб РД: 4% от суммы
-export function calculatePayrollRdHandler(rdSumUsdt: number): number {
-  return rdSumUsdt * 0.04;
+// ФОТ обраб РД: 4% от суммы (или кастомное значение)
+export function calculatePayrollRdHandler(rdSumUsdt: number, rate: number = 0.04): number {
+  return rdSumUsdt * rate;
 }
 
-// ФОТ обраб ФД: тиры по количеству
+// ФОТ обраб ФД: тиры по количеству (с возможностью кастомизации)
 // До 5 → $3, 5-10 → $4, 10+ → $5, + бонус $15 если >= 5
 // Формула: (fdCount * IF(fdCount < 5, 3, IF(fdCount < 10, 4, 5)) + IF(fdCount >= 5, 15, 0)) * multiplier
-export function calculatePayrollFdHandler(fdCount: number, multiplier: number = 1.2): number {
+export function calculatePayrollFdHandler(
+  fdCount: number, 
+  settings?: CountryCalculationSettings
+): number {
+  const tier1Rate = settings?.fdTier1Rate ?? 3;
+  const tier2Rate = settings?.fdTier2Rate ?? 4;
+  const tier3Rate = settings?.fdTier3Rate ?? 5;
+  const bonusThreshold = settings?.fdBonusThreshold ?? 5;
+  const bonus = settings?.fdBonus ?? 15;
+  const multiplier = settings?.fdMultiplier ?? 1.2;
+
   let rate: number;
-  if (fdCount < 5) {
-    rate = 3;
+  if (fdCount < bonusThreshold) {
+    rate = tier1Rate;
   } else if (fdCount < 10) {
-    rate = 4;
+    rate = tier2Rate;
   } else {
-    rate = 5;
+    rate = tier3Rate;
   }
 
-  const bonus = fdCount >= 5 ? 15 : 0;
-  return (fdCount * rate + bonus) * multiplier;
+  const bonusAmount = fdCount >= bonusThreshold ? bonus : 0;
+  return (fdCount * rate + bonusAmount) * multiplier;
 }
 
-// ФОТ баер: 12% от спенда
-export function calculatePayrollBuyer(totalSpend: number): number {
-  return totalSpend * 0.12;
+// ФОТ баер: 12% от спенда (или кастомное значение)
+export function calculatePayrollBuyer(totalSpend: number, rate: number = 0.12): number {
+  return totalSpend * rate;
 }
 
 // ROI%
@@ -132,6 +163,8 @@ export function calculateRoi(totalRevenue: number, totalExpenses: number): numbe
 
 // Главная функция расчёта всех метрик
 export function calculateAllMetrics(input: DailyMetricsInput): CalculatedMetrics {
+  const settings = input.countrySettings;
+  
   // Basic calculations
   const totalSpend = calculateTotalSpend(input.spendTrust, input.spendCrossgif, input.spendFbm);
   const agencyFee = calculateAgencyFee(input.spendTrust, input.spendCrossgif, input.spendFbm);
@@ -140,8 +173,11 @@ export function calculateAllMetrics(input: DailyMetricsInput): CalculatedMetrics
   const exchangeRatePriemka = calculateExchangeRate(input.revenueLocalPriemka, input.revenueUsdtPriemka);
   const exchangeRateOwn = calculateExchangeRate(input.revenueLocalOwn, input.revenueUsdtOwn);
 
-  // Commissions
-  const commissionPriemka = calculatePriemkaCommission(input.revenueUsdtPriemka);
+  // Commissions (use country-specific rate if available)
+  const commissionPriemka = calculatePriemkaCommission(
+    input.revenueUsdtPriemka, 
+    settings?.priemkaCommissionRate ?? 0.15
+  );
 
   // Revenue
   const totalRevenueUsdt = calculateTotalRevenue(input.revenueUsdtPriemka, input.revenueUsdtOwn);
@@ -151,21 +187,27 @@ export function calculateAllMetrics(input: DailyMetricsInput): CalculatedMetrics
   const rdSumLocal = calculateRdSum(input.revenueLocalOwn, input.fdSumLocal);
   const rdSumUsdt = exchangeRateOwn > 0 ? rdSumLocal / exchangeRateOwn : 0;
 
-  // Payroll
-  const payrollRdHandler = calculatePayrollRdHandler(rdSumUsdt);
-  const payrollFdHandler = calculatePayrollFdHandler(input.fdCount);
-  const payrollBuyer = calculatePayrollBuyer(totalSpend);
+  // Payroll (use country-specific rates if available)
+  const payrollRdHandler = calculatePayrollRdHandler(
+    rdSumUsdt, 
+    settings?.rdHandlerRate ?? 0.04
+  );
+  const payrollFdHandler = calculatePayrollFdHandler(input.fdCount, settings);
+  const payrollBuyer = calculatePayrollBuyer(
+    totalSpend, 
+    settings?.buyerPayrollRate ?? 0.12
+  );
 
   const payrollContent = input.payrollContent ?? 0;
   const payrollReviews = input.payrollReviews ?? 0;
   const payrollDesigner = input.payrollDesigner ?? 0;
-  const payrollHeadDesigner = input.payrollHeadDesigner ?? 10; // Default $10
+  const payrollHeadDesigner = input.payrollHeadDesigner ?? (settings?.headDesignerFixed ?? 10);
 
   const totalPayroll = payrollRdHandler + payrollFdHandler + payrollBuyer +
                        payrollContent + payrollReviews + payrollDesigner + payrollHeadDesigner;
 
-  // Additional expenses
-  const chatterfyCost = input.chatterfyCost ?? 0;
+  // Additional expenses (use country-specific default if available)
+  const chatterfyCost = input.chatterfyCost ?? (settings?.chatterfyCostDefault ?? 0);
   const additionalExpenses = input.additionalExpenses ?? 0;
 
   // Total expenses: Commission + Spend + Agency Fee + Payroll + Additional
